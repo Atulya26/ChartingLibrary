@@ -1,0 +1,56 @@
+{
+  "name": "@charting-lab/react",
+  "version": "0.1.0",
+  "description": "A Figma-driven charting library prototype with Storybook for local npm development.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/index.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "dev": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev --port 6006 --host 0.0.0.0",
+    "storybook": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev --port 6006 --host 0.0.0.0",
+    "build-storybook": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "8.6.18",
+    "@storybook/addon-interactions": "8.6.18",
+    "@storybook/react-vite": "8.6.18",
+    "@storybook/test": "8.6.18",
+    "@types/d3-geo": "^3.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/topojson-client": "^3.1.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "storybook": "8.6.18",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.14"
+  },
+  "dependencies": {
+    "@innovaccer/design-system": "^4.22.0",
+    "d3-geo": "^3.1.1",
+    "topojson-client": "^3.1.0",
+    "us-atlas": "^3.0.1"
+  }
+}
