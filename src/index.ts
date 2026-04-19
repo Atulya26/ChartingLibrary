@@ -27,6 +27,11 @@ export type {
   MapBubblePoint,
   PointerScaleRange,
   ReferenceLine,
+  SankeyHighlightMode,
+  SankeyLink,
+  SankeyLinkColorMode,
+  SankeyNode,
+  SankeyNodeAlignment,
   SelectOption,
   TableConfig,
   TooltipRow
@@ -54,3 +59,11 @@ export { Sparkline } from './charts/Sparkline';
 export { HalfDonutChart } from './charts/HalfDonutChart';
 export { PointerScale } from './charts/PointerScale';
 export { MapBubbleChart } from './charts/MapBubbleChart';
+export { SankeyChart } from './charts/SankeyChart';
+export { layoutSankey, describeSankeyRibbon } from './sankeyLayout';
+export type {
+  LaidOutSankeyLink,
+  LaidOutSankeyNode,
+  SankeyLayoutOptions,
+  SankeyLayoutResult
+} from './sankeyLayout';

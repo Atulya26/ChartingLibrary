@@ -10,6 +10,8 @@ import type {
   LineSeriesConfig,
   MapBubblePoint,
   PointerScaleRange,
+  SankeyLink,
+  SankeyNode,
   SelectOption,
   TooltipRow
 } from '../types';
@@ -479,6 +481,95 @@ export const distributionSegments: DistributionSegment[] = [
   { label: 'Less than $5,000', value: 55, fill: '#8798d7' },
   { label: '$5,000 to $10,000', value: 35, fill: '#db7d46' },
   { label: 'More than $10,000', value: 10, fill: '#c93030' }
+];
+
+/* ------------------------------------------------------------------ */
+/* Sankey: Emergency Department patient flow                           */
+/* Arrival → Triage → Disposition → Outcome                            */
+/* Columns are auto-inferred from link topology.                       */
+/* ------------------------------------------------------------------ */
+
+const ax = chartTokens.categorical.axisPalette;
+
+export const edFlowNodes: SankeyNode[] = [
+  // Column 0 — Arrival
+  { id: 'ambulance', label: 'Ambulance', category: 'Arrival', fill: ax[0].fill, stroke: ax[0].stroke },
+  { id: 'walk-in', label: 'Walk-in', category: 'Arrival', fill: ax[0].fill, stroke: ax[0].stroke },
+  { id: 'transfer', label: 'Transfer', category: 'Arrival', fill: ax[0].fill, stroke: ax[0].stroke },
+
+  // Column 1 — Triage
+  { id: 'critical', label: 'Critical', category: 'Triage', fill: ax[5].fill, stroke: ax[5].stroke },
+  { id: 'urgent', label: 'Urgent', category: 'Triage', fill: ax[4].fill, stroke: ax[4].stroke },
+  { id: 'non-urgent', label: 'Non-urgent', category: 'Triage', fill: ax[2].fill, stroke: ax[2].stroke },
+
+  // Column 2 — Disposition
+  { id: 'admitted', label: 'Admitted', category: 'Disposition', fill: ax[3].fill, stroke: ax[3].stroke },
+  { id: 'discharged', label: 'Discharged', category: 'Disposition', fill: ax[2].fill, stroke: ax[2].stroke },
+  { id: 'observation', label: 'Observation', category: 'Disposition', fill: ax[1].fill, stroke: ax[1].stroke },
+
+  // Column 3 — Outcome
+  { id: 'home', label: 'Home', category: 'Outcome', fill: ax[2].fill, stroke: ax[2].stroke },
+  { id: 'inpatient', label: 'Inpatient', category: 'Outcome', fill: ax[3].fill, stroke: ax[3].stroke },
+  { id: 'readmitted', label: 'Readmitted', category: 'Outcome', fill: ax[5].fill, stroke: ax[5].stroke }
+];
+
+export const edFlowLinks: SankeyLink[] = [
+  // Arrival → Triage
+  { source: 'ambulance', target: 'critical', value: 150 },
+  { source: 'ambulance', target: 'urgent', value: 140 },
+  { source: 'ambulance', target: 'non-urgent', value: 30 },
+  { source: 'walk-in', target: 'critical', value: 20 },
+  { source: 'walk-in', target: 'urgent', value: 330 },
+  { source: 'walk-in', target: 'non-urgent', value: 230 },
+  { source: 'transfer', target: 'critical', value: 10 },
+  { source: 'transfer', target: 'urgent', value: 50 },
+  { source: 'transfer', target: 'non-urgent', value: 40 },
+
+  // Triage → Disposition
+  { source: 'critical', target: 'admitted', value: 150 },
+  { source: 'critical', target: 'observation', value: 30 },
+  { source: 'urgent', target: 'admitted', value: 160 },
+  { source: 'urgent', target: 'discharged', value: 320 },
+  { source: 'urgent', target: 'observation', value: 40 },
+  { source: 'non-urgent', target: 'discharged', value: 300 },
+
+  // Disposition → Outcome
+  { source: 'admitted', target: 'inpatient', value: 260 },
+  { source: 'admitted', target: 'readmitted', value: 50 },
+  { source: 'discharged', target: 'home', value: 620 },
+  { source: 'observation', target: 'home', value: 70 }
+];
+
+/* ------------------------------------------------------------------ */
+/* Sankey: Revenue flow (Gross → Adjustments → Net → Collected)        */
+/* ------------------------------------------------------------------ */
+
+export const revenueFlowNodes: SankeyNode[] = [
+  { id: 'commercial', label: 'Commercial', category: 'Payer', fill: ax[0].fill, stroke: ax[0].stroke },
+  { id: 'medicare', label: 'Medicare', category: 'Payer', fill: ax[3].fill, stroke: ax[3].stroke },
+  { id: 'medicaid', label: 'Medicaid', category: 'Payer', fill: ax[2].fill, stroke: ax[2].stroke },
+
+  { id: 'gross', label: 'Gross charges', category: 'Gross', fill: ax[1].fill, stroke: ax[1].stroke },
+
+  { id: 'contractual', label: 'Contractual adj.', category: 'Adjustments', fill: ax[5].fill, stroke: ax[5].stroke },
+  { id: 'bad-debt', label: 'Bad debt', category: 'Adjustments', fill: ax[4].fill, stroke: ax[4].stroke },
+  { id: 'net', label: 'Net revenue', category: 'Net', fill: ax[2].fill, stroke: ax[2].stroke },
+
+  { id: 'collected', label: 'Collected', category: 'Collected', fill: ax[2].fill, stroke: ax[2].stroke },
+  { id: 'ar', label: 'In A/R', category: 'Collected', fill: ax[5].fill, stroke: ax[5].stroke }
+];
+
+export const revenueFlowLinks: SankeyLink[] = [
+  { source: 'commercial', target: 'gross', value: 420 },
+  { source: 'medicare', target: 'gross', value: 380 },
+  { source: 'medicaid', target: 'gross', value: 200 },
+
+  { source: 'gross', target: 'contractual', value: 310 },
+  { source: 'gross', target: 'bad-debt', value: 40 },
+  { source: 'gross', target: 'net', value: 650 },
+
+  { source: 'net', target: 'collected', value: 540 },
+  { source: 'net', target: 'ar', value: 110 }
 ];
 
 export const riskDistributionSegments: DistributionSegment[] = [

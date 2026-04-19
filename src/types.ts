@@ -181,6 +181,31 @@ export interface TableConfig {
   rows: Array<Array<string | number>>;
 }
 
+export interface SankeyNode {
+  id: string;
+  label: string;
+  /** Optional explicit column index. If omitted, column is inferred from link topology. */
+  column?: number;
+  /** Optional category label used for legend grouping. */
+  category?: string;
+  fill?: string;
+  stroke?: string;
+  fillStyle?: FillStyle;
+  active?: boolean;
+}
+
+export interface SankeyLink {
+  source: string;
+  target: string;
+  value: number;
+  /** Optional explicit link color. If omitted, link color is derived via `linkColorMode`. */
+  color?: string;
+}
+
+export type SankeyLinkColorMode = 'source' | 'target' | 'gradient' | 'neutral';
+export type SankeyHighlightMode = 'link' | 'node' | 'path';
+export type SankeyNodeAlignment = 'justify' | 'left' | 'right' | 'center';
+
 export interface ChartHeaderProps {
   title?: string;
   showTitle?: boolean;
