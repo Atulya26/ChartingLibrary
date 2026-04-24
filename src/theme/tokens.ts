@@ -52,6 +52,9 @@ export const chartTokens = {
   chart: {
     plotHeight: 180,
     plotFrameHeight: 206,
+    xAxisHeight: 26,
+    lineXInset: 28,
+    horizontalCategoryLabelWidth: 112,
     axisBottomPadding: 22,
     axisTitleWidth: 18,
     axisValueWidth: 18,

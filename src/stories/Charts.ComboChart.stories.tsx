@@ -159,7 +159,7 @@ export const StackedBars: Story = {
         key: 'benchmark',
         label: 'Benchmark',
         data: [18, 22, 41, 49, 52],
-        stroke: '#3bceff',
+        stroke: '#0181a1',
         showDots: true
       }
     ],

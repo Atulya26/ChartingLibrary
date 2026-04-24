@@ -30,6 +30,7 @@ import {
   getHoverIndex,
   getViewportHoverCardPosition,
   getValueExtent,
+  resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
 
@@ -83,7 +84,7 @@ export function LineChart({
   categories,
   series,
   width = 502,
-  plotWidth = 414,
+  plotWidth,
   plotHeight = chartTokens.chart.plotHeight,
   showCardBackground = true,
   showHeader = true,
@@ -102,6 +103,7 @@ export function LineChart({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const leftSeries = series.filter((item) => item.axis !== 'right');
   const rightSeries = series.filter((item) => item.axis === 'right');
+  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
   const leftExtent = getSeriesExtent(
     leftSeries,
     referenceLines.map((item) => item.value)
@@ -123,7 +125,7 @@ export function LineChart({
   const legendItems = showLegend
     ? [...lineLegendItems, ...buildReferenceLegend(referenceLines)]
     : [];
-  const categoryWidth = plotWidth / Math.max(categories.length, 1);
+  const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
   const referenceLayers: ReactNode[] = [];
   const lineLayers: ReactNode[] = [];
 
@@ -134,7 +136,7 @@ export function LineChart({
         <line
           x1="0"
           y1={y}
-          x2={plotWidth}
+          x2={resolvedPlotWidth}
           y2={y}
           stroke={line.color ?? chartTokens.text.subtle}
           strokeWidth="1.5"
@@ -142,7 +144,7 @@ export function LineChart({
         />
         {line.label ? (
           <text
-            x={plotWidth - 4}
+            x={resolvedPlotWidth - 4}
             y={y - 4}
             textAnchor="end"
             fontFamily={chartTokens.fontFamily}
@@ -161,17 +163,17 @@ export function LineChart({
     const extent = item.axis === 'right' ? rightExtent : leftExtent;
     const points = buildLinePoints(
       item.data,
-      plotWidth,
+      resolvedPlotWidth,
       plotHeight,
       extent.min,
       extent.max,
-      12
+      chartTokens.chart.lineXInset
     );
     const path = describeLinePath(points);
     const stroke = item.stroke ?? chartTokens.categorical.secondary;
     const baseline =
-      12 +
-      createInvertedScale(extent.min, extent.max, plotHeight - 24)(
+      chartTokens.chart.lineXInset +
+      createInvertedScale(extent.min, extent.max, plotHeight - chartTokens.chart.lineXInset * 2)(
         Math.max(extent.min, 0)
       );
 
@@ -241,11 +243,11 @@ export function LineChart({
             const extent = item.axis === 'right' ? rightExtent : leftExtent;
             return buildLinePoints(
               item.data,
-              plotWidth,
+              resolvedPlotWidth,
               plotHeight,
               extent.min,
               extent.max,
-              12
+              chartTokens.chart.lineXInset
             )[hoveredIndex];
           })
           .filter(
@@ -257,6 +259,7 @@ export function LineChart({
   const hoverCardPosition = mousePos
     ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight)
     : null;
+  const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
     <ChartShell
@@ -275,9 +278,13 @@ export function LineChart({
           title={yAxis?.title}
           ticks={leftTicks.map((entry) => entry.label)}
           hideMarkers={yAxis?.hideMarkers}
+          height={plotFrameHeight}
         />
-        <div className="cl-cartesian-chart__middle" style={{ width: plotWidth }}>
-          <div className="cl-cartesian-chart__plot" style={{ width: plotWidth }}>
+        <div className="cl-cartesian-chart__middle" style={{ width: resolvedPlotWidth }}>
+          <div
+            className="cl-cartesian-chart__plot"
+            style={{ width: resolvedPlotWidth, height: plotFrameHeight }}
+          >
             <div
               style={{
                 position: 'absolute',
@@ -286,14 +293,14 @@ export function LineChart({
             >
               {(grid?.show ?? true) ? (
                 <GridLines
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
                   count={grid?.count}
                   color={grid?.color}
                 />
               ) : null}
               <div
-                style={{ position: 'relative', width: plotWidth, height: plotHeight }}
+                style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
                     ? (event) => {
@@ -301,7 +308,7 @@ export function LineChart({
                         setHoveredIndex(
                           getHoverIndex(
                             event.clientX - rect.left,
-                            plotWidth,
+                            resolvedPlotWidth,
                             categories.length
                           )
                         );
@@ -314,9 +321,9 @@ export function LineChart({
                 }
               >
                 <svg
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
-                  viewBox={`0 0 ${plotWidth} ${plotHeight}`}
+                  viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   role="img"
                   aria-label={title}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
@@ -350,11 +357,11 @@ export function LineChart({
                           item.axis === 'right' ? rightExtent : leftExtent;
                         const points = buildLinePoints(
                           item.data,
-                          plotWidth,
+                          resolvedPlotWidth,
                           plotHeight,
                           extent.min,
                           extent.max,
-                          12
+                          chartTokens.chart.lineXInset
                         );
                         const point = points[hoveredIndex];
 
@@ -400,7 +407,7 @@ export function LineChart({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 26
+                height: chartTokens.chart.xAxisHeight
               }}
             >
               <XAxis labels={categories} />
@@ -413,6 +420,7 @@ export function LineChart({
             title={secondaryYAxis?.title}
             ticks={rightTicks.map((entry) => entry.label)}
             hideMarkers={secondaryYAxis?.hideMarkers}
+            height={plotFrameHeight}
           />
         ) : null}
       </div>

@@ -202,21 +202,6 @@ export const UnitedStatesView: Story = {
   }
 };
 
-export const FloridaStateView: Story = {
-  args: {
-    title: 'Florida Provider Network',
-    points: mapBubblePoints,
-    regionScope: 'state',
-    stateCode: 'FL',
-    legendPosition: 'bottom',
-    showLegend: true,
-    showHoverCard: false,
-    showHeader: true,
-    showMenu: true,
-    actions: [{ id: 'save-image', label: 'Save', onClick: () => {} }]
-  }
-};
-
 export const TableView: Story = {
   args: {
     title: 'Hospital Network',

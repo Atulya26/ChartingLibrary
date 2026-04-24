@@ -2,6 +2,18 @@
 
 All notable updates to this workspace should be recorded here.
 
+## 2026-04-24
+
+### Chart sizing and polish pass
+
+- Aligned cartesian chart frame heights with the `plotHeight` prop so taller and shorter chart settings resize axes, plot area, and x-axis together
+- Let cartesian and distribution plot widths derive from the chart card width unless `plotWidth` is explicitly set
+- Added a dedicated horizontal bar chart mode with left category labels, horizontal value scale, grouped/stacked support, and Storybook coverage
+- Added safer line-chart endpoint inset so first and last dots do not sit on axis labels
+- Tightened bar distribution Storybook behavior, combo line contrast, donut rounded-cap paint order, and removed the unfinished Florida map story
+- Added small shell, legend, tooltip, and numeric text polish to reduce clipping and layout jitter in dashboard-sized containers
+- Kept Sankey node labels inside the plot bounds so bottom-edge values do not collide with the legend area
+
 ## 2026-04-16
 
 ### Final package promotion and cleanup

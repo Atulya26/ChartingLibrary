@@ -83,6 +83,57 @@ export function DonutChart({
   const defs: ReactNode[] = [];
   let cumulative = 0;
   const gapLength = roundedCaps ? Math.max(thickness * 0.7, 6) : 0;
+  const segmentLayouts = segments.map((segment, index) => {
+    const resolvedFillStyle = resolveFillStyle(segment.fillStyle ?? 'solid', fillStyle);
+    const paintId = `donut-${svgId}-${index}`;
+    const paint = getSvgFillDefinition(
+      paintId,
+      resolvedFillStyle,
+      segment.color,
+      segment.strokeColor ?? segment.color
+    );
+    const length = (segment.value / total) * circumference;
+    const visibleLength = Math.max(length - gapLength, 0);
+    const dashArray = `${visibleLength} ${Math.max(circumference - visibleLength, 0)}`;
+    const dashOffset = -((cumulative / total) * circumference);
+    const segmentStart = cumulative;
+    const segmentMid = segmentStart + segment.value / 2;
+    cumulative += segment.value;
+    const angle = (segmentMid / total) * Math.PI * 2 - Math.PI / 2;
+    const labelRadius = radius + thickness / 2 + 18;
+    const labelX = center + Math.cos(angle) * labelRadius;
+    const labelY = center + Math.sin(angle) * labelRadius;
+
+    if (paint.definition) {
+      defs.push(paint.definition);
+    }
+
+    return {
+      segment,
+      index,
+      resolvedFillStyle,
+      paint,
+      dashArray,
+      dashOffset,
+      labelX,
+      labelY
+    };
+  });
+  const orderedSegmentLayouts = [...segmentLayouts].sort((a, b) => {
+    const getOrder = (item: (typeof segmentLayouts)[number]) => {
+      if (item.segment.showLegendItem === false) {
+        return 0;
+      }
+
+      if (item.resolvedFillStyle === 'texture') {
+        return 1;
+      }
+
+      return 2;
+    };
+
+    return getOrder(a) - getOrder(b);
+  });
   const hoveredSegment =
     hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null;
   const hoverCardPosition = mousePos
@@ -125,78 +176,52 @@ export function DonutChart({
               stroke={chartTokens.neutral.surfaceTint}
               strokeWidth={thickness}
             />
-            {segments.map((segment, index) => {
-              const resolvedFillStyle = resolveFillStyle(
-                segment.fillStyle ?? 'solid',
-                fillStyle
-              );
-              const paintId = `donut-${svgId}-${index}`;
-              const paint = getSvgFillDefinition(
-                paintId,
-                resolvedFillStyle,
-                segment.color,
-                segment.strokeColor ?? segment.color
-              );
-              const length = (segment.value / total) * circumference;
-              const visibleLength = Math.max(length - gapLength, 0);
-              const dashArray = `${visibleLength} ${Math.max(circumference - visibleLength, 0)}`;
-              const dashOffset = -((cumulative / total) * circumference);
-              const segmentStart = cumulative;
-              const segmentMid = segmentStart + segment.value / 2;
-              cumulative += segment.value;
-              const angle = (segmentMid / total) * Math.PI * 2 - Math.PI / 2;
-              const labelRadius = radius + thickness / 2 + 18;
-              const labelX = center + Math.cos(angle) * labelRadius;
-              const labelY = center + Math.sin(angle) * labelRadius;
-
-              if (paint.definition) {
-                defs.push(paint.definition);
-              }
-
-              return (
-                <Fragment key={`${segment.label}-${index}`}>
-                  <circle
-                    cx={center}
-                    cy={center}
-                    r={radius}
-                    fill="none"
-                    stroke={paint.fill}
-                    strokeWidth={thickness}
-                    strokeDasharray={dashArray}
-                    strokeDashoffset={dashOffset}
-                    transform={`rotate(-90 ${center} ${center})`}
-                    opacity={
-                      segment.active === false
-                        ? 0.4
-                        : hoveredSegmentIndex === null || hoveredSegmentIndex === index
-                          ? 1
-                          : 0.65
-                    }
-                    strokeLinecap={roundedCaps ? 'round' : undefined}
-                    onMouseMove={
-                      showHoverCard
-                        ? (event) => { setHoveredSegmentIndex(index); setMousePos({ x: event.clientX, y: event.clientY }); }
-                        : undefined
-                    }
-                  />
-                  {showLabels && segment.showLabel !== false ? (
-                    <text
-                      x={labelX}
-                      y={labelY}
-                      textAnchor={labelX > center ? 'start' : 'end'}
-                      dominantBaseline="middle"
-                      fontFamily={chartTokens.fontFamily}
-                      fontSize="12"
-                      fontWeight="600"
-                      fill="#242424"
-                    >
-                      {getDonutLabel(segment, total, labelMode)}
-                    </text>
-                  ) : null}
-                </Fragment>
-              );
-            })}
             <defs>{defs}</defs>
+            {orderedSegmentLayouts.map(({ segment, index, paint, dashArray, dashOffset }) => (
+              <circle
+                key={`${segment.label}-${index}`}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={paint.fill}
+                strokeWidth={thickness}
+                strokeDasharray={dashArray}
+                strokeDashoffset={dashOffset}
+                transform={`rotate(-90 ${center} ${center})`}
+                opacity={
+                  segment.active === false
+                    ? 0.4
+                    : hoveredSegmentIndex === null || hoveredSegmentIndex === index
+                      ? 1
+                      : 0.65
+                }
+                strokeLinecap={roundedCaps ? 'round' : undefined}
+                onMouseMove={
+                  showHoverCard
+                    ? (event) => { setHoveredSegmentIndex(index); setMousePos({ x: event.clientX, y: event.clientY }); }
+                    : undefined
+                }
+              />
+            ))}
+            {segmentLayouts.map(({ segment, index, labelX, labelY }) => (
+              <Fragment key={`label-${segment.label}-${index}`}>
+                {showLabels && segment.showLabel !== false ? (
+                  <text
+                    x={labelX}
+                    y={labelY}
+                    textAnchor={labelX > center ? 'start' : 'end'}
+                    dominantBaseline="middle"
+                    fontFamily={chartTokens.fontFamily}
+                    fontSize="12"
+                    fontWeight="600"
+                    fill="#242424"
+                  >
+                    {getDonutLabel(segment, total, labelMode)}
+                  </text>
+                ) : null}
+              </Fragment>
+            ))}
             <text
               x={center}
               y={center - 4}

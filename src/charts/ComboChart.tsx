@@ -36,6 +36,7 @@ import {
   getSvgFillDefinition,
   getValueExtent,
   resolveBarDatum,
+  resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
 
@@ -78,7 +79,7 @@ export function ComboChart({
   barSeries,
   lineSeries,
   width = 502,
-  plotWidth = 414,
+  plotWidth,
   plotHeight = chartTokens.chart.plotHeight,
   showCardBackground = true,
   showHeader = true,
@@ -101,6 +102,7 @@ export function ComboChart({
 }: ComboChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
   const barLegendItems = buildLegendItemsFromBarSeriesWithOverrides(
     barSeries,
     barFillStyle,
@@ -134,7 +136,7 @@ export function ComboChart({
     rightExtent.max,
     grid?.count ?? chartTokens.chart.gridLineCount
   );
-  const categoryWidth = plotWidth / Math.max(categories.length, 1);
+  const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
   const usableCategoryWidth = categoryWidth * (1 - categoryGapRatio);
   const groupedBarWidth =
     barLayout === 'stacked'
@@ -283,16 +285,16 @@ export function ComboChart({
       const extent = item.axis === 'right' ? rightExtent : leftExtent;
       const points = buildLinePoints(
         item.data,
-        plotWidth,
+        resolvedPlotWidth,
         plotHeight,
         extent.min,
         extent.max,
-        12
+        chartTokens.chart.lineXInset
       );
       const stroke = item.stroke ?? chartTokens.categorical.secondary;
       const baseline =
-        12 +
-        createInvertedScale(extent.min, extent.max, plotHeight - 24)(
+        chartTokens.chart.lineXInset +
+        createInvertedScale(extent.min, extent.max, plotHeight - chartTokens.chart.lineXInset * 2)(
           Math.max(extent.min, 0)
         );
 
@@ -405,11 +407,11 @@ export function ComboChart({
             const extent = item.axis === 'right' ? rightExtent : leftExtent;
             return buildLinePoints(
               item.data,
-              plotWidth,
+              resolvedPlotWidth,
               plotHeight,
               extent.min,
               extent.max,
-              12
+              chartTokens.chart.lineXInset
             )[hoveredIndex];
           })
           .filter(
@@ -429,6 +431,7 @@ export function ComboChart({
           )
         )
       : null;
+  const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
     <ChartShell
@@ -447,9 +450,13 @@ export function ComboChart({
           title={yAxis?.title}
           ticks={leftTicks.map((entry) => entry.label)}
           hideMarkers={yAxis?.hideMarkers}
+          height={plotFrameHeight}
         />
-        <div className="cl-cartesian-chart__middle" style={{ width: plotWidth }}>
-          <div className="cl-cartesian-chart__plot" style={{ width: plotWidth }}>
+        <div className="cl-cartesian-chart__middle" style={{ width: resolvedPlotWidth }}>
+          <div
+            className="cl-cartesian-chart__plot"
+            style={{ width: resolvedPlotWidth, height: plotFrameHeight }}
+          >
             <div
               style={{
                 position: 'absolute',
@@ -458,14 +465,14 @@ export function ComboChart({
             >
               {(grid?.show ?? true) ? (
                 <GridLines
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
                   count={grid?.count}
                   color={grid?.color}
                 />
               ) : null}
               <div
-                style={{ position: 'relative', width: plotWidth, height: plotHeight }}
+                style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
                     ? (event) => {
@@ -473,7 +480,7 @@ export function ComboChart({
                         setHoveredIndex(
                           getHoverIndex(
                             event.clientX - rect.left,
-                            plotWidth,
+                            resolvedPlotWidth,
                             categories.length
                           )
                         );
@@ -486,9 +493,9 @@ export function ComboChart({
                 }
               >
                 <svg
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
-                  viewBox={`0 0 ${plotWidth} ${plotHeight}`}
+                  viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   role="img"
                   aria-label={title}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
@@ -518,7 +525,7 @@ export function ComboChart({
                   <line
                     x1="0"
                     y1={zeroY}
-                    x2={plotWidth}
+                    x2={resolvedPlotWidth}
                     y2={zeroY}
                     stroke={chartTokens.neutral.stoneLight}
                     strokeWidth="1"
@@ -531,11 +538,11 @@ export function ComboChart({
                           item.axis === 'right' ? rightExtent : leftExtent;
                         const points = buildLinePoints(
                           item.data,
-                          plotWidth,
+                          resolvedPlotWidth,
                           plotHeight,
                           extent.min,
                           extent.max,
-                          12
+                          chartTokens.chart.lineXInset
                         );
                         const point = points[hoveredIndex];
 
@@ -579,7 +586,7 @@ export function ComboChart({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 26
+                height: chartTokens.chart.xAxisHeight
               }}
             >
               <XAxis labels={categories} />
@@ -592,6 +599,7 @@ export function ComboChart({
             title={secondaryYAxis?.title}
             ticks={rightTicks.map((entry) => entry.label)}
             hideMarkers={secondaryYAxis?.hideMarkers}
+            height={plotFrameHeight}
           />
         ) : null}
       </div>

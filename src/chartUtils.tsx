@@ -326,6 +326,24 @@ export function createInvertedScale(
   return (value: number) => size - scale(value);
 }
 
+export function resolveResponsivePlotWidth(
+  width: number | string | undefined,
+  plotWidth: number | undefined,
+  fallbackPlotWidth: number,
+  reservedWidth: number,
+  minPlotWidth = 160
+) {
+  if (typeof plotWidth === 'number') {
+    return plotWidth;
+  }
+
+  if (typeof width === 'number') {
+    return Math.max(minPlotWidth, width - reservedWidth);
+  }
+
+  return fallbackPlotWidth;
+}
+
 export function buildLinePoints(
   values: number[],
   width: number,
@@ -336,9 +354,10 @@ export function buildLinePoints(
 ): PlotPoint[] {
   const scaleY = createInvertedScale(minValue, maxValue, Math.max(height - inset * 2, 1));
   const denominator = Math.max(values.length - 1, 1);
+  const usableWidth = Math.max(width - inset * 2, 1);
 
   return values.map((value, index) => ({
-    x: (width * index) / denominator,
+    x: inset + (usableWidth * index) / denominator,
     y: inset + scaleY(value),
     value,
     index
@@ -456,6 +475,44 @@ export function describeBarPath(
     `L ${x + width - safeRadius} ${y}`,
     `Q ${x + width} ${y} ${x + width} ${y + safeRadius}`,
     `L ${x + width} ${y + height}`,
+    'Z'
+  ].join(' ');
+}
+
+export function describeHorizontalBarPath(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  direction: 'positive' | 'negative' = 'positive'
+) {
+  const safeRadius = Math.max(0, Math.min(radius, Math.abs(width) / 2, height / 2));
+  const x2 = x + width;
+
+  if (safeRadius === 0) {
+    return `M ${x} ${y} H ${x2} V ${y + height} H ${x} Z`;
+  }
+
+  if (direction === 'negative') {
+    return [
+      `M ${x2} ${y}`,
+      `L ${x + safeRadius} ${y}`,
+      `Q ${x} ${y} ${x} ${y + safeRadius}`,
+      `L ${x} ${y + height - safeRadius}`,
+      `Q ${x} ${y + height} ${x + safeRadius} ${y + height}`,
+      `L ${x2} ${y + height}`,
+      'Z'
+    ].join(' ');
+  }
+
+  return [
+    `M ${x} ${y}`,
+    `L ${x2 - safeRadius} ${y}`,
+    `Q ${x2} ${y} ${x2} ${y + safeRadius}`,
+    `L ${x2} ${y + height - safeRadius}`,
+    `Q ${x2} ${y + height} ${x2 - safeRadius} ${y + height}`,
+    `L ${x} ${y + height}`,
     'Z'
   ].join(' ');
 }

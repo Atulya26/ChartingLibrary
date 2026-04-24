@@ -23,9 +23,12 @@
 
 body {
   font-family: var(--cl-font-family);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .cl-card {
+  min-width: 0;
   background: var(--cl-surface);
   border: 1px solid var(--cl-border-subtle);
   border-radius: var(--cl-radius-card);
@@ -43,6 +46,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--cl-space-3);
+  min-width: 0;
 }
 
 .cl-header {
@@ -50,6 +54,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--cl-space-3);
+  min-width: 0;
 }
 
 .cl-header__title-block {
@@ -69,7 +74,10 @@ body {
 
 .cl-header__controls {
   display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: flex-start;
+  justify-content: flex-end;
   gap: var(--cl-space-2);
   padding-top: 2px;
 }
@@ -82,6 +90,7 @@ body {
 
 .cl-control-select {
   min-width: 104px;
+  max-width: 100%;
   height: 32px;
   border: 1px solid #d7dbe7;
   border-radius: 4px;
@@ -133,6 +142,7 @@ body {
   display: flex;
   gap: var(--cl-space-2);
   align-items: center;
+  min-width: 0;
 }
 
 .cl-legend--stacked {
@@ -153,6 +163,7 @@ body {
   flex-wrap: wrap;
   gap: var(--cl-space-1);
   align-items: center;
+  min-width: 0;
 }
 
 .cl-legend--stacked .cl-legend__items {
@@ -164,11 +175,20 @@ body {
   display: inline-flex;
   align-items: center;
   gap: var(--cl-space-1);
+  max-width: 100%;
   min-height: 20px;
+  min-width: 0;
   padding-right: var(--cl-space-1);
   color: var(--cl-text-subtle);
   font-size: 14px;
   line-height: 20px;
+}
+
+.cl-legend__item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cl-legend__item--inactive {
@@ -183,6 +203,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-width: min(260px, calc(100vw - 24px));
   min-width: 179px;
   padding: var(--cl-space-4);
   background: #ffffff;
@@ -193,6 +214,7 @@ body {
 
 .cl-tooltip__title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 600;
   line-height: 16px;
@@ -210,13 +232,22 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.cl-tooltip__row > span:first-child,
+.cl-tooltip__total > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .cl-tooltip__value {
+  flex: 0 0 auto;
   padding: 0 var(--cl-space-1);
   color: var(--cl-text-default);
   font-size: 14px;
   line-height: 20px;
+  font-variant-numeric: tabular-nums;
 }
 
 .cl-tooltip__total {
@@ -263,6 +294,7 @@ body {
   color: var(--cl-text-subtle);
   font-size: 12px;
   line-height: 16px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -346,6 +378,52 @@ body {
   pointer-events: none;
 }
 
+.cl-horizontal-bar-chart {
+  position: relative;
+  min-width: 0;
+}
+
+.cl-horizontal-bar-chart__frame {
+  position: relative;
+  min-width: 0;
+}
+
+.cl-horizontal-bar-chart__labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--cl-text-subtle);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.cl-horizontal-bar-chart__label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-right: 12px;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-horizontal-bar-chart__axis {
+  position: absolute;
+  color: var(--cl-text-subtle);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-horizontal-bar-chart__tick {
+  position: absolute;
+  top: 5px;
+  white-space: nowrap;
+}
+
 .cl-line-series {
   position: absolute;
   inset: 0;
@@ -359,7 +437,7 @@ body {
 }
 
 .cl-chart-card {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cl-chart-shell {
@@ -384,6 +462,7 @@ body {
 .cl-chart-shell__main {
   min-width: 0;
   flex: 1;
+  overflow: visible;
   padding: 4px 0;
 }
 
@@ -444,6 +523,7 @@ body {
   font-weight: 600;
   line-height: 32px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .cl-chart-pointer__track {
@@ -498,6 +578,18 @@ body {
   color: var(--cl-text-subtle);
   font-size: 12px;
   line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+  .cl-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cl-header__controls {
+    width: 100%;
+  }
 }
 
 .cl-chart-map {

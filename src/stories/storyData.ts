@@ -148,7 +148,7 @@ export const comboLineSeries: LineSeriesConfig[] = [
     key: 'revenue-percent',
     label: 'Revenue %',
     data: [26, 12.3, 34.7, 27],
-    stroke: chartTokens.categorical.secondary,
+    stroke: chartTokens.sequential.default.dark,
     showDots: true,
     showLabels: true,
     axis: 'right'

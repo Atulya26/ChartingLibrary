@@ -32,6 +32,7 @@ import {
   getValueExtent,
   resolveFillLegendMarker,
   resolveHistogramBin,
+  resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
 
@@ -64,7 +65,7 @@ export function HistogramChart({
   description,
   bins,
   width = 502,
-  plotWidth = 414,
+  plotWidth,
   plotHeight = chartTokens.chart.plotHeight,
   showCardBackground = true,
   showHeader = true,
@@ -86,6 +87,7 @@ export function HistogramChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const svgId = useId().replace(/:/g, '');
+  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
   const resolvedBins = bins.map((bin, index) =>
     resolveHistogramBin(bin, index, fillStyle)
   );
@@ -96,7 +98,7 @@ export function HistogramChart({
     extent.max,
     grid?.count ?? chartTokens.chart.gridLineCount
   );
-  const barWidth = plotWidth / Math.max(resolvedBins.length, 1);
+  const barWidth = resolvedPlotWidth / Math.max(resolvedBins.length, 1);
   const scaleY = createInvertedScale(extent.min, extent.max, plotHeight);
   const zeroY = scaleY(0);
   const defs: ReactNode[] = [];
@@ -190,7 +192,7 @@ export function HistogramChart({
 
   const overlayPoints = buildLinePoints(
     resolvedBins.map((bin) => bin.value),
-    plotWidth - barWidth,
+    resolvedPlotWidth - barWidth,
     plotHeight,
     extent.min,
     extent.max
@@ -203,6 +205,7 @@ export function HistogramChart({
     hoveredIndex !== null && mousePos
       ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(overlayLine ? 2 : 1))
       : null;
+  const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
     <ChartShell
@@ -221,9 +224,13 @@ export function HistogramChart({
           title={yAxis?.title}
           ticks={tickEntries.map((entry) => entry.label)}
           hideMarkers={yAxis?.hideMarkers}
+          height={plotFrameHeight}
         />
-        <div className="cl-cartesian-chart__middle" style={{ width: plotWidth }}>
-          <div className="cl-cartesian-chart__plot" style={{ width: plotWidth }}>
+        <div className="cl-cartesian-chart__middle" style={{ width: resolvedPlotWidth }}>
+          <div
+            className="cl-cartesian-chart__plot"
+            style={{ width: resolvedPlotWidth, height: plotFrameHeight }}
+          >
             <div
               style={{
                 position: 'absolute',
@@ -232,14 +239,14 @@ export function HistogramChart({
             >
               {(grid?.show ?? true) ? (
                 <GridLines
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
                   count={grid?.count}
                   color={grid?.color}
                 />
               ) : null}
               <div
-                style={{ position: 'relative', width: plotWidth, height: plotHeight }}
+                style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
                     ? (event) => {
@@ -247,7 +254,7 @@ export function HistogramChart({
                         setHoveredIndex(
                           getHoverIndex(
                             event.clientX - rect.left,
-                            plotWidth,
+                            resolvedPlotWidth,
                             resolvedBins.length
                           )
                         );
@@ -260,9 +267,9 @@ export function HistogramChart({
                 }
               >
                 <svg
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
-                  viewBox={`0 0 ${plotWidth} ${plotHeight}`}
+                  viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   role="img"
                   aria-label={title}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
@@ -358,7 +365,7 @@ export function HistogramChart({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 26
+                height: chartTokens.chart.xAxisHeight
               }}
             >
               <XAxis labels={resolvedBins.map((bin) => bin.label)} />

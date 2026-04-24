@@ -6,6 +6,7 @@ export interface YAxisProps {
   ticks?: Array<string | number>;
   side?: 'left' | 'right';
   hideMarkers?: boolean;
+  height?: number;
 }
 
 export interface XAxisProps {
@@ -16,10 +17,14 @@ export function YAxis({
   title,
   ticks = ['x', 'x', 'x'],
   side = 'left',
-  hideMarkers = false
+  hideMarkers = false,
+  height
 }: YAxisProps) {
   return (
-    <div className={cx('cl-axis', side === 'right' && 'cl-axis--right')}>
+    <div
+      className={cx('cl-axis', side === 'right' && 'cl-axis--right')}
+      style={height ? { height } : undefined}
+    >
       {title ? (
         <div className="cl-axis__title">
           <span className="cl-axis__title-text">{title}</span>

@@ -62,8 +62,8 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     title: 'HHSCC Risk Score',
-    value: 23,
-    target: 20,
+    value: 30,
+    target: 66,
     centerLabel: '0.23',
     ranges: pointerRanges,
     showHoverCard: false,

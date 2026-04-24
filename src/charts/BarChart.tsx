@@ -19,8 +19,10 @@ import type {
 } from '../types';
 import {
   buildLegendItemsFromBarSeriesWithOverrides,
+  createLinearScale,
   createInvertedScale,
   describeBarPath,
+  describeHorizontalBarPath,
   formatTooltipValue,
   getGroupedExtent,
   getEstimatedHoverCardHeight,
@@ -31,6 +33,7 @@ import {
   getViewportHoverCardPosition,
   resolveBarDatum,
   resolveFillLegendMarker,
+  resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
 
@@ -40,7 +43,7 @@ export interface BarChartProps extends ChartHeaderProps {
   categories?: string[];
   series?: BarSeries[];
   layout?: 'grouped' | 'stacked';
-  mode?: 'vertical' | 'distribution';
+  mode?: 'vertical' | 'horizontal' | 'distribution';
   distributionSegments?: DistributionSegment[];
   showScale?: boolean;
   barHeight?: number;
@@ -96,7 +99,7 @@ export function BarChart({
   showScale = false,
   barHeight = 24,
   width = 502,
-  plotWidth = 414,
+  plotWidth,
   plotHeight = chartTokens.chart.plotHeight,
   showCardBackground = true,
   showHeader = true,
@@ -119,11 +122,29 @@ export function BarChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredDistributionIndex, setHoveredDistributionIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const resolvedPlotWidth = resolveResponsivePlotWidth(
+    width,
+    plotWidth,
+    mode === 'vertical' ? 414 : 454,
+    mode === 'vertical' ? 88 : 48
+  );
+  const resolvedDistributionSegments =
+    distributionSegments?.length
+      ? distributionSegments
+      : series[0]?.data.map((datum, index) => {
+          const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
 
-  /* ---------- Distribution / horizontal bar mode ---------- */
-  if (mode === 'distribution' && distributionSegments?.length) {
-    const total = distributionSegments.reduce((sum, seg) => sum + seg.value, 0);
-    const distributionLegendItems = distributionSegments.map((seg, i) => ({
+          return {
+            label: categories[index] ?? series[0].label,
+            value: resolved.value,
+            fill: resolved.fill
+          };
+        }) ?? [];
+
+  /* ---------- Distribution band mode ---------- */
+  if (mode === 'distribution' && resolvedDistributionSegments.length) {
+    const total = resolvedDistributionSegments.reduce((sum, seg) => sum + seg.value, 0);
+    const distributionLegendItems = resolvedDistributionSegments.map((seg, i) => ({
       label: seg.label,
       marker: 'solid' as const,
       color:
@@ -135,7 +156,7 @@ export function BarChart({
     }));
     const hoveredSegment =
       hoveredDistributionIndex !== null
-        ? distributionSegments[hoveredDistributionIndex]
+        ? resolvedDistributionSegments[hoveredDistributionIndex]
         : null;
     const hoveredDistributionCardHeight = getEstimatedHoverCardHeight(1, true);
     const hoveredDistributionPosition = mousePos
@@ -154,14 +175,14 @@ export function BarChart({
         legendPosition={legendPosition}
         {...headerProps}
       >
-        <div style={{ padding: '4px 0', position: 'relative', width: plotWidth }}>
+        <div style={{ padding: '4px 0', position: 'relative', width: resolvedPlotWidth }}>
           <div
             style={{
               display: 'flex',
               height: barHeight,
               borderRadius: '4px',
               overflow: 'hidden',
-              width: plotWidth,
+              width: resolvedPlotWidth,
               background: chartTokens.neutral.surfaceTint,
               boxShadow: `inset 0 0 0 1px ${chartTokens.neutral.stoneLight}`
             }}
@@ -169,7 +190,7 @@ export function BarChart({
               showHoverCard ? () => { setHoveredDistributionIndex(null); setMousePos(null); } : undefined
             }
           >
-            {distributionSegments.map((seg, i) => {
+            {resolvedDistributionSegments.map((seg, i) => {
               const percent = total > 0 ? seg.value / total : 0;
               const color =
                 seg.fill ??
@@ -192,7 +213,7 @@ export function BarChart({
                     alignItems: 'center',
                     justifyContent: 'center',
                     boxShadow:
-                      i < distributionSegments.length - 1
+                      i < resolvedDistributionSegments.length - 1
                         ? 'inset -1px 0 0 rgba(255,255,255,0.35)'
                         : undefined,
                     opacity:
@@ -223,7 +244,7 @@ export function BarChart({
               style={{
                 position: 'relative',
                 marginTop: '6px',
-                width: plotWidth,
+                width: resolvedPlotWidth,
                 height: 18
               }}
             >
@@ -304,7 +325,408 @@ export function BarChart({
     extent.max,
     grid?.count ?? chartTokens.chart.gridLineCount
   );
-  const categoryWidth = plotWidth / Math.max(categories.length, 1);
+
+  if (mode === 'horizontal') {
+    const labelWidth = Math.min(
+      Math.max(chartTokens.chart.horizontalCategoryLabelWidth, resolvedPlotWidth * 0.22),
+      Math.max(resolvedPlotWidth - 180, 88)
+    );
+    const horizontalPlotWidth = Math.max(resolvedPlotWidth - labelWidth, 160);
+    const horizontalFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
+    const categoryHeight = plotHeight / Math.max(categories.length, 1);
+    const usableCategoryHeight = categoryHeight * (1 - groupGapRatio);
+    const groupedBarHeight =
+      layout === 'stacked'
+        ? Math.min(22, Math.max(usableCategoryHeight, 8))
+        : Math.min(
+            18,
+            Math.max(
+              (usableCategoryHeight - barGap * Math.max(series.length - 1, 0)) /
+                Math.max(series.length, 1),
+              8
+            )
+          );
+    const scaleX = createLinearScale(extent.min, extent.max, horizontalPlotWidth);
+    const zeroX = scaleX(0);
+    const defs: ReactNode[] = [];
+    const bars: ReactNode[] = [];
+    const valueLabels: ReactNode[] = [];
+
+    categories.forEach((category, categoryIndex) => {
+      const slotY = categoryIndex * categoryHeight;
+      const groupY = slotY + (categoryHeight - usableCategoryHeight) / 2;
+
+      if (layout === 'stacked') {
+        let positiveTotal = 0;
+        let negativeTotal = 0;
+        let totalLabelX: number | null = null;
+        let totalLabelY: number | null = null;
+        let totalLabelValue = 0;
+
+        series.forEach((item, seriesIndex) => {
+          const resolved = resolveBarDatum(
+            item.data[categoryIndex] ?? 0,
+            item,
+            seriesIndex,
+            fillStyle
+          );
+          const startValue = resolved.value >= 0 ? positiveTotal : negativeTotal;
+          const endValue = startValue + resolved.value;
+          const startX = scaleX(startValue);
+          const endX = scaleX(endValue);
+          const x = Math.min(startX, endX);
+          const width = Math.max(Math.abs(endX - startX), 1);
+          const y = groupY + (usableCategoryHeight - groupedBarHeight) / 2;
+          const laterSeries = series.slice(seriesIndex + 1);
+          const hasLaterPositive = laterSeries.some(
+            (seriesItem, offset) =>
+              resolveBarDatum(
+                seriesItem.data[categoryIndex] ?? 0,
+                seriesItem,
+                seriesIndex + offset + 1,
+                fillStyle
+              ).value > 0
+          );
+          const hasLaterNegative = laterSeries.some(
+            (seriesItem, offset) =>
+              resolveBarDatum(
+                seriesItem.data[categoryIndex] ?? 0,
+                seriesItem,
+                seriesIndex + offset + 1,
+                fillStyle
+              ).value < 0
+          );
+          const paintId = `bar-h-${svgId}-${categoryIndex}-${seriesIndex}`;
+          const paint = getSvgFillDefinition(
+            paintId,
+            resolved.fillStyle,
+            resolved.fill,
+            resolved.stroke
+          );
+
+          if (paint.definition) {
+            defs.push(paint.definition);
+          }
+
+          bars.push(
+            <path
+              key={`h-${item.key}-${category}`}
+              d={describeHorizontalBarPath(
+                x,
+                y,
+                width,
+                groupedBarHeight,
+                resolved.value >= 0
+                  ? hasLaterPositive
+                    ? 0
+                    : barCornerRadius
+                  : hasLaterNegative
+                    ? 0
+                    : barCornerRadius,
+                resolved.value >= 0 ? 'positive' : 'negative'
+              )}
+              fill={paint.fill}
+              stroke={resolved.stroke}
+              strokeWidth={1}
+              opacity={resolved.active === false ? 0.4 : 1}
+            />
+          );
+
+          if ((showSegmentLabels || resolved.showLabel) && width > 34) {
+            valueLabels.push(
+              <text
+                key={`h-label-${item.key}-${category}`}
+                x={resolved.value >= 0 ? x + width - 7 : x + 7}
+                y={y + groupedBarHeight / 2}
+                textAnchor={resolved.value >= 0 ? 'end' : 'start'}
+                dominantBaseline="middle"
+                fontFamily={chartTokens.fontFamily}
+                fontSize="12"
+                fontWeight="600"
+                fill={
+                  resolved.fill === chartTokens.neutral.surfaceTint
+                    ? chartTokens.text.default
+                    : chartTokens.text.inverse
+                }
+              >
+                {formatNumberCompact(resolved.value)}
+              </text>
+            );
+          }
+
+          if (resolved.value >= 0) {
+            positiveTotal = endValue;
+            totalLabelX = endX;
+            totalLabelY = y + groupedBarHeight / 2;
+            totalLabelValue = endValue;
+          } else {
+            negativeTotal = endValue;
+          }
+        });
+
+        if (showTotalLabels && totalLabelX !== null && totalLabelY !== null && totalLabelValue > 0) {
+          valueLabels.push(
+            <text
+              key={`h-total-${category}`}
+              x={Math.min(totalLabelX + 6, horizontalPlotWidth - 2)}
+              y={totalLabelY}
+              textAnchor={totalLabelX + 42 > horizontalPlotWidth ? 'end' : 'start'}
+              dominantBaseline="middle"
+              fontFamily={chartTokens.fontFamily}
+              fontSize="12"
+              fontWeight="600"
+              fill={chartTokens.text.default}
+            >
+              {formatNumberCompact(totalLabelValue)}
+            </text>
+          );
+        }
+
+        return;
+      }
+
+      series.forEach((item, seriesIndex) => {
+        const resolved = resolveBarDatum(
+          item.data[categoryIndex] ?? 0,
+          item,
+          seriesIndex,
+          fillStyle
+        );
+        const valueX = scaleX(resolved.value);
+        const x = Math.min(zeroX, valueX);
+        const width = Math.max(Math.abs(valueX - zeroX), 1);
+        const y =
+          groupY +
+          (usableCategoryHeight -
+            (groupedBarHeight * series.length + barGap * Math.max(series.length - 1, 0))) /
+            2 +
+          seriesIndex * (groupedBarHeight + barGap);
+        const paintId = `bar-h-${svgId}-${categoryIndex}-${seriesIndex}`;
+        const paint = getSvgFillDefinition(
+          paintId,
+          resolved.fillStyle,
+          resolved.fill,
+          resolved.stroke
+        );
+
+        if (paint.definition) {
+          defs.push(paint.definition);
+        }
+
+        bars.push(
+          <path
+            key={`h-${item.key}-${category}`}
+            d={describeHorizontalBarPath(
+              x,
+              y,
+              width,
+              groupedBarHeight,
+              barCornerRadius,
+              resolved.value >= 0 ? 'positive' : 'negative'
+            )}
+            fill={paint.fill}
+            stroke={resolved.stroke}
+            strokeWidth={1}
+            opacity={resolved.active === false ? 0.4 : 1}
+          />
+        );
+      });
+    });
+
+    const hoveredRows =
+      hoveredIndex !== null
+        ? series.map((item, index) => {
+            const resolved = resolveBarDatum(
+              item.data[hoveredIndex] ?? 0,
+              item,
+              index,
+              fillStyle
+            );
+
+            return {
+              label: item.label,
+              value: formatTooltipValue(resolved.value),
+              color: resolved.fill,
+              strokeColor: resolved.stroke,
+              marker: resolveFillLegendMarker(resolved.fillStyle, legendMarker)
+            };
+          })
+        : [];
+    const hoveredStackTotal =
+      hoveredIndex !== null && layout === 'stacked'
+        ? series.reduce(
+            (sum, item, index) =>
+              sum +
+              resolveBarDatum(
+                item.data[hoveredIndex] ?? 0,
+                item,
+                index,
+                fillStyle
+              ).value,
+            0
+          )
+        : undefined;
+    const hoverCardPosition =
+      hoveredIndex !== null && mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(
+              hoveredRows.length,
+              typeof hoveredStackTotal === 'number'
+            )
+          )
+        : null;
+
+    return (
+      <ChartShell
+        width={width}
+        showCardBackground={showCardBackground}
+        showHeader={showHeader}
+        showTitle={showTitle}
+        title={title}
+        legendItems={legendItems}
+        legendPosition={legendPosition}
+        description={description}
+        {...headerProps}
+      >
+        <div
+          className="cl-horizontal-bar-chart"
+          style={{ width: resolvedPlotWidth }}
+        >
+          <div
+            className="cl-horizontal-bar-chart__frame"
+            style={{ width: resolvedPlotWidth, height: horizontalFrameHeight }}
+            onMouseMove={
+              showHoverCard
+                ? (event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setHoveredIndex(
+                      getHoverIndex(event.clientY - rect.top, plotHeight, categories.length)
+                    );
+                    setMousePos({ x: event.clientX, y: event.clientY });
+                  }
+                : undefined
+            }
+            onMouseLeave={
+              showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined
+            }
+          >
+            <div
+              className="cl-horizontal-bar-chart__labels"
+              style={{ width: labelWidth, height: plotHeight }}
+            >
+              {categories.map((category) => (
+                <span
+                  key={category}
+                  className="cl-horizontal-bar-chart__label"
+                  style={{ height: categoryHeight }}
+                  title={category}
+                >
+                  {category}
+                </span>
+              ))}
+            </div>
+            <svg
+              width={resolvedPlotWidth}
+              height={horizontalFrameHeight}
+              viewBox={`0 0 ${resolvedPlotWidth} ${horizontalFrameHeight}`}
+              role="img"
+              aria-label={title}
+              style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
+            >
+              <defs>{defs}</defs>
+              <g transform={`translate(${labelWidth} 0)`}>
+                {(grid?.show ?? true)
+                  ? tickEntries.map((entry, index) => {
+                      const x = scaleX(entry.value);
+                      return (
+                        <line
+                          key={`h-grid-${index}`}
+                          x1={x}
+                          y1={0}
+                          x2={x}
+                          y2={plotHeight}
+                          stroke={grid?.color ?? chartTokens.neutral.stoneLight}
+                          strokeWidth="1"
+                        />
+                      );
+                    })
+                  : null}
+                {showHoverCard && hoveredIndex !== null ? (
+                  <rect
+                    x={0}
+                    y={hoveredIndex * categoryHeight}
+                    width={horizontalPlotWidth}
+                    height={categoryHeight}
+                    fill={chartTokens.neutral.surfaceTint}
+                    opacity={0.38}
+                  />
+                ) : null}
+                <line
+                  x1={zeroX}
+                  y1={0}
+                  x2={zeroX}
+                  y2={plotHeight}
+                  stroke={chartTokens.neutral.stoneLight}
+                  strokeWidth="1"
+                />
+                {bars}
+                {valueLabels}
+              </g>
+            </svg>
+            <div
+              className="cl-horizontal-bar-chart__axis"
+              style={{
+                left: labelWidth,
+                width: horizontalPlotWidth,
+                top: plotHeight,
+                height: chartTokens.chart.xAxisHeight
+              }}
+            >
+              {tickEntries.map((entry, index) => {
+                const left = (scaleX(entry.value) / horizontalPlotWidth) * 100;
+                return (
+                  <span
+                    key={`h-tick-${entry.label}-${index}`}
+                    className="cl-horizontal-bar-chart__tick"
+                    style={{
+                      left: `${left}%`,
+                      transform:
+                        index === 0
+                          ? 'translateX(0)'
+                          : index === tickEntries.length - 1
+                            ? 'translateX(-100%)'
+                            : 'translateX(-50%)'
+                    }}
+                  >
+                    {entry.label}
+                  </span>
+                );
+              })}
+            </div>
+            {showHoverCard && hoveredIndex !== null ? (
+              <ChartHoverCard
+                title={categories[hoveredIndex]}
+                rows={hoveredRows}
+                totalLabel={layout === 'stacked' ? 'Bar total' : undefined}
+                totalValue={
+                  typeof hoveredStackTotal === 'number'
+                    ? formatTooltipValue(hoveredStackTotal)
+                    : undefined
+                }
+                left={hoverCardPosition?.left ?? 12}
+                top={hoverCardPosition?.top ?? 12}
+              />
+            ) : null}
+          </div>
+        </div>
+      </ChartShell>
+    );
+  }
+
+  const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
   const usableCategoryWidth = categoryWidth * (1 - groupGapRatio);
   const groupedBarWidth =
     layout === 'stacked'
@@ -526,6 +948,7 @@ export function BarChart({
           )
         )
       : null;
+  const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
     <ChartShell
@@ -544,9 +967,13 @@ export function BarChart({
           title={yAxis?.title}
           ticks={tickEntries.map((entry) => entry.label)}
           hideMarkers={yAxis?.hideMarkers}
+          height={plotFrameHeight}
         />
-        <div className="cl-cartesian-chart__middle" style={{ width: plotWidth }}>
-          <div className="cl-cartesian-chart__plot" style={{ width: plotWidth }}>
+        <div className="cl-cartesian-chart__middle" style={{ width: resolvedPlotWidth }}>
+          <div
+            className="cl-cartesian-chart__plot"
+            style={{ width: resolvedPlotWidth, height: plotFrameHeight }}
+          >
             <div
               style={{
                 position: 'absolute',
@@ -555,14 +982,14 @@ export function BarChart({
             >
               {(grid?.show ?? true) ? (
                 <GridLines
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
                   count={grid?.count}
                   color={grid?.color}
                 />
               ) : null}
               <div
-                style={{ position: 'relative', width: plotWidth, height: plotHeight }}
+                style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
                     ? (event) => {
@@ -570,7 +997,7 @@ export function BarChart({
                         setHoveredIndex(
                           getHoverIndex(
                             event.clientX - rect.left,
-                            plotWidth,
+                            resolvedPlotWidth,
                             categories.length
                           )
                         );
@@ -583,9 +1010,9 @@ export function BarChart({
                 }
               >
                 <svg
-                  width={plotWidth}
+                  width={resolvedPlotWidth}
                   height={plotHeight}
-                  viewBox={`0 0 ${plotWidth} ${plotHeight}`}
+                  viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   role="img"
                   aria-label={title}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
@@ -604,7 +1031,7 @@ export function BarChart({
                   <line
                     x1="0"
                     y1={zeroY}
-                    x2={plotWidth}
+                    x2={resolvedPlotWidth}
                     y2={zeroY}
                     stroke={chartTokens.neutral.stoneLight}
                     strokeWidth="1"
@@ -634,7 +1061,7 @@ export function BarChart({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 26
+                height: chartTokens.chart.xAxisHeight
               }}
             >
               <XAxis labels={categories} />

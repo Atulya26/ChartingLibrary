@@ -405,7 +405,10 @@ export function SankeyChart({
                 const rightOfNode = isFirstColumn || (!isLastColumn && n.x < plotWidth / 2);
                 const labelX = rightOfNode ? n.x + n.width + 6 : n.x - 6;
                 const textAnchor = rightOfNode ? 'start' : 'end';
-                const labelY = n.y + n.height / 2;
+                const labelY = Math.min(
+                  Math.max(n.y + n.height / 2, showNodeValues ? 10 : 8),
+                  plotHeight - (showNodeValues ? 22 : 8)
+                );
                 return (
                   <Fragment key={`label-${n.id}`}>
                     <text
