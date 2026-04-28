@@ -497,6 +497,451 @@ body {
   padding: 8px 0;
 }
 
+.cl-loading-skeleton {
+  --cl-loading-base: #e6e7eb;
+  --cl-loading-strong: #cccfd6;
+  --cl-loading-soft: #f1f2f5;
+  --cl-loading-line: #c4c7d0;
+}
+
+.cl-loading-skeleton__title {
+  margin: 0 0 12px;
+  color: var(--cl-text-default);
+}
+
+.cl-loading-skeleton__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 4px 0;
+}
+
+.cl-loading-skeleton__shape {
+  display: block;
+  background: var(--cl-loading-base);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---------- Cartesian frame (bar / histogram / line / combo) ---------- */
+
+.cl-loading-skeleton__cartesian {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.cl-loading-skeleton__cartesian-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cl-loading-skeleton__y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 0 24px;
+}
+
+.cl-loading-skeleton__y-axis .cl-loading-skeleton__shape {
+  align-self: flex-end;
+}
+
+.cl-loading-skeleton__plot {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--cl-border-subtle);
+}
+
+.cl-loading-skeleton__grid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 24px;
+}
+
+.cl-loading-skeleton__grid span {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--cl-border-subtle);
+}
+
+.cl-loading-skeleton__x-axis {
+  display: flex;
+  justify-content: space-around;
+}
+
+/* ---------- Bars (bar / histogram / combo) ---------- */
+
+.cl-loading-skeleton__bars {
+  position: absolute;
+  inset: 0 8px 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 14px;
+}
+
+.cl-loading-skeleton__bars--touching {
+  gap: 0;
+  inset: 0 0 24px;
+}
+
+.cl-loading-skeleton__bars--combo {
+  opacity: 0.85;
+}
+
+.cl-loading-skeleton__bar {
+  flex: 1;
+  min-width: 0;
+  background: var(--cl-loading-strong);
+  border-radius: 3px 3px 0 0;
+  transform-origin: bottom;
+}
+
+.cl-loading-skeleton__bars:not(.cl-loading-skeleton__bars--touching) .cl-loading-skeleton__bar {
+  max-width: 36px;
+}
+
+.cl-loading-skeleton__bars--touching .cl-loading-skeleton__bar {
+  border-radius: 2px 2px 0 0;
+  margin-right: 1px;
+}
+
+.cl-loading-skeleton__bars--touching .cl-loading-skeleton__bar:last-child {
+  margin-right: 0;
+}
+
+/* ---------- Line + sparkline ---------- */
+
+.cl-loading-skeleton__line {
+  position: absolute;
+  inset: 0 0 24px;
+  width: 100%;
+  height: calc(100% - 24px);
+  overflow: visible;
+}
+
+.cl-loading-skeleton__line path,
+.cl-loading-skeleton__sparkline path {
+  fill: none;
+  stroke: var(--cl-loading-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.cl-loading-skeleton__line .cl-loading-skeleton__line-secondary {
+  stroke: var(--cl-loading-base);
+}
+
+.cl-loading-skeleton__sparkline {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cl-loading-skeleton__sparkline svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Donut + half donut ---------- */
+
+.cl-loading-skeleton__radial {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.cl-loading-skeleton__radial--half {
+  align-items: end;
+}
+
+.cl-loading-skeleton__ring-base {
+  fill: none;
+  stroke: var(--cl-loading-base);
+}
+
+.cl-loading-skeleton__ring-progress {
+  fill: none;
+  stroke: var(--cl-loading-strong);
+  stroke-dasharray: 0.74 1;
+  stroke-dashoffset: 0;
+}
+
+.cl-loading-skeleton__ring-progress--half {
+  stroke-dasharray: 0.62 1;
+}
+
+.cl-loading-skeleton__radial-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.cl-loading-skeleton__radial-endlabels {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+/* ---------- Pointer scale ---------- */
+
+.cl-loading-skeleton__pointer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.cl-loading-skeleton__pointer-value {
+  align-self: center;
+}
+
+.cl-loading-skeleton__pointer-track {
+  position: relative;
+  height: 16px;
+}
+
+.cl-loading-skeleton__pointer-segments {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: 16px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.cl-loading-skeleton__pointer-segment {
+  height: 16px;
+  background: var(--cl-loading-base);
+}
+
+.cl-loading-skeleton__pointer-segment:nth-child(2) {
+  background: var(--cl-loading-strong);
+}
+
+.cl-loading-skeleton__pointer-segment:nth-child(3) {
+  background: #b6bac4;
+}
+
+.cl-loading-skeleton__pointer-needle {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--cl-loading-line);
+  transform: translateX(-1px);
+}
+
+.cl-loading-skeleton__pointer-range-labels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  justify-items: center;
+  align-items: center;
+}
+
+.cl-loading-skeleton__pointer-axis-labels {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ---------- Map bubble ---------- */
+
+.cl-loading-skeleton__map {
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--cl-loading-soft);
+}
+
+.cl-loading-skeleton__map-bg {
+  fill: var(--cl-loading-soft);
+}
+
+.cl-loading-skeleton__map-states path {
+  fill: var(--cl-loading-base);
+  stroke: #d1d5db;
+  stroke-width: 0.8;
+}
+
+.cl-loading-skeleton__map-bubbles circle {
+  fill: var(--cl-loading-strong);
+  fill-opacity: 0.7;
+  stroke: #aeb2bc;
+  stroke-width: 1;
+}
+
+/* ---------- Sankey ---------- */
+
+.cl-loading-skeleton__sankey {
+  position: relative;
+  overflow: hidden;
+}
+
+.cl-loading-skeleton__sankey-ribbons path {
+  fill: var(--cl-loading-strong);
+  fill-opacity: 0.42;
+}
+
+.cl-loading-skeleton__sankey-nodes rect {
+  fill: var(--cl-loading-line);
+}
+
+/* ---------- One-time animations (single sweep, no looping) ---------- */
+
+.cl-loading-skeleton--animated .cl-loading-skeleton__shape {
+  animation: cl-loading-block-fade 700ms ease-out both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--bar .cl-loading-skeleton__bar,
+.cl-loading-skeleton--animated.cl-loading-skeleton--histogram .cl-loading-skeleton__bar,
+.cl-loading-skeleton--animated.cl-loading-skeleton--combo .cl-loading-skeleton__bar {
+  animation: cl-loading-bar-grow 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--line .cl-loading-skeleton__line path,
+.cl-loading-skeleton--animated.cl-loading-skeleton--combo .cl-loading-skeleton__line path,
+.cl-loading-skeleton--animated.cl-loading-skeleton--sparkline .cl-loading-skeleton__sparkline path {
+  stroke-dasharray: 1;
+  animation: cl-loading-line-draw 1000ms ease-out both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--donut .cl-loading-skeleton__ring-progress {
+  animation: cl-loading-ring-draw 1000ms ease-out both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--half-donut .cl-loading-skeleton__ring-progress {
+  stroke-dasharray: 1;
+  animation: cl-loading-line-draw 1000ms ease-out both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--pointer-scale .cl-loading-skeleton__pointer-needle {
+  animation: cl-loading-pointer-scan 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--pointer-scale .cl-loading-skeleton__pointer-segment {
+  animation: cl-loading-block-fade 700ms ease-out both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--map-bubble .cl-loading-skeleton__map-bubbles circle {
+  animation: cl-loading-bubble-rise 700ms ease-out both;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--sankey .cl-loading-skeleton__sankey {
+  animation: cl-loading-sankey-wipe 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cl-loading-skeleton--animated.cl-loading-skeleton--sankey .cl-loading-skeleton__sankey-ribbons path,
+.cl-loading-skeleton--animated.cl-loading-skeleton--sankey .cl-loading-skeleton__sankey-nodes rect {
+  animation: none;
+}
+
+@keyframes cl-loading-block-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes cl-loading-bar-grow {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes cl-loading-line-draw {
+  0% {
+    opacity: 0.3;
+    stroke-dashoffset: 1;
+  }
+  100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes cl-loading-ring-draw {
+  0% {
+    opacity: 0.3;
+    stroke-dasharray: 0 1;
+  }
+  100% {
+    opacity: 1;
+    stroke-dasharray: 0.74 1;
+  }
+}
+
+@keyframes cl-loading-pointer-scan {
+  0% {
+    opacity: 0;
+    left: 0%;
+  }
+  100% {
+    opacity: 1;
+    left: 58%;
+  }
+}
+
+@keyframes cl-loading-bubble-rise {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cl-loading-sankey-wipe {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    -webkit-clip-path: inset(0 100% 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    -webkit-clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-loading-skeleton--animated *,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__bar,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__line path,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__sparkline path,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__ring-progress,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__pointer-needle,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__map-bubbles circle,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__sankey-ribbons path,
+  .cl-loading-skeleton--animated .cl-loading-skeleton__sankey-nodes rect {
+    animation: none;
+  }
+}
+
 @media (max-width: 840px) {
   .cl-chart-shell__body--split {
     flex-direction: column;
@@ -707,4 +1152,22 @@ body {
   flex-direction: column;
   gap: 24px;
   width: min(1260px, 100%);
+}
+
+/* ---------- Chart state card (empty / error) ---------- */
+
+.cl-chart-state__body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px 16px;
+}
+
+.cl-chart-state__empty-state {
+  width: 100%;
+}
+
+.cl-chart-state__illustration {
+  display: block;
+  margin: 0 auto;
 }
