@@ -205,6 +205,17 @@ export interface SankeyLink {
 export type SankeyLinkColorMode = 'source' | 'target' | 'gradient' | 'neutral';
 export type SankeyHighlightMode = 'link' | 'node' | 'path';
 export type SankeyNodeAlignment = 'justify' | 'left' | 'right' | 'center';
+export type ChartLoadingType =
+  | 'bar'
+  | 'combo'
+  | 'line'
+  | 'donut'
+  | 'half-donut'
+  | 'histogram'
+  | 'sparkline'
+  | 'pointer-scale'
+  | 'map-bubble'
+  | 'sankey';
 
 export interface ChartHeaderProps {
   title?: string;
@@ -237,4 +248,34 @@ export interface ChartCardProps {
   padding?: number;
   className?: string;
   children: ReactNode;
+}
+
+export interface ChartLoadingSkeletonProps {
+  chartType?: ChartLoadingType;
+  title?: string;
+  width?: number | string;
+  plotWidth?: number;
+  plotHeight?: number;
+  showCardBackground?: boolean;
+  animate?: boolean;
+}
+
+export type ChartStateVariant = 'empty' | 'error';
+
+export interface ChartStateCardProps {
+  variant: ChartStateVariant;
+  title?: string;
+  headline?: string;
+  description?: string;
+  /** URL of an illustration (passed through to MDS EmptyState.Image as `src`). */
+  imageSrc?: string;
+  /** Custom illustration node. Takes precedence over `imageSrc` and built-in defaults. */
+  image?: ReactNode;
+  primaryActionLabel?: string;
+  onPrimaryAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
+  width?: number | string;
+  bodyHeight?: number;
+  showCardBackground?: boolean;
 }
