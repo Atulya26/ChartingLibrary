@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Sparkline } from '../charts/Sparkline';
+import { chartTokens } from '../theme/tokens';
 import { sparklineLabels, sparklineValues } from './storyData';
 import {
   advancedDataArg,
@@ -66,7 +67,7 @@ export const WithAreaFill: Story = {
     strokeWidth: 2,
     showAreaFill: true,
     showEndDot: true,
-    color: '#168666',
+    color: chartTokens.sequential.success.dark,
     showHoverCard: false
   }
 };
@@ -79,7 +80,7 @@ export const TrendingUp: Story = {
     height: 44,
     strokeWidth: 2,
     showEndDot: true,
-    color: '#168666',
+    color: chartTokens.sequential.success.dark,
     showHoverCard: false
   }
 };
@@ -92,7 +93,7 @@ export const TrendingDown: Story = {
     height: 44,
     strokeWidth: 2,
     showEndDot: true,
-    color: '#c93030',
+    color: chartTokens.sequential.red.dark,
     showHoverCard: false
   }
 };
@@ -105,7 +106,7 @@ export const Volatile: Story = {
     height: 44,
     strokeWidth: 2,
     showDots: true,
-    color: '#394cc7',
+    color: chartTokens.categorical.primary,
     showHoverCard: false
   }
 };
@@ -117,7 +118,7 @@ export const Flat: Story = {
     width: 140,
     height: 44,
     strokeWidth: 2,
-    color: '#707070',
+    color: chartTokens.text.subtle,
     showHoverCard: false
   }
 };
@@ -131,7 +132,7 @@ export const LargeKpi: Story = {
     strokeWidth: 2.5,
     showAreaFill: true,
     showEndDot: true,
-    color: '#168666',
+    color: chartTokens.sequential.success.dark,
     showHoverCard: true
   }
 };

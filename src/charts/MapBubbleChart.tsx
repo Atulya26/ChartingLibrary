@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useId } from 'react';
 import type { MouseEvent } from 'react';
 import { geoAlbersUsa, geoMercator, geoPath } from 'd3-geo';
 import countiesAtlas from 'us-atlas/counties-10m.json';
@@ -125,7 +125,7 @@ export function MapBubbleChart({
   bubbleStyle = 'both',
   backgroundFill = chartTokens.neutral.surfaceTint,
   landFill = chartTokens.neutral.stoneLighter,
-  borderColor = '#d1d5db',
+  borderColor = chartTokens.neutral.mapBorder,
   showCountyLines = true,
   showBubbleShadow = true,
   showHoverCard = false,
@@ -133,6 +133,7 @@ export function MapBubbleChart({
 }: MapBubbleChartProps) {
   const { actions: userActions = [], ...restHeaderProps } = headerProps;
 
+  const mapIdBase = useId().replace(/:/g, '');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -327,13 +328,22 @@ export function MapBubbleChart({
             style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
           >
           <defs>
-            <filter id="map-bubble-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <filter id={`${mapIdBase}-map-bubble-shadow`} x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow
                 dx="0"
                 dy="1"
                 stdDeviation="1.5"
-                floodColor="#1f1f1f"
+                floodColor={chartTokens.text.default}
                 floodOpacity="0.16"
+              />
+            </filter>
+            <filter id={`${mapIdBase}-map-bubble-hover-shadow`} x="-70%" y="-70%" width="240%" height="240%">
+              <feDropShadow
+                dx="0"
+                dy="2"
+                stdDeviation="3"
+                floodColor={chartTokens.text.default}
+                floodOpacity="0.22"
               />
             </filter>
             {renderPoints.map((point, index) => {
@@ -433,6 +443,10 @@ export function MapBubbleChart({
               }
 
               const [x, y] = projectedPoint;
+              const isHovered = showHoverCard && hoveredBubble?.point.key === point.key;
+              const shadowId = isHovered
+                ? `${mapIdBase}-map-bubble-hover-shadow`
+                : `${mapIdBase}-map-bubble-shadow`;
               const radius = getBubbleRadius(
                 point.value,
                 minValue,
@@ -443,24 +457,15 @@ export function MapBubbleChart({
               );
 
               return (
-                <circle
+                <g
                   key={point.key}
-                  cx={x}
-                  cy={y}
-                  r={radius}
-                  fill={
-                    resolvedBubbleStyle === 'outlined'
-                      ? '#ffffff'
-                      : paint.fill
-                  }
-                  stroke={
-                    resolvedBubbleStyle === 'filled'
-                      ? 'none'
-                      : resolvedStroke
-                  }
-                  strokeWidth={resolvedBubbleStyle === 'filled' ? 0 : 2}
-                  opacity={point.active === false ? 0.4 : 1.0}
-                  filter={showBubbleShadow ? 'url(#map-bubble-shadow)' : undefined}
+                  style={{
+                    cursor: showHoverCard ? 'pointer' : undefined,
+                    transform: `translate(${x}px, ${y}px) scale(${isHovered ? 1.18 : 1})`,
+                    transformBox: 'fill-box',
+                    transformOrigin: 'center',
+                    transition: 'transform 140ms ease-out',
+                  }}
                   onMouseMove={
                     showHoverCard
                       ? (event) => {
@@ -486,7 +491,30 @@ export function MapBubbleChart({
                         }
                       : undefined
                   }
-                />
+                >
+                  <circle
+                    cx="0"
+                    cy="0"
+                    r={radius}
+                    fill={
+                      resolvedBubbleStyle === 'outlined'
+                        ? chartTokens.neutral.white
+                        : paint.fill
+                    }
+                    stroke={
+                      resolvedBubbleStyle === 'filled'
+                        ? 'none'
+                        : resolvedStroke
+                    }
+                    strokeWidth={resolvedBubbleStyle === 'filled' ? 0 : 2}
+                    opacity={point.active === false ? 0.4 : 1.0}
+                    filter={
+                      showBubbleShadow
+                        ? `url(#${shadowId})`
+                        : undefined
+                    }
+                  />
+                </g>
               );
             })}
           </g>

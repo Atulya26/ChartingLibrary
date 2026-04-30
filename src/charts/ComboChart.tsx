@@ -72,6 +72,35 @@ function getLineExtent(series: LineSeriesConfig[]) {
   return getValueExtent(series.flatMap((item) => item.data));
 }
 
+function describeRoundedRectPath(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  const safeRadius = Math.max(0, Math.min(radius, Math.abs(width) / 2, height / 2));
+  const x2 = x + width;
+  const y2 = y + height;
+
+  if (safeRadius === 0) {
+    return `M ${x} ${y} H ${x2} V ${y2} H ${x} Z`;
+  }
+
+  return [
+    `M ${x + safeRadius} ${y}`,
+    `H ${x2 - safeRadius}`,
+    `Q ${x2} ${y} ${x2} ${y + safeRadius}`,
+    `V ${y2 - safeRadius}`,
+    `Q ${x2} ${y2} ${x2 - safeRadius} ${y2}`,
+    `H ${x + safeRadius}`,
+    `Q ${x} ${y2} ${x} ${y2 - safeRadius}`,
+    `V ${y + safeRadius}`,
+    `Q ${x} ${y} ${x + safeRadius} ${y}`,
+    'Z'
+  ].join(' ');
+}
+
 export function ComboChart({
   title = 'Title',
   description,
@@ -149,6 +178,7 @@ export function ComboChart({
   const scaleLeft = createInvertedScale(leftExtent.min, leftExtent.max, plotHeight);
   const scaleRight = createInvertedScale(rightExtent.min, rightExtent.max, plotHeight);
   const zeroY = scaleLeft(0);
+  const stackedSegmentGap = barLayout === 'stacked' ? 3 : 0;
   const defs: ReactNode[] = [];
   const barLayers: ReactNode[] = [];
   const lineLayers: ReactNode[] = [];
@@ -174,7 +204,17 @@ export function ComboChart({
         const bottomValue = Math.min(startValue, endValue);
         const y = scaleLeft(topValue);
         const height = Math.max(scaleLeft(bottomValue) - y, 1);
+        const earlierSeries = barSeries.slice(0, seriesIndex);
         const laterSeries = barSeries.slice(seriesIndex + 1);
+        const hasEarlierPositive = earlierSeries.some(
+          (seriesItem, offset) =>
+            resolveBarDatum(
+              seriesItem.data[categoryIndex] ?? 0,
+              seriesItem,
+              offset,
+              barFillStyle
+            ).value > 0
+        );
         const hasLaterPositive = laterSeries.some(
           (seriesItem, offset) =>
             resolveBarDatum(
@@ -183,6 +223,15 @@ export function ComboChart({
               seriesIndex + offset + 1,
               barFillStyle
             ).value > 0
+        );
+        const hasEarlierNegative = earlierSeries.some(
+          (seriesItem, offset) =>
+            resolveBarDatum(
+              seriesItem.data[categoryIndex] ?? 0,
+              seriesItem,
+              offset,
+              barFillStyle
+            ).value < 0
         );
         const hasLaterNegative = laterSeries.some(
           (seriesItem, offset) =>
@@ -205,26 +254,39 @@ export function ComboChart({
           defs.push(paint.definition);
         }
 
+        const topGapInset =
+          resolved.value >= 0
+            ? hasLaterPositive
+              ? stackedSegmentGap / 2
+              : 0
+            : hasEarlierNegative
+              ? stackedSegmentGap / 2
+              : 0;
+        const bottomGapInset =
+          resolved.value >= 0
+            ? hasEarlierPositive
+              ? stackedSegmentGap / 2
+              : 0
+            : hasLaterNegative
+              ? stackedSegmentGap / 2
+              : 0;
+        const renderedY = y + topGapInset;
+        const renderedHeight = Math.max(height - topGapInset - bottomGapInset, 1);
+
         barLayers.push(
           <path
             key={`${item.key}-${category}`}
-            d={describeBarPath(
+            d={describeRoundedRectPath(
               startX + 1,
-              y,
+              renderedY,
               Math.max(usableCategoryWidth - 2, 4),
-              height,
-              resolved.value >= 0
-                ? hasLaterPositive
-                  ? 0
-                  : barCornerRadius
-                : hasLaterNegative
-                  ? 0
-                  : barCornerRadius,
-              resolved.value >= 0 ? 'positive' : 'negative'
+              renderedHeight,
+              barCornerRadius
             )}
             fill={paint.fill}
             stroke={resolved.stroke}
             strokeWidth={1}
+            opacity={resolved.active === false ? 0.4 : 1}
           />
         );
 
@@ -330,7 +392,7 @@ export function ComboChart({
               cx={point.x}
               cy={point.y}
               r={getDotRadius(item.dotSize)}
-              fill={item.dotOutline ? '#ffffff' : stroke}
+              fill={item.dotOutline ? chartTokens.neutral.white : stroke}
               stroke={stroke}
               strokeWidth={item.dotOutline ? 2 : 0}
             />
@@ -556,7 +618,7 @@ export function ComboChart({
                             cx={point.x}
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
-                            fill="#ffffff"
+                            fill={chartTokens.neutral.white}
                             stroke={item.stroke ?? chartTokens.categorical.secondary}
                             strokeWidth={2}
                           />

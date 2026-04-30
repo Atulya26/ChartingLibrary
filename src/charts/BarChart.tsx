@@ -5,6 +5,7 @@ import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
 import { chartTokens } from '../theme/tokens';
 import { formatNumberCompact } from '../utils/chart';
+import { withAlpha } from '../utils/color';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import type {
@@ -88,6 +89,35 @@ function renderValueLabel(
   );
 }
 
+function describeRoundedRectPath(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  const safeRadius = Math.max(0, Math.min(radius, Math.abs(width) / 2, height / 2));
+  const x2 = x + width;
+  const y2 = y + height;
+
+  if (safeRadius === 0) {
+    return `M ${x} ${y} H ${x2} V ${y2} H ${x} Z`;
+  }
+
+  return [
+    `M ${x + safeRadius} ${y}`,
+    `H ${x2 - safeRadius}`,
+    `Q ${x2} ${y} ${x2} ${y + safeRadius}`,
+    `V ${y2 - safeRadius}`,
+    `Q ${x2} ${y2} ${x2 - safeRadius} ${y2}`,
+    `H ${x + safeRadius}`,
+    `Q ${x} ${y2} ${x} ${y2 - safeRadius}`,
+    `V ${y + safeRadius}`,
+    `Q ${x} ${y} ${x + safeRadius} ${y}`,
+    'Z'
+  ].join(' ');
+}
+
 export function BarChart({
   title = 'Bar Chart',
   description,
@@ -119,6 +149,7 @@ export function BarChart({
   ...headerProps
 }: BarChartProps) {
   const svgId = useId().replace(/:/g, '');
+  const stackedSegmentGap = layout === 'stacked' ? 3 : 0;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredDistributionIndex, setHoveredDistributionIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -213,7 +244,7 @@ export function BarChart({
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: chartTokens.radii.bar,
-                    boxShadow: `inset 0 0 0 1px ${stroke ?? 'rgba(255,255,255,0.35)'}`,
+                    boxShadow: `inset 0 0 0 1px ${stroke ?? withAlpha(chartTokens.neutral.white, 0.35)}`,
                     opacity:
                       hoveredDistributionIndex === null ||
                       hoveredDistributionIndex === i
@@ -226,7 +257,7 @@ export function BarChart({
                       style={{
                         fontSize: '12px',
                         fontWeight: 600,
-                        color: '#fff',
+                        color: chartTokens.text.inverse,
                         fontFamily: chartTokens.fontFamily
                       }}
                     >
@@ -375,6 +406,25 @@ export function BarChart({
           const x = Math.min(startX, endX);
           const width = Math.max(Math.abs(endX - startX), 1);
           const y = groupY + (usableCategoryHeight - groupedBarHeight) / 2;
+          const earlierSeries = series.slice(0, seriesIndex);
+          const hasEarlierPositive = earlierSeries.some(
+            (seriesItem, offset) =>
+              resolveBarDatum(
+                seriesItem.data[categoryIndex] ?? 0,
+                seriesItem,
+                offset,
+                fillStyle
+              ).value > 0
+          );
+          const hasEarlierNegative = earlierSeries.some(
+            (seriesItem, offset) =>
+              resolveBarDatum(
+                seriesItem.data[categoryIndex] ?? 0,
+                seriesItem,
+                offset,
+                fillStyle
+              ).value < 0
+          );
           const laterSeries = series.slice(seriesIndex + 1);
           const hasLaterPositive = laterSeries.some(
             (seriesItem, offset) =>
@@ -406,22 +456,34 @@ export function BarChart({
             defs.push(paint.definition);
           }
 
+          const leftGapInset =
+            resolved.value >= 0
+              ? hasEarlierPositive
+                ? stackedSegmentGap / 2
+                : 0
+              : hasLaterNegative
+                ? stackedSegmentGap / 2
+                : 0;
+          const rightGapInset =
+            resolved.value >= 0
+              ? hasLaterPositive
+                ? stackedSegmentGap / 2
+                : 0
+              : hasEarlierNegative
+                ? stackedSegmentGap / 2
+                : 0;
+          const renderedX = x + leftGapInset;
+          const renderedWidth = Math.max(width - leftGapInset - rightGapInset, 1);
+
           bars.push(
             <path
               key={`h-${item.key}-${category}`}
-              d={describeHorizontalBarPath(
-                x,
+              d={describeRoundedRectPath(
+                renderedX,
                 y,
-                width,
+                renderedWidth,
                 groupedBarHeight,
-                resolved.value >= 0
-                  ? hasLaterPositive
-                    ? 0
-                    : barCornerRadius
-                  : hasLaterNegative
-                    ? 0
-                    : barCornerRadius,
-                resolved.value >= 0 ? 'positive' : 'negative'
+                barCornerRadius
               )}
               fill={paint.fill}
               stroke={resolved.stroke}
@@ -434,7 +496,7 @@ export function BarChart({
             valueLabels.push(
               <text
                 key={`h-label-${item.key}-${category}`}
-                x={resolved.value >= 0 ? x + width - 7 : x + 7}
+                x={resolved.value >= 0 ? renderedX + renderedWidth - 7 : renderedX + 7}
                 y={y + groupedBarHeight / 2}
                 textAnchor={resolved.value >= 0 ? 'end' : 'start'}
                 dominantBaseline="middle"
@@ -763,6 +825,25 @@ export function BarChart({
         const bottomValue = Math.min(startValue, endValue);
         const y = scaleY(topValue);
         const height = Math.max(scaleY(bottomValue) - y, 1);
+        const earlierSeries = series.slice(0, seriesIndex);
+        const hasEarlierPositive = earlierSeries.some(
+          (seriesItem, offset) =>
+            resolveBarDatum(
+              seriesItem.data[categoryIndex] ?? 0,
+              seriesItem,
+              offset,
+              fillStyle
+            ).value > 0
+        );
+        const hasEarlierNegative = earlierSeries.some(
+          (seriesItem, offset) =>
+            resolveBarDatum(
+              seriesItem.data[categoryIndex] ?? 0,
+              seriesItem,
+              offset,
+              fillStyle
+            ).value < 0
+        );
         const laterSeries = series.slice(seriesIndex + 1);
         const hasLaterPositive = laterSeries.some(
           (seriesItem, offset) =>
@@ -794,22 +875,34 @@ export function BarChart({
           defs.push(paint.definition);
         }
 
+        const topGapInset =
+          resolved.value >= 0
+            ? hasLaterPositive
+              ? stackedSegmentGap / 2
+              : 0
+            : hasEarlierNegative
+              ? stackedSegmentGap / 2
+              : 0;
+        const bottomGapInset =
+          resolved.value >= 0
+            ? hasEarlierPositive
+              ? stackedSegmentGap / 2
+              : 0
+            : hasLaterNegative
+              ? stackedSegmentGap / 2
+              : 0;
+        const renderedY = y + topGapInset;
+        const renderedHeight = Math.max(height - topGapInset - bottomGapInset, 1);
+
         marks.push(
           <path
             key={`${item.key}-${category}`}
-            d={describeBarPath(
+            d={describeRoundedRectPath(
               startX + 1,
-              y,
+              renderedY,
               Math.max(usableCategoryWidth - 2, 4),
-              height,
-              resolved.value >= 0
-                ? hasLaterPositive
-                  ? 0
-                  : barCornerRadius
-                : hasLaterNegative
-                  ? 0
-                  : barCornerRadius,
-              resolved.value >= 0 ? 'positive' : 'negative'
+              renderedHeight,
+              barCornerRadius
             )}
             fill={paint.fill}
             stroke={resolved.stroke}
@@ -823,7 +916,7 @@ export function BarChart({
             <Fragment key={`segment-${item.key}-${category}`}>
               {renderValueLabel(
                 startX + usableCategoryWidth / 2,
-                resolved.value >= 0 ? y + 14 : y + height - 8,
+                resolved.value >= 0 ? renderedY + 14 : renderedY + renderedHeight - 8,
                 resolved.value,
                 resolved.fill === chartTokens.neutral.surfaceTint
                   ? chartTokens.text.default

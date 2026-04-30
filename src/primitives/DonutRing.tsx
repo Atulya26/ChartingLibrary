@@ -45,7 +45,7 @@ export function DonutRing({
               height="8"
               patternTransform="rotate(45)"
             >
-              <rect width="8" height="8" fill="#ffffff" fillOpacity="0" />
+              <rect width="8" height="8" fill={chartTokens.neutral.white} fillOpacity="0" />
               <line
                 x1="0"
                 y1="0"
@@ -95,7 +95,7 @@ export function DonutRing({
                 fontFamily={chartTokens.fontFamily}
                 fontSize="12"
                 fontWeight="600"
-                fill="#242424"
+                fill={chartTokens.text.chartLabel}
                 textAnchor={labelX > center ? 'start' : 'end'}
                 dominantBaseline="middle"
               >
@@ -114,7 +114,7 @@ export function DonutRing({
             fontFamily={chartTokens.fontFamily}
             fontSize="20"
             fontWeight="600"
-            fill="#242424"
+            fill={chartTokens.text.chartLabel}
           >
             {centerLabel}
           </text>
@@ -126,7 +126,7 @@ export function DonutRing({
               fontFamily={chartTokens.fontFamily}
               fontSize="12"
               fontWeight="400"
-              fill="#6a6b6d"
+              fill={chartTokens.text.chartHelper}
             >
               {centerSubLabel}
             </text>

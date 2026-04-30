@@ -58,7 +58,7 @@ Supporting building blocks:
 
 ```tsx
 import '@atulya_26/charting-library/styles.css';
-import { BarChart } from '@atulya_26/charting-library';
+import { BarChart, chartTokens } from '@atulya_26/charting-library';
 
 export function RevenueByPayer() {
   return (
@@ -70,13 +70,13 @@ export function RevenueByPayer() {
         {
           key: 'generated',
           label: 'Revenue generated',
-          fill: '#4454C3',
+          fill: chartTokens.categorical.primary,
           data: [45, 40, 20]
         },
         {
           key: 'targeted',
           label: 'Revenue targeted',
-          fill: '#EFF1F7',
+          fill: chartTokens.neutral.surfaceTint,
           data: [70, 65, 30]
         }
       ]}
@@ -152,6 +152,17 @@ Supported loading skeleton types:
 
 ## Local Development
 
+The source code is available on GitHub:
+
+```text
+https://github.com/Atulya26/ChartingLibrary
+```
+
+If you are viewing this package from npm and want to contribute, open an issue or pull request in the GitHub repository:
+
+- GitHub repository: [Atulya26/ChartingLibrary](https://github.com/Atulya26/ChartingLibrary)
+- npm package: [@atulya_26/charting-library](https://www.npmjs.com/package/@atulya_26/charting-library)
+
 Install dependencies:
 
 ```bash
@@ -223,5 +234,6 @@ npm version major
 
 ## Links
 
-- GitHub: `https://github.com/Atulya26/ChartingLibrary`
-- npm: `https://www.npmjs.com/package/@atulya_26/charting-library`
+- GitHub: [Atulya26/ChartingLibrary](https://github.com/Atulya26/ChartingLibrary)
+- npm: [@atulya_26/charting-library](https://www.npmjs.com/package/@atulya_26/charting-library)
+- Contributions: [open an issue or pull request](https://github.com/Atulya26/ChartingLibrary/issues)

@@ -6,7 +6,6 @@ import { ChartShell } from '../components/ChartShell';
 import type { HalfDonutRange, LegendPosition, ChartHeaderProps } from '../types';
 import {
   clamp,
-  describeArcSegment,
   formatTooltipValue,
   getEstimatedHoverCardHeight,
   getViewportHoverCardPosition,
@@ -44,6 +43,84 @@ const defaultHalfDonutRanges: HalfDonutRange[] = [
   { from: 0, to: 100, color: chartTokens.multiHue.donutBlue, label: 'Current' }
 ];
 
+function formatPoint(point: { x: number; y: number }) {
+  return `${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+}
+
+function getArcFlags(startAngle: number, endAngle: number) {
+  const span = Math.abs(endAngle - startAngle);
+  return span > 180 ? '1' : '0';
+}
+
+function describeFlatArcBand(
+  centerX: number,
+  centerY: number,
+  outerRadius: number,
+  innerRadius: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const outerStart = polarToCartesian(centerX, centerY, outerRadius, startAngle);
+  const outerEnd = polarToCartesian(centerX, centerY, outerRadius, endAngle);
+  const innerEnd = polarToCartesian(centerX, centerY, innerRadius, endAngle);
+  const innerStart = polarToCartesian(centerX, centerY, innerRadius, startAngle);
+  const largeArcFlag = getArcFlags(startAngle, endAngle);
+
+  return [
+    `M ${formatPoint(outerStart)}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${formatPoint(outerEnd)}`,
+    `L ${formatPoint(innerEnd)}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${formatPoint(innerStart)}`,
+    'Z'
+  ].join(' ');
+}
+
+function describeRoundedArcBand(
+  centerX: number,
+  centerY: number,
+  outerRadius: number,
+  innerRadius: number,
+  startAngle: number,
+  endAngle: number,
+  cornerRadius: number
+) {
+  const span = Math.abs(endAngle - startAngle);
+  const safeCornerRadius = Math.max(
+    0,
+    Math.min(cornerRadius, (outerRadius - innerRadius) / 2 - 0.5)
+  );
+
+  if (safeCornerRadius <= 0 || span < 3) {
+    return describeFlatArcBand(centerX, centerY, outerRadius, innerRadius, startAngle, endAngle);
+  }
+
+  const maxOffset = span / 3;
+  const outerOffset = Math.min((safeCornerRadius / outerRadius) * (180 / Math.PI), maxOffset);
+  const innerOffset = Math.min((safeCornerRadius / innerRadius) * (180 / Math.PI), maxOffset);
+  const largeArcFlag = getArcFlags(startAngle + outerOffset, endAngle - outerOffset);
+  const outerStart = polarToCartesian(centerX, centerY, outerRadius, startAngle + outerOffset);
+  const outerEnd = polarToCartesian(centerX, centerY, outerRadius, endAngle - outerOffset);
+  const innerEnd = polarToCartesian(centerX, centerY, innerRadius, endAngle - innerOffset);
+  const innerStart = polarToCartesian(centerX, centerY, innerRadius, startAngle + innerOffset);
+
+  return [
+    `M ${formatPoint(outerStart)}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${formatPoint(outerEnd)}`,
+    `Q ${formatPoint(polarToCartesian(centerX, centerY, outerRadius, endAngle))} ${formatPoint(
+      polarToCartesian(centerX, centerY, outerRadius - safeCornerRadius, endAngle)
+    )}`,
+    `L ${formatPoint(polarToCartesian(centerX, centerY, innerRadius + safeCornerRadius, endAngle))}`,
+    `Q ${formatPoint(polarToCartesian(centerX, centerY, innerRadius, endAngle))} ${formatPoint(innerEnd)}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${formatPoint(innerStart)}`,
+    `Q ${formatPoint(polarToCartesian(centerX, centerY, innerRadius, startAngle))} ${formatPoint(
+      polarToCartesian(centerX, centerY, innerRadius + safeCornerRadius, startAngle)
+    )}`,
+    `L ${formatPoint(polarToCartesian(centerX, centerY, outerRadius - safeCornerRadius, startAngle))}`,
+    `Q ${formatPoint(polarToCartesian(centerX, centerY, outerRadius, startAngle))} ${formatPoint(outerStart)}`,
+    'Z'
+  ].join(' ');
+}
+
 export function HalfDonutChart({
   title = 'Half Donut',
   description,
@@ -75,16 +152,39 @@ export function HalfDonutChart({
   const centerX = size / 2;
   const centerY = size * 0.55;
   const radius = size * 0.40;
+  const outerRadius = radius + thickness / 2;
+  const innerRadius = radius - thickness / 2;
   const endAngle = startAngle + sweepAngle;
   const clampedValue = clamp(value, min, max);
   const valueAngle = mapValueToAngle(clampedValue, min, max, startAngle, endAngle);
+  const segmentCornerRadius = roundedCaps ? Math.min(4, thickness / 3) : 0;
+  const joinGapAngle =
+    clampedValue > min && clampedValue < max ? (1 / radius) * (180 / Math.PI) : 0;
+  const progressEndAngle = Math.max(startAngle + 0.01, valueAngle - joinGapAngle / 2);
   const activeRange =
     ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
     ranges[ranges.length - 1];
   const progressPath =
     clampedValue <= min
       ? null
-      : describeArcSegment(centerX, centerY, radius, startAngle, valueAngle);
+      : describeRoundedArcBand(
+          centerX,
+          centerY,
+          outerRadius,
+          innerRadius,
+          startAngle,
+          progressEndAngle,
+          segmentCornerRadius
+        );
+  const trackPath = describeRoundedArcBand(
+    centerX,
+    centerY,
+    outerRadius,
+    innerRadius,
+    startAngle,
+    endAngle,
+    segmentCornerRadius
+  );
   const hoverRows = [
     {
       label: 'Current',
@@ -149,19 +249,13 @@ export function HalfDonutChart({
           style={{ overflow: 'visible' }}
         >
           <path
-            d={describeArcSegment(centerX, centerY, radius, startAngle, endAngle)}
-            fill="none"
-            stroke={chartTokens.neutral.surfaceTint}
-            strokeWidth={thickness}
-            strokeLinecap={roundedCaps ? 'round' : undefined}
+            d={trackPath}
+            fill={chartTokens.neutral.surfaceTint}
           />
           {progressPath ? (
             <path
               d={progressPath}
-              fill="none"
-              stroke={valueColor ?? activeRange.color}
-              strokeWidth={thickness}
-              strokeLinecap={roundedCaps ? 'round' : undefined}
+              fill={valueColor ?? activeRange.color}
             />
           ) : null}
           <text

@@ -137,7 +137,7 @@ export function Sparkline({
               cx={lastPoint.x}
               cy={lastPoint.y}
               r={getDotRadius('small') + 1.5}
-              fill="#ffffff"
+              fill={chartTokens.neutral.white}
               stroke={color}
               strokeWidth={1.5}
             />
@@ -155,7 +155,7 @@ export function Sparkline({
               cx={hoveredPoint.x}
               cy={hoveredPoint.y}
               r={getDotRadius('small') + 2}
-              fill="#ffffff"
+              fill={chartTokens.neutral.white}
               stroke={color}
               strokeWidth={2}
             />

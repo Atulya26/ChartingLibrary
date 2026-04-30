@@ -193,6 +193,7 @@ export const UnitedStatesView: Story = {
   args: {
     title: 'Hospital Network',
     points: mapBubblePoints,
+    view: 'map',
     legendPosition: 'bottom',
     showLegend: true,
     showHoverCard: false,

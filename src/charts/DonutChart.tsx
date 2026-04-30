@@ -17,6 +17,7 @@ import {
   formatTooltipValue,
   getDonutLabel,
   getEstimatedHoverCardHeight,
+  polarToCartesian,
   getViewportHoverCardPosition,
   getSvgFillDefinition,
   resolveFillLegendMarker,
@@ -43,6 +44,82 @@ export interface DonutChartProps extends ChartHeaderProps {
   legendMarker?: LegendMarkerMode;
   roundedCaps?: boolean;
   showHoverCard?: boolean;
+}
+
+function formatPoint(point: { x: number; y: number }) {
+  return `${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+}
+
+function getArcFlags(startAngle: number, endAngle: number) {
+  const span = Math.abs(endAngle - startAngle);
+  return span > 180 ? '1' : '0';
+}
+
+function describeFlatDonutSegment(
+  center: number,
+  outerRadius: number,
+  innerRadius: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const outerStart = polarToCartesian(center, center, outerRadius, startAngle);
+  const outerEnd = polarToCartesian(center, center, outerRadius, endAngle);
+  const innerEnd = polarToCartesian(center, center, innerRadius, endAngle);
+  const innerStart = polarToCartesian(center, center, innerRadius, startAngle);
+  const largeArcFlag = getArcFlags(startAngle, endAngle);
+
+  return [
+    `M ${formatPoint(outerStart)}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${formatPoint(outerEnd)}`,
+    `L ${formatPoint(innerEnd)}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${formatPoint(innerStart)}`,
+    'Z'
+  ].join(' ');
+}
+
+function describeRoundedDonutSegment(
+  center: number,
+  outerRadius: number,
+  innerRadius: number,
+  startAngle: number,
+  endAngle: number,
+  cornerRadius: number
+) {
+  const span = Math.abs(endAngle - startAngle);
+  const safeCornerRadius = Math.max(
+    0,
+    Math.min(cornerRadius, (outerRadius - innerRadius) / 2 - 0.5)
+  );
+
+  if (safeCornerRadius <= 0 || span < 3) {
+    return describeFlatDonutSegment(center, outerRadius, innerRadius, startAngle, endAngle);
+  }
+
+  const maxOffset = span / 3;
+  const outerOffset = Math.min((safeCornerRadius / outerRadius) * (180 / Math.PI), maxOffset);
+  const innerOffset = Math.min((safeCornerRadius / innerRadius) * (180 / Math.PI), maxOffset);
+  const largeArcFlag = getArcFlags(startAngle + outerOffset, endAngle - outerOffset);
+  const outerStart = polarToCartesian(center, center, outerRadius, startAngle + outerOffset);
+  const outerEnd = polarToCartesian(center, center, outerRadius, endAngle - outerOffset);
+  const innerEnd = polarToCartesian(center, center, innerRadius, endAngle - innerOffset);
+  const innerStart = polarToCartesian(center, center, innerRadius, startAngle + innerOffset);
+
+  return [
+    `M ${formatPoint(outerStart)}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${formatPoint(outerEnd)}`,
+    `Q ${formatPoint(polarToCartesian(center, center, outerRadius, endAngle))} ${formatPoint(
+      polarToCartesian(center, center, outerRadius - safeCornerRadius, endAngle)
+    )}`,
+    `L ${formatPoint(polarToCartesian(center, center, innerRadius + safeCornerRadius, endAngle))}`,
+    `Q ${formatPoint(polarToCartesian(center, center, innerRadius, endAngle))} ${formatPoint(innerEnd)}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${formatPoint(innerStart)}`,
+    `Q ${formatPoint(polarToCartesian(center, center, innerRadius, startAngle))} ${formatPoint(
+      polarToCartesian(center, center, innerRadius + safeCornerRadius, startAngle)
+    )}`,
+    `L ${formatPoint(polarToCartesian(center, center, outerRadius - safeCornerRadius, startAngle))}`,
+    `Q ${formatPoint(polarToCartesian(center, center, outerRadius, startAngle))} ${formatPoint(outerStart)}`,
+    'Z'
+  ].join(' ');
 }
 
 export function DonutChart({
@@ -79,10 +156,12 @@ export function DonutChart({
     : [];
   const center = size / 2;
   const radius = center - thickness / 2 - 2;
-  const circumference = 2 * Math.PI * radius;
+  const outerRadius = radius + thickness / 2;
+  const innerRadius = radius - thickness / 2;
   const defs: ReactNode[] = [];
   let cumulative = 0;
-  const gapLength = roundedCaps ? Math.max(thickness * 0.7, 6) : 0;
+  const segmentCornerRadius = roundedCaps ? Math.min(4, thickness / 3) : 0;
+  const segmentGapAngle = segments.length > 1 ? (1 / radius) * (180 / Math.PI) : 0;
   const segmentLayouts = segments.map((segment, index) => {
     const resolvedFillStyle = resolveFillStyle(segment.fillStyle ?? 'solid', fillStyle);
     const paintId = `donut-${svgId}-${index}`;
@@ -92,17 +171,27 @@ export function DonutChart({
       segment.color,
       segment.strokeColor ?? segment.color
     );
-    const length = (segment.value / total) * circumference;
-    const visibleLength = Math.max(length - gapLength, 0);
-    const dashArray = `${visibleLength} ${Math.max(circumference - visibleLength, 0)}`;
-    const dashOffset = -((cumulative / total) * circumference);
     const segmentStart = cumulative;
     const segmentMid = segmentStart + segment.value / 2;
     cumulative += segment.value;
+    const rawStartAngle = (segmentStart / total) * 360;
+    const rawEndAngle = (cumulative / total) * 360;
+    const segmentAngle = rawEndAngle - rawStartAngle;
+    const gapInset = Math.min(segmentGapAngle / 2, segmentAngle / 4);
+    const startAngle = rawStartAngle + gapInset;
+    const endAngle = rawEndAngle - gapInset;
     const angle = (segmentMid / total) * Math.PI * 2 - Math.PI / 2;
     const labelRadius = radius + thickness / 2 + 18;
     const labelX = center + Math.cos(angle) * labelRadius;
     const labelY = center + Math.sin(angle) * labelRadius;
+    const path = describeRoundedDonutSegment(
+      center,
+      outerRadius,
+      innerRadius,
+      startAngle,
+      endAngle,
+      segmentCornerRadius
+    );
 
     if (paint.definition) {
       defs.push(paint.definition);
@@ -113,8 +202,7 @@ export function DonutChart({
       index,
       resolvedFillStyle,
       paint,
-      dashArray,
-      dashOffset,
+      path,
       labelX,
       labelY
     };
@@ -177,18 +265,11 @@ export function DonutChart({
               strokeWidth={thickness}
             />
             <defs>{defs}</defs>
-            {orderedSegmentLayouts.map(({ segment, index, paint, dashArray, dashOffset }) => (
-              <circle
+            {orderedSegmentLayouts.map(({ segment, index, paint, path }) => (
+              <path
                 key={`${segment.label}-${index}`}
-                cx={center}
-                cy={center}
-                r={radius}
-                fill="none"
-                stroke={paint.fill}
-                strokeWidth={thickness}
-                strokeDasharray={dashArray}
-                strokeDashoffset={dashOffset}
-                transform={`rotate(-90 ${center} ${center})`}
+                d={path}
+                fill={paint.fill}
                 opacity={
                   segment.active === false
                     ? 0.4
@@ -196,7 +277,6 @@ export function DonutChart({
                       ? 1
                       : 0.65
                 }
-                strokeLinecap={roundedCaps ? 'round' : undefined}
                 onMouseMove={
                   showHoverCard
                     ? (event) => { setHoveredSegmentIndex(index); setMousePos({ x: event.clientX, y: event.clientY }); }
@@ -215,7 +295,7 @@ export function DonutChart({
                     fontFamily={chartTokens.fontFamily}
                     fontSize="12"
                     fontWeight="600"
-                    fill="#242424"
+                    fill={chartTokens.text.chartLabel}
                   >
                     {getDonutLabel(segment, total, labelMode)}
                   </text>
@@ -229,7 +309,7 @@ export function DonutChart({
               fontFamily={chartTokens.fontFamily}
               fontSize="20"
               fontWeight="600"
-              fill="#242424"
+              fill={chartTokens.text.chartLabel}
             >
               {centerLabel ?? `${formatNumberCompact(total)}M`}
             </text>
@@ -240,7 +320,7 @@ export function DonutChart({
               fontFamily={chartTokens.fontFamily}
               fontSize="12"
               fontWeight="400"
-              fill="#6a6b6d"
+              fill={chartTokens.text.chartHelper}
             >
               {centerSubLabel ?? 'Target'}
             </text>

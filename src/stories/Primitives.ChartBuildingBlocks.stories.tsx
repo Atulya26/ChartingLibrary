@@ -26,8 +26,8 @@ export const Overview: Story = {
             gap: 24,
             alignItems: 'flex-end',
             padding: 16,
-            background: '#ffffff',
-            border: '1px solid #e5e5e5',
+            background: chartTokens.neutral.white,
+            border: `1px solid ${chartTokens.neutral.stoneLight}`,
             borderRadius: 8
           }}
         >
@@ -62,8 +62,8 @@ export const Overview: Story = {
             width: 390,
             height: 117,
             padding: 12,
-            background: '#ffffff',
-            border: '1px solid #e5e5e5',
+            background: chartTokens.neutral.white,
+            border: `1px solid ${chartTokens.neutral.stoneLight}`,
             borderRadius: 8
           }}
         >
@@ -86,8 +86,8 @@ export const Overview: Story = {
             placeItems: 'center',
             width: 220,
             padding: 16,
-            background: '#ffffff',
-            border: '1px solid #e5e5e5',
+            background: chartTokens.neutral.white,
+            border: `1px solid ${chartTokens.neutral.stoneLight}`,
             borderRadius: 8
           }}
         >
