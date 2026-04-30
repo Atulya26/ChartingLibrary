@@ -29,9 +29,9 @@ export function getFillStyleBackground(
 ) {
   if (fillStyle === 'texture') {
     return `repeating-linear-gradient(135deg, ${color}, ${color} 4px, ${withAlpha(
-      strokeColor ?? '#ffffff',
+      strokeColor ?? chartTokens.neutral.white,
       0
-    )} 4px, ${withAlpha(strokeColor ?? '#ffffff', 0)} 8px)`;
+    )} 4px, ${withAlpha(strokeColor ?? chartTokens.neutral.white, 0)} 8px)`;
   }
 
   if (fillStyle === 'gradient') {

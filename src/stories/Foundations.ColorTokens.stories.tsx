@@ -71,9 +71,12 @@ export const PaletteSystem: Story = {
               <div className="cl-swatch-row">
                 {[
                   chartTokens.text.default,
+                  chartTokens.text.chartLabel,
+                  chartTokens.text.chartHelper,
                   chartTokens.text.subtle,
                   chartTokens.neutral.stoneLight,
                   chartTokens.neutral.stoneLightest,
+                  chartTokens.neutral.controlBorder,
                   chartTokens.categorical.primary,
                   chartTokens.categorical.secondary
                 ].map((color, index) => (

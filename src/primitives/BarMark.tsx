@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import type { FillStyle } from '../types';
-import { getFillStyleBackground } from '../utils/color';
+import { getFillStyleBackground, withAlpha } from '../utils/color';
 
 export interface BarMarkProps {
   value: number;
@@ -25,7 +25,7 @@ export function BarMark({
   height = chartTokens.chart.plotHeight,
   label,
   fill = chartTokens.categorical.primary,
-  stroke = 'rgba(0, 0, 0, 0.1)',
+  stroke = withAlpha(chartTokens.text.default, 0.1),
   fillStyle = 'solid',
   showLabel = true
 }: BarMarkProps) {

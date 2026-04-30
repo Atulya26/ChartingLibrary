@@ -104,7 +104,7 @@ export function LineSeries({
               cx={point.x}
               cy={point.y}
               r={radius}
-              fill={dotOutline ? '#ffffff' : stroke}
+              fill={dotOutline ? chartTokens.neutral.white : stroke}
               stroke={stroke}
               strokeWidth={dotOutline ? 2 : 0}
             />

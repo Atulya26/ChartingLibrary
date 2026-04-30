@@ -19,9 +19,12 @@ export const chartTokens = {
   fontFamily: "'Nunito Sans', 'Segoe UI', system-ui, sans-serif",
   text: {
     default: '#1f1f1f',
+    chartLabel: '#242424',
+    chartHelper: '#6a6b6d',
     subtle: '#707070',
     disabled: '#a6a6a6',
     legend: '#1f1f1f',
+    legendTitle: '#424344',
     legendInactive: '#707070',
     inverse: '#ffffff',
     axesMarker: '#707070'
@@ -32,10 +35,35 @@ export const chartTokens = {
     stoneLighter: '#ececec',
     stoneLight: '#e5e5e5',
     surfaceTint: '#eff2f8',
+    controlBorder: '#d7dbe7',
+    mapBorder: '#d1d5db',
     nightLighter: '#707070'
   },
+  action: {
+    primary: '#0b69ff'
+  },
   shadow: {
-    card: '0 1px 4px rgba(0, 0, 0, 0.16)'
+    card: '0 1px 4px rgba(0, 0, 0, 0.16)',
+    chartHoverFilter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.18))'
+  },
+  loading: {
+    base: '#e6e7eb',
+    strong: '#cccfd6',
+    soft: '#f1f2f5',
+    line: '#c4c7d0',
+    marker: '#b6bac4',
+    mapStroke: '#d1d5db',
+    mapStrongStroke: '#aeb2bc'
+  },
+  stateIllustration: {
+    emptySurface: '#eef0f5',
+    emptyStroke: '#d0d4dd',
+    emptyLine: '#bcc1cc',
+    emptyBar: '#cdd2dd',
+    errorSurface: '#fdecec',
+    errorStroke: '#f1b8b8',
+    errorLine: '#e89595',
+    errorAccent: '#d13438'
   },
   radii: {
     marker: 4,

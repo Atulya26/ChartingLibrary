@@ -78,7 +78,7 @@ export function LegendMarker({
           cx="12"
           cy="6"
           r="3"
-          fill="#ffffff"
+          fill={chartTokens.neutral.white}
           stroke={strokeColor ?? color}
           strokeWidth="2"
         />

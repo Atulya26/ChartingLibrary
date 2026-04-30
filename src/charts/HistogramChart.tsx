@@ -22,6 +22,7 @@ import {
   buildLinePoints,
   createInvertedScale,
   describeAreaPath,
+  describeBarPath,
   describeLinePath,
   formatTooltipValue,
   getDotRadius,
@@ -160,12 +161,16 @@ export function HistogramChart({
     }
 
     barLayers.push(
-      <rect
+      <path
         key={bin.label}
-        x={index * barWidth}
-        y={valueY}
-        width={Math.max(barWidth, 1)}
-        height={height}
+        d={describeBarPath(
+          index * barWidth,
+          bin.value >= 0 ? valueY : zeroY,
+          Math.max(barWidth, 1),
+          height,
+          chartTokens.radii.bar,
+          bin.value >= 0 ? 'positive' : 'negative'
+        )}
         fill={paint.fill}
         stroke={bin.stroke}
         strokeWidth={1}
@@ -182,7 +187,7 @@ export function HistogramChart({
           fontFamily={chartTokens.fontFamily}
           fontSize="12"
           fontWeight="600"
-          fill="#242424"
+          fill={chartTokens.text.chartLabel}
         >
           {formatNumberCompact(bin.value)}
         </text>
@@ -311,7 +316,7 @@ export function HistogramChart({
                               cx={point.x}
                               cy={point.y}
                               r={getDotRadius('medium')}
-                              fill="#ffffff"
+                              fill={chartTokens.neutral.white}
                               stroke={chartTokens.categorical.secondary}
                               strokeWidth={2}
                             />

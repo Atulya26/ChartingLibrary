@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { ComboChart } from '../charts/ComboChart';
+import { chartTokens } from '../theme/tokens';
 import {
   compactChartActions,
   selectOptions,
@@ -159,7 +160,7 @@ export const StackedBars: Story = {
         key: 'benchmark',
         label: 'Benchmark',
         data: [18, 22, 41, 49, 52],
-        stroke: '#0181a1',
+        stroke: chartTokens.sequential.default.dark,
         showDots: true
       }
     ],

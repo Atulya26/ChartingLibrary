@@ -382,7 +382,7 @@ export function SankeyChart({
                       cursor: onNodeClick ? 'pointer' : 'default',
                       transition: 'filter 120ms ease-out'
                     }}
-                    filter={isHovered ? 'drop-shadow(0 1px 3px rgba(0,0,0,0.18))' : undefined}
+                    filter={isHovered ? chartTokens.shadow.chartHoverFilter : undefined}
                     onMouseMove={(event) => {
                       setHoveredNodeId(n.id);
                       setHoveredLinkIdx(null);

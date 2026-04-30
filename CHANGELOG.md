@@ -2,6 +2,18 @@
 
 All notable updates to this workspace should be recorded here.
 
+## 2026-04-30
+
+### Visual alignment and chart state polish
+
+- Aligned distribution bars and scale variants with the documented 3px corner treatment
+- Added a single-axis line chart story and tuned the line chart area gradient, target placement, dot treatment, and story naming
+- Updated map bubble hover interactions with an opt-in hover card, bubble scale-up, and soft shadow treatment
+- Brought donut and half-donut cap behavior closer to the Figma direction, including subtle cap curvature and segment spacing
+- Matched stacked combo and histogram segment styling with the stacked bar chart visual language
+- Replaced empty and error chart-state illustrations with the provided product illustrations
+- Tightened token usage across pointer scale, legends, fills, and chart primitives so colors stay closer to the defined palette
+
 ## 2026-04-24
 
 ### Chart sizing and polish pass

@@ -183,15 +183,16 @@ export const lineSeries: LineSeriesConfig[] = [
   {
     key: 'current',
     label: 'Current',
-    data: [1094, 1086, 1074, 1068],
+    data: [1280, 1160, 1040, 960],
     stroke: chartTokens.sequential.warning.default,
     showDots: true,
+    dotOutline: true,
     showLabels: true
   },
   {
     key: 'ye-projected',
     label: 'YE Projected',
-    data: [1078, 1066, 1052, 1047],
+    data: [1120, 980, 840, 760],
     stroke: chartTokens.sequential.warning.default,
     lineStyle: 'dashed',
     showDots: false
@@ -478,9 +479,9 @@ export const mapBubbleTableConfig = {
 };
 
 export const distributionSegments: DistributionSegment[] = [
-  { label: 'Less than $5,000', value: 55, fill: '#8798d7' },
-  { label: '$5,000 to $10,000', value: 35, fill: '#db7d46' },
-  { label: 'More than $10,000', value: 10, fill: '#c93030' }
+  { label: 'Less than $5,000', value: 55, fill: chartTokens.categorical.axisPalette[0].fill },
+  { label: '$5,000 to $10,000', value: 35, fill: chartTokens.sequential.warning.default },
+  { label: 'More than $10,000', value: 10, fill: chartTokens.sequential.red.dark }
 ];
 
 /* ------------------------------------------------------------------ */
@@ -574,7 +575,7 @@ export const revenueFlowLinks: SankeyLink[] = [
 
 export const riskDistributionSegments: DistributionSegment[] = [
   { label: 'Low', value: 40, fill: chartTokens.sequential.neel.default },
-  { label: 'Medium', value: 30, fill: '#f1d4c6' },
-  { label: 'High', value: 20, fill: '#e29a80' },
-  { label: 'Very High', value: 10, fill: '#cd6c4c' }
+  { label: 'Medium', value: 30, fill: chartTokens.sequential.warning.lightest },
+  { label: 'High', value: 20, fill: chartTokens.sequential.warning.light },
+  { label: 'Very High', value: 10, fill: chartTokens.sequential.red.dark }
 ];

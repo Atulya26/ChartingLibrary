@@ -1,11 +1,10 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
 import { chartTokens } from '../theme/tokens';
 import { formatNumberCompact } from '../utils/chart';
-import { withAlpha } from '../utils/color';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import type {
@@ -101,14 +100,23 @@ export function LineChart({
 }: LineChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const gradientBaseId = useId().replace(/:/g, '');
   const leftSeries = series.filter((item) => item.axis !== 'right');
   const rightSeries = series.filter((item) => item.axis === 'right');
   const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
-  const leftExtent = getSeriesExtent(
+  const rawLeftExtent = getSeriesExtent(
     leftSeries,
     referenceLines.map((item) => item.value)
   );
-  const rightExtent = getSeriesExtent(rightSeries.length ? rightSeries : leftSeries);
+  const leftExtent = {
+    min: typeof yAxis?.min === 'number' ? yAxis.min : rawLeftExtent.min,
+    max: typeof yAxis?.max === 'number' ? yAxis.max : rawLeftExtent.max
+  };
+  const rawRightExtent = getSeriesExtent(rightSeries.length ? rightSeries : leftSeries);
+  const rightExtent = {
+    min: typeof secondaryYAxis?.min === 'number' ? secondaryYAxis.min : rawRightExtent.min,
+    max: typeof secondaryYAxis?.max === 'number' ? secondaryYAxis.max : rawRightExtent.max
+  };
   const leftTicks = resolveTickEntries(
     yAxis,
     leftExtent.min,
@@ -127,6 +135,7 @@ export function LineChart({
     : [];
   const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
   const referenceLayers: ReactNode[] = [];
+  const gradientLayers: ReactNode[] = [];
   const lineLayers: ReactNode[] = [];
 
   referenceLines.forEach((line, index) => {
@@ -178,11 +187,26 @@ export function LineChart({
       );
 
     if (item.showAreaFill) {
+      const gradientId = `${gradientBaseId}-line-area-${item.key}`;
+      gradientLayers.push(
+        <linearGradient
+          key={`gradient-${item.key}`}
+          id={gradientId}
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop offset="0%" stopColor={stroke} stopOpacity="0.18" />
+          <stop offset="52%" stopColor={stroke} stopOpacity="0.08" />
+          <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+        </linearGradient>
+      );
       lineLayers.push(
         <path
           key={`area-${item.key}`}
           d={describeAreaPath(points, baseline)}
-          fill={withAlpha(stroke, 0.14)}
+          fill={`url(#${gradientId})`}
           stroke="none"
         />
       );
@@ -210,7 +234,7 @@ export function LineChart({
             cx={point.x}
             cy={point.y}
             r={getDotRadius(item.dotSize)}
-            fill={item.dotOutline ? '#ffffff' : stroke}
+            fill={item.dotOutline ? chartTokens.neutral.white : stroke}
             stroke={stroke}
             strokeWidth={item.dotOutline ? 2 : 0}
           />
@@ -218,16 +242,17 @@ export function LineChart({
       }
 
       if (item.showLabels) {
+        const isBottomLeftLabel = item.labelPosition === 'bottom-left';
         lineLayers.push(
           <text
             key={`label-${item.key}-${pointIndex}`}
-            x={point.x}
-            y={point.y - 10}
-            textAnchor="middle"
+            x={point.x + (isBottomLeftLabel ? -8 : 0)}
+            y={point.y + (isBottomLeftLabel ? 18 : -10)}
+            textAnchor={isBottomLeftLabel ? 'end' : 'middle'}
             fontFamily={chartTokens.fontFamily}
             fontSize="12"
             fontWeight="600"
-            fill={chartTokens.text.inverse}
+            fill={stroke}
           >
             {formatNumberCompact(point.value)}
           </text>
@@ -328,6 +353,7 @@ export function LineChart({
                   aria-label={title}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  {gradientLayers.length ? <defs>{gradientLayers}</defs> : null}
                   {showHoverCard && hoveredIndex !== null ? (
                     <>
                       <rect
@@ -375,7 +401,7 @@ export function LineChart({
                             cx={point.x}
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
-                            fill="#ffffff"
+                            fill={chartTokens.neutral.white}
                             stroke={item.stroke ?? chartTokens.categorical.secondary}
                             strokeWidth={2}
                           />

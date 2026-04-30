@@ -39,6 +39,8 @@ export interface AxisConfig {
   title?: string;
   ticks?: Array<string | number>;
   hideMarkers?: boolean;
+  min?: number;
+  max?: number;
 }
 
 export interface SelectOption {
