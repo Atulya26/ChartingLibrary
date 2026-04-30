@@ -179,12 +179,10 @@ export function BarChart({
           <div
             style={{
               display: 'flex',
+              gap: 3,
               height: barHeight,
-              borderRadius: '4px',
-              overflow: 'hidden',
               width: resolvedPlotWidth,
-              background: chartTokens.neutral.surfaceTint,
-              boxShadow: `inset 0 0 0 1px ${chartTokens.neutral.stoneLight}`
+              background: 'transparent'
             }}
             onMouseLeave={
               showHoverCard ? () => { setHoveredDistributionIndex(null); setMousePos(null); } : undefined
@@ -197,6 +195,7 @@ export function BarChart({
                 chartTokens.categorical.axisPalette[
                   i % chartTokens.categorical.axisPalette.length
                 ].fill;
+              const stroke = 'stroke' in seg ? seg.stroke : undefined;
               return (
                 <div
                   key={i}
@@ -206,16 +205,15 @@ export function BarChart({
                       : undefined
                   }
                   style={{
-                    width: `${percent * 100}%`,
+                    flex: `${seg.value} 1 0`,
+                    minWidth: 0,
                     height: '100%',
                     background: color,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow:
-                      i < resolvedDistributionSegments.length - 1
-                        ? 'inset -1px 0 0 rgba(255,255,255,0.35)'
-                        : undefined,
+                    borderRadius: chartTokens.radii.bar,
+                    boxShadow: `inset 0 0 0 1px ${stroke ?? 'rgba(255,255,255,0.35)'}`,
                     opacity:
                       hoveredDistributionIndex === null ||
                       hoveredDistributionIndex === i
