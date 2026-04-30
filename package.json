@@ -3,6 +3,32 @@
   "version": "0.1.3",
   "description": "A Figma-driven charting library prototype with Storybook for local npm development.",
   "license": "MIT",
+  "homepage": "https://atulya26.github.io/ChartingLibrary/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Atulya26/ChartingLibrary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Atulya26/ChartingLibrary/issues"
+  },
+  "keywords": [
+    "react",
+    "charts",
+    "charting",
+    "storybook",
+    "data-visualization",
+    "dashboard",
+    "analytics",
+    "design-system",
+    "figma",
+    "bar-chart",
+    "line-chart",
+    "donut-chart",
+    "gauge",
+    "sankey",
+    "map-chart",
+    "healthcare"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
