@@ -4,6 +4,14 @@ A Figma-aligned React charting library for product dashboards, analytics cards, 
 
 The package is built around reusable chart primitives, polished Storybook props, MDS-compatible chrome, and realistic chart states for loading, empty, and error cases. It is currently an early library/prototype package, but it is npm-ready and intended for local product integration trials.
 
+## Live Storybook
+
+Explore the charts without installing the package:
+
+[Open the live Storybook](https://atulya26.github.io/ChartingLibrary/)
+
+The live Storybook is deployed from the `main` branch through GitHub Pages, so merged chart and documentation updates become shareable from the repository.
+
 ## Install
 
 ```bash
@@ -236,4 +244,5 @@ npm version major
 
 - GitHub: [Atulya26/ChartingLibrary](https://github.com/Atulya26/ChartingLibrary)
 - npm: [@atulya_26/charting-library](https://www.npmjs.com/package/@atulya_26/charting-library)
+- Live Storybook: [atulya26.github.io/ChartingLibrary](https://atulya26.github.io/ChartingLibrary/)
 - Contributions: [open an issue or pull request](https://github.com/Atulya26/ChartingLibrary/issues)
