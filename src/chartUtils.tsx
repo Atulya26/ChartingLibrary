@@ -333,6 +333,54 @@ export function buildLinePoints(
   }));
 }
 
+export function buildLinePointsAtIndices(
+  values: number[],
+  indices: number[],
+  totalPoints: number,
+  width: number,
+  height: number,
+  minValue: number,
+  maxValue: number,
+  inset = 0
+): PlotPoint[] {
+  const scaleY = createInvertedScale(minValue, maxValue, Math.max(height - inset * 2, 1));
+  const denominator = Math.max(totalPoints - 1, 1);
+  const usableWidth = Math.max(width - inset * 2, 1);
+
+  return values.map((value, index) => {
+    const originalIndex = indices[index] ?? index;
+
+    return {
+      x: inset + (usableWidth * originalIndex) / denominator,
+      y: inset + scaleY(value),
+      value,
+      index: originalIndex
+    };
+  });
+}
+
+export function buildLinePointAtIndex(
+  value: number,
+  index: number,
+  totalPoints: number,
+  width: number,
+  height: number,
+  minValue: number,
+  maxValue: number,
+  inset = 0
+): PlotPoint {
+  return buildLinePointsAtIndices(
+    [value],
+    [index],
+    totalPoints,
+    width,
+    height,
+    minValue,
+    maxValue,
+    inset
+  )[0];
+}
+
 export function describeLinePath(points: PlotPoint[]) {
   if (!points.length) {
     return '';

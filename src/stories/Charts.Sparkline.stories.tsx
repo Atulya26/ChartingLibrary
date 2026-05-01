@@ -9,6 +9,7 @@ import {
   baseDocNote,
   booleanArg,
   colorArg,
+  downsampleArgTypes,
   hoverCardArg,
   rangeArg,
   chartMetaParameters
@@ -48,6 +49,7 @@ const meta = {
     }),
     strokeWidth: rangeArg('Numeric line width in pixels.', 'Style', { min: 1, max: 6, step: 0.5 }),
     color: colorArg('Line color for the sparkline.'),
+    ...downsampleArgTypes,
     ...accessibilityArgTypes
   }
 } satisfies Meta<typeof Sparkline>;

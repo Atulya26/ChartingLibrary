@@ -9,6 +9,7 @@ import {
   baseDocNote,
   booleanArg,
   colorArg,
+  downsampleArgTypes,
   hiddenEventArgTypes,
   hoverCardArg,
   numberArg,
@@ -60,6 +61,7 @@ const meta = {
       max: 360,
       step: 10
     }),
+    ...downsampleArgTypes,
     ...accessibilityArgTypes
   }
 } satisfies Meta<typeof LineChart>;

@@ -188,6 +188,14 @@ export const accessibilityArgTypes = {
   )
 } satisfies Record<string, InputType>;
 
+export const downsampleArgTypes = {
+  downsample: numberArg(
+    'Optional max rendered points per line series. Uses LTTB to preserve visual shape while reducing render cost. Leave blank to disable.',
+    'Performance',
+    { min: 3, max: 5000, step: 50 }
+  )
+} satisfies Record<string, InputType>;
+
 export const surfaceArgTypes = {
   width: numberArg(
     'Use a number for consistent Storybook sizing. String widths are supported in code, but number controls are clearer for day-to-day exploration.'

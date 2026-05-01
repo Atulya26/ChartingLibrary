@@ -1,10 +1,11 @@
-import { memo, useCallback, useId, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import type { ChartAccessibilityProps } from '../types';
 import {
+  buildLinePointsAtIndices,
   buildLinePoints,
   describeAreaPath,
   describeLinePath,
@@ -22,6 +23,11 @@ import {
   getChartA11yProps
 } from '../utils/a11y';
 import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import {
+  downsampleLttb,
+  getDownsampleLimit,
+  warnForLargeUndownsampledDataset
+} from '../utils/downsample';
 
 export interface SparklineProps extends ChartAccessibilityProps {
   title?: string;
@@ -38,6 +44,8 @@ export interface SparklineProps extends ChartAccessibilityProps {
   showEndDot?: boolean;
   /** Render a small dot at every data point. */
   showDots?: boolean;
+  /** Max points to render. Uses LTTB to preserve visual shape. Off by default. */
+  downsample?: number;
 }
 
 /**
@@ -71,6 +79,7 @@ export const Sparkline = memo(function Sparkline({
   showAreaFill = false,
   showEndDot = false,
   showDots = false,
+  downsample,
   ariaLabel,
   ariaDescription,
   enableKeyboardNavigation = false
@@ -81,12 +90,44 @@ export const Sparkline = memo(function Sparkline({
   const svgId = useId().replace(/:/g, '');
   const a11yTitleId = `${svgId}-title`;
   const a11yDescriptionId = `${svgId}-description`;
+  useEffect(() => {
+    warnForLargeUndownsampledDataset('Sparkline', values.length, downsample);
+  }, [downsample, values.length]);
   const extent = useMemo(() => getSparklineExtent(values), [values]);
+  const renderValues = useMemo(() => {
+    const limit = getDownsampleLimit(downsample, 'Sparkline');
+
+    if (!limit || values.length <= limit) {
+      return values.map((value, index) => ({ x: index, y: value }));
+    }
+
+    return downsampleLttb(
+      values.map((value, index) => ({ x: index, y: value })),
+      limit
+    );
+  }, [downsample, values]);
   const points = useMemo(
+    () =>
+      buildLinePointsAtIndices(
+        renderValues.map((point) => point.y),
+        renderValues.map((point) => point.x),
+        values.length,
+        width,
+        height,
+        extent.min,
+        extent.max,
+        2
+      ),
+    [extent.max, extent.min, height, renderValues, values.length, width]
+  );
+  const interactionPoints = useMemo(
     () => buildLinePoints(values, width, height, extent.min, extent.max, 2),
     [extent.max, extent.min, height, values, width]
   );
-  const lastPoint = useMemo(() => (points.length ? points[points.length - 1] : null), [points]);
+  const lastPoint = useMemo(
+    () => (interactionPoints.length ? interactionPoints[interactionPoints.length - 1] : null),
+    [interactionPoints]
+  );
   const a11yContent = useMemo(
     () =>
       getChartA11yContent({
@@ -106,17 +147,17 @@ export const Sparkline = memo(function Sparkline({
     enableKeyboardNavigation
   });
   const keyboardNav = useChartKeyboardNav({
-    items: points,
+    items: interactionPoints,
     enabled: enableKeyboardNavigation,
     getAnnouncement: (point, index) =>
-      `${index + 1} of ${points.length}: ${labels?.[index] ?? `Point ${index + 1}`}, ${formatTooltipValue(point.value)}.`,
+      `${index + 1} of ${interactionPoints.length}: ${labels?.[index] ?? `Point ${index + 1}`}, ${formatTooltipValue(point.value)}.`,
     onDismiss: () => {
       setHoveredIndex(null);
       setMousePos(null);
     }
   });
   const activeIndex = keyboardNav.focusedIndex ?? hoveredIndex;
-  const activePoint = activeIndex !== null ? points[activeIndex] : null;
+  const activePoint = activeIndex !== null ? interactionPoints[activeIndex] : null;
   const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
   const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoverCardPosition = useMemo(() => {

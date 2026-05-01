@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useId, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -18,7 +18,8 @@ import type {
 } from '../types';
 import {
   buildLegendItemsFromLineSeries,
-  buildLinePoints,
+  buildLinePointAtIndex,
+  buildLinePointsAtIndices,
   buildReferenceLegend,
   createInvertedScale,
   describeAreaPath,
@@ -40,6 +41,11 @@ import {
   getChartA11yProps
 } from '../utils/a11y';
 import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import {
+  downsampleLttb,
+  getDownsampleLimit,
+  warnForLargeUndownsampledDataset
+} from '../utils/downsample';
 
 export interface LineChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -60,6 +66,8 @@ export interface LineChartProps extends ChartHeaderProps, ChartAccessibilityProp
   grid?: GridConfig;
   referenceLines?: ReferenceLine[];
   showHoverCard?: boolean;
+  /** Max points to render per series. Uses LTTB to preserve visual shape. Off by default. */
+  downsample?: number;
 }
 
 function getSeriesExtent(series: LineSeriesConfig[], extraValues: number[] = []) {
@@ -104,6 +112,7 @@ export const LineChart = memo(function LineChart({
   grid,
   referenceLines = [],
   showHoverCard = false,
+  downsample,
   ariaLabel,
   ariaDescription,
   enableKeyboardNavigation = false,
@@ -115,6 +124,13 @@ export const LineChart = memo(function LineChart({
   const gradientBaseId = useId().replace(/:/g, '');
   const a11yTitleId = `${gradientBaseId}-title`;
   const a11yDescriptionId = `${gradientBaseId}-description`;
+  useEffect(() => {
+    warnForLargeUndownsampledDataset(
+      'LineChart',
+      series.reduce((sum, item) => sum + item.data.length, 0),
+      downsample
+    );
+  }, [downsample, series]);
   const leftSeries = useMemo(() => series.filter((item) => item.axis !== 'right'), [series]);
   const rightSeries = useMemo(() => series.filter((item) => item.axis === 'right'), [series]);
   const resolvedPlotWidth = useMemo(
@@ -287,8 +303,14 @@ export const LineChart = memo(function LineChart({
     () =>
       series.map((item) => {
         const extent = item.axis === 'right' ? rightExtent : leftExtent;
-        const points = buildLinePoints(
-          item.data,
+        const limit = getDownsampleLimit(downsample, 'LineChart');
+        const indexedData = item.data.map((value, index) => ({ x: index, y: value }));
+        const renderedData =
+          limit && item.data.length > limit ? downsampleLttb(indexedData, limit) : indexedData;
+        const points = buildLinePointsAtIndices(
+          renderedData.map((point) => point.y),
+          renderedData.map((point) => point.x),
+          categories.length,
           resolvedPlotWidth,
           plotHeight,
           extent.min,
@@ -308,13 +330,23 @@ export const LineChart = memo(function LineChart({
         return {
           item,
           points,
+          extent,
           stroke,
           gradientId,
           linePath: describeLinePath(points),
           areaPath: describeAreaPath(points, baseline)
         };
       }),
-    [gradientBaseId, leftExtent, plotHeight, resolvedPlotWidth, rightExtent, series]
+    [
+      categories.length,
+      downsample,
+      gradientBaseId,
+      leftExtent,
+      plotHeight,
+      resolvedPlotWidth,
+      rightExtent,
+      series
+    ]
   );
   const gradientLayers = useMemo<ReactNode[]>(
     () =>
@@ -409,13 +441,23 @@ export const LineChart = memo(function LineChart({
       return null;
     }
 
-    const point =
-      lineRenderData[activeKeyboardItem.seriesIndex]?.points[activeKeyboardItem.categoryIndex];
+    const renderItem = lineRenderData[activeKeyboardItem.seriesIndex];
+    const value = series[activeKeyboardItem.seriesIndex]?.data[activeKeyboardItem.categoryIndex];
 
-    if (!point) {
+    if (!renderItem || !Number.isFinite(value)) {
       return null;
     }
 
+    const point = buildLinePointAtIndex(
+      value,
+      activeKeyboardItem.categoryIndex,
+      categories.length,
+      resolvedPlotWidth,
+      plotHeight,
+      renderItem.extent.min,
+      renderItem.extent.max,
+      chartTokens.chart.lineXInset
+    );
     const rect = plotRef.current.getBoundingClientRect();
     return getViewportHoverCardPosition(
       rect.left + point.x,
@@ -423,7 +465,16 @@ export const LineChart = memo(function LineChart({
       196,
       hoverCardHeight
     );
-  }, [activeKeyboardItem, hoverCardHeight, lineRenderData, mousePos]);
+  }, [
+    activeKeyboardItem,
+    categories.length,
+    hoverCardHeight,
+    lineRenderData,
+    mousePos,
+    plotHeight,
+    resolvedPlotWidth,
+    series
+  ]);
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -525,12 +576,23 @@ export const LineChart = memo(function LineChart({
                   {referenceLayers}
                   {lineLayers}
                   {showInteractionFeedback && activeIndex !== null
-                    ? lineRenderData.map(({ item, points, stroke }) => {
-                        const point = points[activeIndex];
+                    ? lineRenderData.map(({ item, extent, stroke }) => {
+                        const value = item.data[activeIndex];
 
-                        if (!point) {
+                        if (!Number.isFinite(value)) {
                           return null;
                         }
+
+                        const point = buildLinePointAtIndex(
+                          value,
+                          activeIndex,
+                          categories.length,
+                          resolvedPlotWidth,
+                          plotHeight,
+                          extent.min,
+                          extent.max,
+                          chartTokens.chart.lineXInset
+                        );
 
                         return (
                           <circle

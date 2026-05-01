@@ -301,6 +301,62 @@ function LargeLine10kStory() {
   );
 }
 
+function LargeLine10kDownsampledStory() {
+  const categories = useMemo(() => generateLineCategories(10000), []);
+  const series = useMemo(() => generateLineSeries('line-10k', 10000), []);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f6f8fb', padding: 48 }}>
+      <LineChart
+        title="Large line - 10k points downsampled"
+        categories={categories}
+        series={series}
+        width={900}
+        plotWidth={760}
+        plotHeight={300}
+        downsample={1000}
+        showHoverCard={false}
+        yAxis={{ title: 'PMPM' }}
+      />
+    </div>
+  );
+}
+
+function Sparkline10kRawStory() {
+  const series = useMemo(() => generateLineSeries('sparkline-10k', 10000), []);
+  const values = series[0].data;
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f6f8fb', padding: 48 }}>
+      <div style={{ width: 520, padding: 28, borderRadius: 12, background: '#fff' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 16 }}>10k-point sparkline raw</h3>
+        <Sparkline values={values} width={460} height={140} showAreaFill showHoverCard={false} />
+      </div>
+    </div>
+  );
+}
+
+function Sparkline10kDownsampledStory() {
+  const series = useMemo(() => generateLineSeries('sparkline-10k', 10000), []);
+  const values = series[0].data;
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f6f8fb', padding: 48 }}>
+      <div style={{ width: 520, padding: 28, borderRadius: 12, background: '#fff' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 16 }}>10k-point sparkline downsampled</h3>
+        <Sparkline
+          values={values}
+          width={460}
+          height={140}
+          downsample={200}
+          showAreaFill
+          showHoverCard={false}
+        />
+      </div>
+    </div>
+  );
+}
+
 function LargeMapBubbleStory() {
   const points = useMemo(() => generateMapPoints('map-200', 220), []);
 
@@ -335,6 +391,23 @@ export const LargeLine10k: Story = {
     }
   },
   render: () => <LargeLine10kStory />
+};
+
+export const LargeLine10kDownsampled: Story = {
+  render: () => <LargeLine10kDownsampledStory />
+};
+
+export const Sparkline10kRaw: Story = {
+  parameters: {
+    chromatic: {
+      disableSnapshot: true
+    }
+  },
+  render: () => <Sparkline10kRawStory />
+};
+
+export const Sparkline10kDownsampled: Story = {
+  render: () => <Sparkline10kDownsampledStory />
 };
 
 export const LargeMapBubble: Story = {
