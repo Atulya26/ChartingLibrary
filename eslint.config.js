@@ -69,5 +69,19 @@ export default tseslint.config(
     rules: {
       'storybook/no-uninstalled-addons': 'off'
     }
+  },
+  {
+    files: ['src/stories/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'Math',
+          property: 'random',
+          message:
+            'Use src/stories/seededData.ts helpers so Storybook snapshots stay deterministic.'
+        }
+      ]
+    }
   }
 );

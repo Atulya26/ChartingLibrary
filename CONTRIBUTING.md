@@ -73,3 +73,39 @@ After the Stability Foundation milestone lands, configure GitHub branch protecti
 - [ ] Pull request visual diffs are blocking after baseline approval
 - [ ] `0.1.5` published through the `Manual Release` workflow
 - [ ] `CONTRIBUTING.md` reviewed by someone other than the author
+
+## Performance & A11y Patterns
+
+Milestone 2 work should preserve existing chart visuals by default. Accessibility
+interaction states are opt-in until the team explicitly changes that contract.
+
+Performance patterns:
+
+- Measure before optimizing. Update `docs/perf-baseline.md` with the exact machine,
+  browser, throttling setting, run count, and averaged result.
+- Use deterministic Storybook data. Stress stories should import from
+  `src/stories/seededData.ts`; do not use `Math.random()` in stories.
+- Memoize bottom-up: primitives first, then derived props and layout values, then chart
+  containers.
+- Keep consumer data references stable. Prefer data stored in state, loaded from a query
+  cache, or wrapped in `useMemo` in the consuming app.
+- Do not memoize tooltip position wrappers, mousemove-only hover layers, or tiny wrappers
+  that render once per parent render.
+- Use an rAF coalescing helper for high-frequency handlers: latest event wins, the work
+  runs on the next animation frame.
+
+Accessibility patterns:
+
+- Keyboard chart inspection must be enabled by an explicit prop, planned as
+  `interactive={true}`. The default remains `interactive={false}` so existing chart
+  behavior and visuals do not change unexpectedly.
+- `ariaLabel` and `ariaDescription` can be available without enabling keyboard
+  interaction because screen readers still need chart context.
+- Use one focus target per chart when `interactive` is enabled. Arrow keys cycle through
+  data points; `Tab` leaves the chart; `Escape` dismisses the tooltip.
+- Keep live regions persistent at the chart root. Do not mount `aria-live` inside a tooltip
+  that appears and disappears.
+- Generate ARIA IDs with React `useId()`. Do not hand-roll counters or reuse chart titles
+  as IDs.
+- Focus styling should use existing tokens and `:focus-visible` so pointer users do not see
+  unexpected rings.
