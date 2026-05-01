@@ -1,8 +1,8 @@
 # Migration Guide
 
-## 0.1.x to 1.0.0
+## 0.1.x to 1.0.1
 
-`1.0.0` is the first stable release of `@atulya_26/charting-library`. The release is intentionally
+`1.0.1` is the first stable release of `@atulya_26/charting-library`. The release is intentionally
 additive for existing prototype consumers: the main chart imports, CSS import, and existing story
 examples continue to work.
 
@@ -17,7 +17,7 @@ import { BarChart, LineChart, DonutChart } from '@atulya_26/charting-library';
 
 ### New Stable APIs
 
-The following APIs were added before the `1.0.0` freeze:
+The following APIs were added before the `1.0.1` freeze:
 
 - `ariaLabel` and `ariaDescription` on chart components for accessible naming.
 - `enableKeyboardNavigation` for opt-in keyboard inspection of chart marks.
@@ -26,13 +26,13 @@ The following APIs were added before the `1.0.0` freeze:
 
 ### API Surface
 
-The public exports for `1.0.0` are listed in [`docs/api-inventory.md`](./docs/api-inventory.md).
+The public exports for `1.0.1` are listed in [`docs/api-inventory.md`](./docs/api-inventory.md).
 Avoid importing from private source paths such as `src/utils/*`, `src/stories/*`, or
 `src/chartUtils.tsx`; those files are implementation details and may change without a major version.
 
 ### Chart Tokens
 
-`chartTokens` remains public for `1.0.0` so existing examples and consumers can align custom chart
+`chartTokens` remains public for `1.0.1` so existing examples and consumers can align custom chart
 colors with the library. Treat it as a read-only token object. Runtime token mutation is not a
 supported theming API.
 
@@ -49,7 +49,7 @@ Node `20.19.0` through `.nvmrc`.
 
 ## Future Major Versions
 
-Breaking changes after `1.0.0` will be documented here with:
+Breaking changes after `1.0.1` will be documented here with:
 
 - What changed.
 - Why it changed.

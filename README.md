@@ -311,14 +311,14 @@ http://localhost:6030
 
 ## Public API
 
-The `1.0.0` package root intentionally exports chart components, shared chart chrome, chart
+The `1.0.1` package root intentionally exports chart components, shared chart chrome, chart
 primitives, public data types, token helpers, Sankey layout helpers, and the `downsampleLttb`
 utility. The full inventory is documented in [`docs/api-inventory.md`](./docs/api-inventory.md).
 
 Avoid importing private source files such as `src/utils/*`, `src/stories/*`, or `src/chartUtils.tsx`.
 If you need an internal helper promoted to public API, open an issue with the use case.
 
-`chartTokens` is public and read-only for `1.0.0`. It is useful for matching custom chart colors to
+`chartTokens` is public and read-only for `1.0.1`. It is useful for matching custom chart colors to
 the default visual language, but mutating it at runtime is not a supported theming API.
 
 Sankey layout output is deterministic for a given input, but exact node coordinates and ribbon
@@ -340,7 +340,7 @@ visual review expectations, and release workflow notes.
 
 - Import `@atulya_26/charting-library/styles.css` once per app.
 - The library uses `@innovaccer/design-system` CSS internally and imports it from the package entry.
-- React and React DOM are peer dependencies. `1.0.0` supports React `18`.
+- React and React DOM are peer dependencies. `1.0.1` supports React `18`.
 - Map charts use `d3-geo`, `topojson-client`, and `us-atlas`.
 - Published package output lives in `dist/`.
 - Consumer installs support Node `>=18.0.0`. Local library development uses the Node version in
@@ -348,7 +348,7 @@ visual review expectations, and release workflow notes.
 
 ## Versioning
 
-This package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from `1.0.0`
+This package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from `1.0.1`
 onward:
 
 - **Major** releases may include breaking API changes and will include migration notes.

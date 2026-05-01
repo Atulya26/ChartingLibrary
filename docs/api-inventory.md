@@ -1,6 +1,6 @@
 # API Inventory
 
-This file records the public exports intentionally shipped for `1.0.0`.
+This file records the public exports intentionally shipped for `1.0.1`.
 
 Classification:
 

@@ -3,7 +3,7 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.0.0 - 2026-05-01
+## 1.0.1 - 2026-05-01
 
 ### Added
 
@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chromatic workflow scaffolding for visual regression review.
 - Manual release workflow scaffold for validated npm publishes.
 - Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
-- Public API inventory and migration guide for the `1.0.0` package surface.
+- Public API inventory and migration guide for the `1.0.1` package surface.
 - Shared accessibility props for chart graphics: `ariaLabel`, `ariaDescription`, and opt-in
   `enableKeyboardNavigation`.
 - Keyboard data-item navigation, live screen-reader announcements, and focus-driven hover cards for
