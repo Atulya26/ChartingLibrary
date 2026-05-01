@@ -1,4 +1,4 @@
-import { Fragment, memo, useId, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -146,86 +146,118 @@ export const DonutChart = memo(function DonutChart({
 }: DonutChartProps) {
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const total = Math.max(
-    segments.reduce((sum, segment) => sum + segment.value, 0),
-    1
+  const total = useMemo(
+    () =>
+      Math.max(
+        segments.reduce((sum, segment) => sum + segment.value, 0),
+        1
+      ),
+    [segments]
   );
   const svgId = useId().replace(/:/g, '');
-  const legendItems = showLegend
-    ? buildLegendItemsFromDonutSegments(segments, fillStyle, legendMarker)
-    : [];
+  const legendItems = useMemo(
+    () => (showLegend ? buildLegendItemsFromDonutSegments(segments, fillStyle, legendMarker) : []),
+    [fillStyle, legendMarker, segments, showLegend]
+  );
   const center = size / 2;
   const radius = center - thickness / 2 - 2;
   const outerRadius = radius + thickness / 2;
   const innerRadius = radius - thickness / 2;
-  const defs: ReactNode[] = [];
-  let cumulative = 0;
   const segmentCornerRadius = roundedCaps ? Math.min(4, thickness / 3) : 0;
   const segmentGapAngle = segments.length > 1 ? (1 / radius) * (180 / Math.PI) : 0;
-  const segmentLayouts = segments.map((segment, index) => {
-    const resolvedFillStyle = resolveFillStyle(segment.fillStyle ?? 'solid', fillStyle);
-    const paintId = `donut-${svgId}-${index}`;
-    const paint = getSvgFillDefinition(
-      paintId,
-      resolvedFillStyle,
-      segment.color,
-      segment.strokeColor ?? segment.color
-    );
-    const segmentStart = cumulative;
-    const segmentMid = segmentStart + segment.value / 2;
-    cumulative += segment.value;
-    const rawStartAngle = (segmentStart / total) * 360;
-    const rawEndAngle = (cumulative / total) * 360;
-    const segmentAngle = rawEndAngle - rawStartAngle;
-    const gapInset = Math.min(segmentGapAngle / 2, segmentAngle / 4);
-    const startAngle = rawStartAngle + gapInset;
-    const endAngle = rawEndAngle - gapInset;
-    const angle = (segmentMid / total) * Math.PI * 2 - Math.PI / 2;
-    const labelRadius = radius + thickness / 2 + 18;
-    const labelX = center + Math.cos(angle) * labelRadius;
-    const labelY = center + Math.sin(angle) * labelRadius;
-    const path = describeRoundedDonutSegment(
-      center,
-      outerRadius,
-      innerRadius,
-      startAngle,
-      endAngle,
-      segmentCornerRadius
-    );
+  const { defs, segmentLayouts } = useMemo(() => {
+    const definitions: ReactNode[] = [];
+    let cumulative = 0;
+    const layouts = segments.map((segment, index) => {
+      const resolvedFillStyle = resolveFillStyle(segment.fillStyle ?? 'solid', fillStyle);
+      const paintId = `donut-${svgId}-${index}`;
+      const paint = getSvgFillDefinition(
+        paintId,
+        resolvedFillStyle,
+        segment.color,
+        segment.strokeColor ?? segment.color
+      );
+      const segmentStart = cumulative;
+      const segmentMid = segmentStart + segment.value / 2;
+      cumulative += segment.value;
+      const rawStartAngle = (segmentStart / total) * 360;
+      const rawEndAngle = (cumulative / total) * 360;
+      const segmentAngle = rawEndAngle - rawStartAngle;
+      const gapInset = Math.min(segmentGapAngle / 2, segmentAngle / 4);
+      const startAngle = rawStartAngle + gapInset;
+      const endAngle = rawEndAngle - gapInset;
+      const angle = (segmentMid / total) * Math.PI * 2 - Math.PI / 2;
+      const labelRadius = radius + thickness / 2 + 18;
+      const labelX = center + Math.cos(angle) * labelRadius;
+      const labelY = center + Math.sin(angle) * labelRadius;
+      const path = describeRoundedDonutSegment(
+        center,
+        outerRadius,
+        innerRadius,
+        startAngle,
+        endAngle,
+        segmentCornerRadius
+      );
 
-    if (paint.definition) {
-      defs.push(paint.definition);
-    }
-
-    return {
-      segment,
-      index,
-      resolvedFillStyle,
-      paint,
-      path,
-      labelX,
-      labelY
-    };
-  });
-  const orderedSegmentLayouts = [...segmentLayouts].sort((a, b) => {
-    const getOrder = (item: (typeof segmentLayouts)[number]) => {
-      if (item.segment.showLegendItem === false) {
-        return 0;
+      if (paint.definition) {
+        definitions.push(paint.definition);
       }
 
-      if (item.resolvedFillStyle === 'texture') {
-        return 1;
-      }
+      return {
+        segment,
+        index,
+        resolvedFillStyle,
+        paint,
+        path,
+        labelX,
+        labelY
+      };
+    });
 
-      return 2;
-    };
+    return { defs: definitions, segmentLayouts: layouts };
+  }, [
+    center,
+    fillStyle,
+    innerRadius,
+    outerRadius,
+    radius,
+    segmentCornerRadius,
+    segmentGapAngle,
+    segments,
+    svgId,
+    thickness,
+    total
+  ]);
+  const orderedSegmentLayouts = useMemo(
+    () =>
+      [...segmentLayouts].sort((a, b) => {
+        const getOrder = (item: (typeof segmentLayouts)[number]) => {
+          if (item.segment.showLegendItem === false) {
+            return 0;
+          }
 
-    return getOrder(a) - getOrder(b);
-  });
-  const hoveredSegment = hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null;
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(2))
-    : null;
+          if (item.resolvedFillStyle === 'texture') {
+            return 1;
+          }
+
+          return 2;
+        };
+
+        return getOrder(a) - getOrder(b);
+      }),
+    [segmentLayouts]
+  );
+  const hoveredSegment = useMemo(
+    () => (hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null),
+    [hoveredSegmentIndex, segments]
+  );
+  const hoverCardPosition = useMemo(
+    () =>
+      mousePos
+        ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(2))
+        : null,
+    [mousePos]
+  );
 
   return (
     <ChartShell

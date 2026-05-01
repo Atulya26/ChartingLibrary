@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references for the optimization to take effect.
 - Memoized derived line, sparkline, and Sankey calculations so stable chart props avoid
   rebuilding paths, ticks, legends, gradients, and hover geometry.
+- Memoized remaining chart-derived work across bar, combo, donut, half-donut,
+  histogram, and pointer scale internals where it can be done without visual changes.
 
 ## 2026-04-30
 

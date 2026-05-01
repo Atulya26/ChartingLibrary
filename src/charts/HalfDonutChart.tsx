@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -161,73 +161,117 @@ export const HalfDonutChart = memo(function HalfDonutChart({
   const joinGapAngle =
     clampedValue > min && clampedValue < max ? (1 / radius) * (180 / Math.PI) : 0;
   const progressEndAngle = Math.max(startAngle + 0.01, valueAngle - joinGapAngle / 2);
-  const activeRange =
-    ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
-    ranges[ranges.length - 1];
-  const progressPath =
-    clampedValue <= min
-      ? null
-      : describeRoundedArcBand(
-          centerX,
-          centerY,
-          outerRadius,
-          innerRadius,
-          startAngle,
-          progressEndAngle,
-          segmentCornerRadius
-        );
-  const trackPath = describeRoundedArcBand(
-    centerX,
-    centerY,
-    outerRadius,
-    innerRadius,
-    startAngle,
-    endAngle,
-    segmentCornerRadius
+  const activeRange = useMemo(
+    () =>
+      ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
+      ranges[ranges.length - 1],
+    [clampedValue, ranges]
   );
-  const hoverRows = [
-    {
-      label: 'Current',
-      value: centerLabel ?? formatTooltipValue(clampedValue),
-      color: valueColor ?? activeRange.color,
-      marker: 'solid' as const
-    },
-    ...(centerSubLabel
-      ? [
-          {
-            label: 'Context',
-            value: centerSubLabel
-          }
-        ]
-      : []),
-    {
-      label: 'Band',
-      value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
-      color: activeRange.color,
-      marker: 'solid' as const
-    },
-    {
-      label: 'Scale',
-      value: `${leftLabel ?? min} - ${rightLabel ?? max}`
-    }
-  ];
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(
-        mousePos.x,
-        mousePos.y,
-        196,
-        getEstimatedHoverCardHeight(hoverRows.length)
-      )
-    : null;
+  const progressPath = useMemo(
+    () =>
+      clampedValue <= min
+        ? null
+        : describeRoundedArcBand(
+            centerX,
+            centerY,
+            outerRadius,
+            innerRadius,
+            startAngle,
+            progressEndAngle,
+            segmentCornerRadius
+          ),
+    [
+      centerX,
+      centerY,
+      clampedValue,
+      innerRadius,
+      min,
+      outerRadius,
+      progressEndAngle,
+      segmentCornerRadius,
+      startAngle
+    ]
+  );
+  const trackPath = useMemo(
+    () =>
+      describeRoundedArcBand(
+        centerX,
+        centerY,
+        outerRadius,
+        innerRadius,
+        startAngle,
+        endAngle,
+        segmentCornerRadius
+      ),
+    [centerX, centerY, endAngle, innerRadius, outerRadius, segmentCornerRadius, startAngle]
+  );
+  const hoverRows = useMemo(
+    () => [
+      {
+        label: 'Current',
+        value: centerLabel ?? formatTooltipValue(clampedValue),
+        color: valueColor ?? activeRange.color,
+        marker: 'solid' as const
+      },
+      ...(centerSubLabel
+        ? [
+            {
+              label: 'Context',
+              value: centerSubLabel
+            }
+          ]
+        : []),
+      {
+        label: 'Band',
+        value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
+        color: activeRange.color,
+        marker: 'solid' as const
+      },
+      {
+        label: 'Scale',
+        value: `${leftLabel ?? min} - ${rightLabel ?? max}`
+      }
+    ],
+    [
+      activeRange.color,
+      activeRange.from,
+      activeRange.label,
+      activeRange.to,
+      centerLabel,
+      centerSubLabel,
+      clampedValue,
+      leftLabel,
+      max,
+      min,
+      rightLabel,
+      valueColor
+    ]
+  );
+  const hoverCardPosition = useMemo(
+    () =>
+      mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(hoverRows.length)
+          )
+        : null,
+    [hoverRows.length, mousePos]
+  );
 
-  const legendItems = showLegend
-    ? ranges.map((range) => ({
-        label: range.label ?? `${range.from}-${range.to}`,
-        marker: 'solid' as const,
-        color: range.color,
-        active: true
-      }))
-    : [];
+  const legendItems = useMemo(
+    () =>
+      showLegend
+        ? ranges.map((range) => ({
+            label: range.label ?? `${range.from}-${range.to}`,
+            marker: 'solid' as const,
+            color: range.color,
+            active: true
+          }))
+        : [],
+    [ranges, showLegend]
+  );
 
   return (
     <ChartShell
