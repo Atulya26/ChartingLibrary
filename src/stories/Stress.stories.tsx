@@ -34,7 +34,7 @@ import {
   stackedBarSeries
 } from './storyData';
 import { generateLineCategories, generateLineSeries, generateMapPoints } from './seededData';
-import { RenderCounter } from './utils/RenderCounter';
+import { ProfiledChart } from './utils/ProfilerCounter';
 
 const meta = {
   title: 'Stress/Performance Baseline',
@@ -51,10 +51,13 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 const recaptureCategories = ['18-30', '31-45', '46-60', '61-75', '75+'];
+const lineReferenceLines = [
+  { value: 900, label: 'Target', color: chartTokens.categorical.primary }
+];
 
 function StressTile({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <RenderCounter label={label}>
+    <ProfiledChart label={label}>
       <div
         style={{
           minHeight: 260,
@@ -65,7 +68,7 @@ function StressTile({ label, children }: { label: string; children: ReactNode })
       >
         {children}
       </div>
-    </RenderCounter>
+    </ProfiledChart>
   );
 }
 
@@ -201,9 +204,7 @@ function Stress12ChartsStory() {
             width="100%"
             plotWidth={320}
             showHoverCard={false}
-            referenceLines={[
-              { value: 900, label: 'Target', color: chartTokens.categorical.primary }
-            ]}
+            referenceLines={lineReferenceLines}
           />
         </StressTile>
 

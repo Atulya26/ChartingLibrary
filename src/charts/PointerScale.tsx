@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -36,7 +36,7 @@ const defaultScaleRanges: PointerScaleRange[] = [
   { from: 70, to: 100, color: chartTokens.sequential.default.darker, label: 'High' }
 ];
 
-export function PointerScale({
+export const PointerScale = memo(function PointerScale({
   title = 'Pointer Scale',
   description,
   value,
@@ -201,4 +201,4 @@ export function PointerScale({
       </div>
     </ChartShell>
   );
-}
+});

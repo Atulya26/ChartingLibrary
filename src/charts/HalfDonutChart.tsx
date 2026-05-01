@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -121,7 +121,7 @@ function describeRoundedArcBand(
   ].join(' ');
 }
 
-export function HalfDonutChart({
+export const HalfDonutChart = memo(function HalfDonutChart({
   title = 'Half Donut',
   description,
   value,
@@ -327,4 +327,4 @@ export function HalfDonutChart({
       </div>
     </ChartShell>
   );
-}
+});

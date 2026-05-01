@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -101,7 +101,7 @@ function describeRoundedRectPath(
   ].join(' ');
 }
 
-export function ComboChart({
+export const ComboChart = memo(function ComboChart({
   title = 'Title',
   description,
   categories,
@@ -634,4 +634,4 @@ export function ComboChart({
       </div>
     </ChartShell>
   );
-}
+});

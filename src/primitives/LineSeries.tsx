@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { chartTokens } from '../theme/tokens';
 import type { DotSize, LineSeriesConfig } from '../types';
 import {
@@ -40,7 +42,7 @@ function getDotRadius(size: DotSize = 'medium') {
   return 3;
 }
 
-export function LineSeries({
+export const LineSeries = memo(function LineSeries({
   values,
   width,
   height,
@@ -115,4 +117,4 @@ export function LineSeries({
       ))}
     </svg>
   );
-}
+});

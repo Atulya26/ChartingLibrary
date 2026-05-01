@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, memo, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -117,7 +117,7 @@ function describeRoundedRectPath(
   ].join(' ');
 }
 
-export function BarChart({
+export const BarChart = memo(function BarChart({
   title = 'Bar Chart',
   description,
   categories = [],
@@ -1121,4 +1121,4 @@ export function BarChart({
       </div>
     </ChartShell>
   );
-}
+});

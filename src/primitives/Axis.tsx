@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { chartTokens } from '../theme/tokens';
 import { cx } from '../utils/cx';
 
@@ -13,7 +15,7 @@ export interface XAxisProps {
   labels: string[];
 }
 
-export function YAxis({
+export const YAxis = memo(function YAxis({
   title,
   ticks = ['x', 'x', 'x'],
   side = 'left',
@@ -42,9 +44,9 @@ export function YAxis({
       </div>
     </div>
   );
-}
+});
 
-export function XAxis({ labels }: XAxisProps) {
+export const XAxis = memo(function XAxis({ labels }: XAxisProps) {
   return (
     <div
       className="cl-x-axis"
@@ -57,4 +59,4 @@ export function XAxis({ labels }: XAxisProps) {
       ))}
     </div>
   );
-}
+});

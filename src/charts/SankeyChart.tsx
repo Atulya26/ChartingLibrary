@@ -1,4 +1,4 @@
-import { Fragment, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -79,7 +79,7 @@ function resolveNodeStroke(node: SankeyNode, index: number): string {
   return node.stroke ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length].stroke;
 }
 
-export function SankeyChart({
+export const SankeyChart = memo(function SankeyChart({
   title = 'Sankey Chart',
   description,
   nodes,
@@ -484,4 +484,4 @@ export function SankeyChart({
       </div>
     </ChartShell>
   );
-}
+});
