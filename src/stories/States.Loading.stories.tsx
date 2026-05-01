@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { ChartLoadingSkeleton } from '../components/ChartLoadingSkeleton';
-import {
-  booleanArg,
-  chartMetaParameters,
-  numberArg,
-  selectArg
-} from './chartStorybook';
+import { booleanArg, chartMetaParameters, numberArg, selectArg } from './chartStorybook';
 
 const chartTypeLabels = {
   bar: 'Bar chart',
@@ -35,15 +30,8 @@ const meta = {
     }
   },
   argTypes: {
-    width: numberArg(
-      'Card width.',
-      'Layout',
-      { min: 280, max: 800, step: 10 }
-    ),
-    showCardBackground: booleanArg(
-      'Toggle the chart card surface.',
-      'Display'
-    ),
+    width: numberArg('Card width.', 'Layout', { min: 280, max: 800, step: 10 }),
+    showCardBackground: booleanArg('Toggle the chart card surface.', 'Display'),
     chartType: selectArg(
       [
         'bar',
@@ -67,16 +55,8 @@ const meta = {
       'Run the one-time draw-in animation when the skeleton mounts.',
       'Interaction'
     ),
-    plotWidth: numberArg(
-      'Plot area width override.',
-      'Layout',
-      { min: 200, max: 700, step: 10 }
-    ),
-    plotHeight: numberArg(
-      'Plot area height override.',
-      'Layout',
-      { min: 80, max: 360, step: 10 }
-    ),
+    plotWidth: numberArg('Plot area width override.', 'Layout', { min: 200, max: 700, step: 10 }),
+    plotHeight: numberArg('Plot area height override.', 'Layout', { min: 80, max: 360, step: 10 }),
     title: {
       control: { type: 'text' },
       table: {

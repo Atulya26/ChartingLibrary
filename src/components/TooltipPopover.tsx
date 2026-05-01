@@ -8,12 +8,7 @@ export interface TooltipPopoverProps {
   totalValue?: string | number;
 }
 
-export function TooltipPopover({
-  title,
-  rows,
-  totalLabel,
-  totalValue
-}: TooltipPopoverProps) {
+export function TooltipPopover({ title, rows, totalLabel, totalValue }: TooltipPopoverProps) {
   return (
     <div className="cl-tooltip">
       <div>
@@ -24,11 +19,7 @@ export function TooltipPopover({
           <div className="cl-tooltip__row" key={`${row.label}-${row.value}`}>
             {row.color ? (
               <div className="cl-legend__item">
-                <LegendMarker
-                  color={row.color}
-                  strokeColor={row.strokeColor}
-                  marker={row.marker}
-                />
+                <LegendMarker color={row.color} strokeColor={row.strokeColor} marker={row.marker} />
                 <span>{row.label}</span>
               </div>
             ) : (

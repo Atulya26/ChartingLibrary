@@ -37,7 +37,9 @@ const meta = {
   argTypes: {
     ...surfaceArgTypes,
     ...hiddenEventArgTypes,
-    points: advancedDataArg('Advanced geographic point data. Hidden from controls because raw lat/lon editing is not user-friendly.'),
+    points: advancedDataArg(
+      'Advanced geographic point data. Hidden from controls because raw lat/lon editing is not user-friendly.'
+    ),
     tableConfig: advancedDataArg('Advanced table fallback config.', { arg: 'view', eq: 'table' }),
     view: selectArg(
       ['map', 'table'],
@@ -156,32 +158,24 @@ const meta = {
       { min: 180, max: 480, step: 10 },
       { arg: 'view', eq: 'map' }
     ),
-    showCountyLines: booleanArg(
-      'Boolean toggle for county boundaries in state view.',
-      'Display',
-      { arg: 'regionScope', eq: 'state' }
-    ),
+    showCountyLines: booleanArg('Boolean toggle for county boundaries in state view.', 'Display', {
+      arg: 'regionScope',
+      eq: 'state'
+    }),
     showHoverCard: hoverCardArg({ arg: 'view', eq: 'map' }),
-    showBubbleShadow: booleanArg(
-      'Boolean toggle for bubble shadow rendering.',
-      'Style',
-      { arg: 'view', eq: 'map' }
-    ),
-    backgroundFill: colorArg(
-      'Background color for the map frame.',
-      'Style',
-      { arg: 'view', eq: 'map' }
-    ),
-    landFill: colorArg(
-      'Land color for states or counties.',
-      'Style',
-      { arg: 'view', eq: 'map' }
-    ),
-    borderColor: colorArg(
-      'Border color for geographic outlines.',
-      'Style',
-      { arg: 'view', eq: 'map' }
-    )
+    showBubbleShadow: booleanArg('Boolean toggle for bubble shadow rendering.', 'Style', {
+      arg: 'view',
+      eq: 'map'
+    }),
+    backgroundFill: colorArg('Background color for the map frame.', 'Style', {
+      arg: 'view',
+      eq: 'map'
+    }),
+    landFill: colorArg('Land color for states or counties.', 'Style', { arg: 'view', eq: 'map' }),
+    borderColor: colorArg('Border color for geographic outlines.', 'Style', {
+      arg: 'view',
+      eq: 'map'
+    })
   }
 } satisfies Meta<typeof MapBubbleChart>;
 

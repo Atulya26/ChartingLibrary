@@ -68,23 +68,14 @@ const meta = {
         'label-percent': 'Label + percent'
       }
     ),
-    roundedCaps: booleanArg(
-      'Boolean toggle for rounded donut segment ends.',
-      'Style'
-    ),
-    showLabels: booleanArg(
-      'Boolean toggle for outside segment labels.'
-    ),
-    size: rangeArg(
-      'Numeric outer size of the donut in pixels.',
-      'Layout',
-      { min: 120, max: 320, step: 10 }
-    ),
-    thickness: rangeArg(
-      'Numeric ring thickness in pixels.',
-      'Layout',
-      { min: 8, max: 32, step: 1 }
-    )
+    roundedCaps: booleanArg('Boolean toggle for rounded donut segment ends.', 'Style'),
+    showLabels: booleanArg('Boolean toggle for outside segment labels.'),
+    size: rangeArg('Numeric outer size of the donut in pixels.', 'Layout', {
+      min: 120,
+      max: 320,
+      step: 10
+    }),
+    thickness: rangeArg('Numeric ring thickness in pixels.', 'Layout', { min: 8, max: 32, step: 1 })
   }
 } satisfies Meta<typeof DonutChart>;
 

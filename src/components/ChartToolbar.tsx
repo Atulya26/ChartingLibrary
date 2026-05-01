@@ -39,9 +39,7 @@ export function ChartToolbar({
   onMenuClick,
   className
 }: ChartToolbarProps) {
-  const selectedOption = selectOptions?.find(
-    (option) => option.value === selectedValue
-  );
+  const selectedOption = selectOptions?.find((option) => option.value === selectedValue);
 
   const handleSelect = (option?: MasalaOption | MasalaOption[]) => {
     if (Array.isArray(option)) {
@@ -103,12 +101,7 @@ export function ChartToolbar({
           </div>
         ) : null}
         {primaryActionLabel ? (
-          <Button
-            appearance="primary"
-            type="button"
-            size="tiny"
-            onClick={onPrimaryActionClick}
-          >
+          <Button appearance="primary" type="button" size="tiny" onClick={onPrimaryActionClick}>
             {primaryActionLabel}
           </Button>
         ) : null}

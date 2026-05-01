@@ -45,9 +45,15 @@ const meta = {
   argTypes: {
     ...surfaceArgTypes,
     ...hiddenEventArgTypes,
-    categories: advancedDataArg('Advanced x-axis categories. Hidden from controls for easier day-to-day usage.'),
-    barSeries: advancedDataArg('Advanced bar-series data. Use style and layout controls instead of raw JSON editing.'),
-    lineSeries: advancedDataArg('Advanced line-series data. Hidden from controls because raw object editing is brittle.'),
+    categories: advancedDataArg(
+      'Advanced x-axis categories. Hidden from controls for easier day-to-day usage.'
+    ),
+    barSeries: advancedDataArg(
+      'Advanced bar-series data. Use style and layout controls instead of raw JSON editing.'
+    ),
+    lineSeries: advancedDataArg(
+      'Advanced line-series data. Hidden from controls because raw object editing is brittle.'
+    ),
     barLayout: selectArg(
       ['grouped', 'stacked'],
       'Finite bar layout choice for the column layer.',
@@ -76,39 +82,37 @@ const meta = {
       fillLegendMarkerLabels
     ),
     showHoverCard: hoverCardArg(),
-    showOverlayLine: booleanArg(
-      'Boolean toggle for showing or hiding the line layer.'
-    ),
-    showSecondaryYAxis: booleanArg(
-      'Boolean toggle for the right-side axis.'
-    ),
-    barGap: rangeArg(
-      'Numeric gap in pixels between grouped bars.',
-      'Layout',
-      { min: 0, max: 12, step: 1 }
-    ),
-    categoryGapRatio: rangeArg(
-      'Numeric ratio for spacing between category groups.',
-      'Layout',
-      { min: 0, max: 0.8, step: 0.05 }
-    ),
-    barCornerRadius: rangeArg(
-      'Numeric bar corner radius in pixels.',
-      'Layout',
-      { min: 0, max: 12, step: 1 }
-    ),
-    plotWidth: numberArg(
-      'Numeric plot width for the combined plot area.',
-      'Layout',
-      { min: 240, max: 700, step: 10 }
-    ),
-    plotHeight: numberArg(
-      'Numeric plot height for the combined plot area.',
-      'Layout',
-      { min: 120, max: 360, step: 10 }
-    ),
+    showOverlayLine: booleanArg('Boolean toggle for showing or hiding the line layer.'),
+    showSecondaryYAxis: booleanArg('Boolean toggle for the right-side axis.'),
+    barGap: rangeArg('Numeric gap in pixels between grouped bars.', 'Layout', {
+      min: 0,
+      max: 12,
+      step: 1
+    }),
+    categoryGapRatio: rangeArg('Numeric ratio for spacing between category groups.', 'Layout', {
+      min: 0,
+      max: 0.8,
+      step: 0.05
+    }),
+    barCornerRadius: rangeArg('Numeric bar corner radius in pixels.', 'Layout', {
+      min: 0,
+      max: 12,
+      step: 1
+    }),
+    plotWidth: numberArg('Numeric plot width for the combined plot area.', 'Layout', {
+      min: 240,
+      max: 700,
+      step: 10
+    }),
+    plotHeight: numberArg('Numeric plot height for the combined plot area.', 'Layout', {
+      min: 120,
+      max: 360,
+      step: 10
+    }),
     yAxis: advancedDataArg('Advanced left-axis config. Hidden from controls for a cleaner UX.'),
-    secondaryYAxis: advancedDataArg('Advanced right-axis config. Hidden from controls for a cleaner UX.'),
+    secondaryYAxis: advancedDataArg(
+      'Advanced right-axis config. Hidden from controls for a cleaner UX.'
+    ),
     grid: advancedDataArg('Advanced grid config for code-level tuning.')
   }
 } satisfies Meta<typeof ComboChart>;

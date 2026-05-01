@@ -50,8 +50,7 @@ export function LegendMarker({
     );
   }
 
-  const dashed =
-    marker === 'line-dashed' || marker === 'dot-line-dashed' ? '4 3' : undefined;
+  const dashed = marker === 'line-dashed' || marker === 'dot-line-dashed' ? '4 3' : undefined;
   const hasDot = marker === 'dot-line' || marker === 'dot-line-dashed';
 
   return (
@@ -87,29 +86,15 @@ export function LegendMarker({
   );
 }
 
-export function Legend({
-  items,
-  title,
-  orientation = 'horizontal',
-  className
-}: LegendProps) {
+export function Legend({ items, title, orientation = 'horizontal', className }: LegendProps) {
   return (
-    <div
-      className={cx(
-        'cl-legend',
-        orientation === 'stacked' && 'cl-legend--stacked',
-        className
-      )}
-    >
+    <div className={cx('cl-legend', orientation === 'stacked' && 'cl-legend--stacked', className)}>
       {title ? <p className="cl-legend__title">{title}</p> : null}
       <div className="cl-legend__items">
         {items.map((item) => (
           <div
             key={`${item.label}-${item.marker ?? 'solid'}`}
-            className={cx(
-              'cl-legend__item',
-              item.active === false && 'cl-legend__item--inactive'
-            )}
+            className={cx('cl-legend__item', item.active === false && 'cl-legend__item--inactive')}
           >
             <LegendMarker
               color={item.color}

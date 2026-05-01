@@ -9,19 +9,18 @@ import {
 } from '../utils/chart';
 import { withAlpha } from '../utils/color';
 
-export interface LineSeriesProps
-  extends Pick<
-    LineSeriesConfig,
-    | 'stroke'
-    | 'strokeWidth'
-    | 'lineStyle'
-    | 'dotSize'
-    | 'dotOutline'
-    | 'showDots'
-    | 'showAreaFill'
-    | 'showLabels'
-    | 'labelPosition'
-  > {
+export interface LineSeriesProps extends Pick<
+  LineSeriesConfig,
+  | 'stroke'
+  | 'strokeWidth'
+  | 'lineStyle'
+  | 'dotSize'
+  | 'dotOutline'
+  | 'showDots'
+  | 'showAreaFill'
+  | 'showLabels'
+  | 'labelPosition'
+> {
   values: number[];
   width: number;
   height: number;
@@ -61,18 +60,10 @@ export function LineSeries({
   const resolvedMin = typeof minValue === 'number' ? minValue : extent.min;
   const resolvedMax = typeof maxValue === 'number' ? maxValue : extent.max;
   const insets = { top: 12, right: 0, bottom: 12, left: 0 };
-  const points = buildLinePoints(
-    values,
-    width,
-    height,
-    insets,
-    resolvedMin,
-    resolvedMax
-  );
+  const points = buildLinePoints(values, width, height, insets, resolvedMin, resolvedMax);
   const linePath = describeLinePath(points);
   const baseline =
-    insets.top +
-    createYScale(resolvedMin, resolvedMax, height - insets.top - insets.bottom)(0);
+    insets.top + createYScale(resolvedMin, resolvedMax, height - insets.top - insets.bottom)(0);
   const areaPath = describeAreaPath(points, baseline);
   const radius = getDotRadius(dotSize);
 
@@ -85,9 +76,7 @@ export function LineSeries({
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      {showAreaFill ? (
-        <path d={areaPath} fill={withAlpha(stroke, 0.14)} stroke="none" />
-      ) : null}
+      {showAreaFill ? <path d={areaPath} fill={withAlpha(stroke, 0.14)} stroke="none" /> : null}
       <path
         d={linePath}
         fill="none"

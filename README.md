@@ -133,10 +133,7 @@ This adapter-style approach keeps CSV parsing outside the chart renderer and mak
 Use chart states when data is loading, unavailable, or failed:
 
 ```tsx
-import {
-  ChartLoadingSkeleton,
-  ChartStateCard
-} from '@atulya_26/charting-library';
+import { ChartLoadingSkeleton, ChartStateCard } from '@atulya_26/charting-library';
 
 export function LoadingRevenueChart() {
   return <ChartLoadingSkeleton chartType="bar" title="Revenue" animate />;
@@ -157,7 +154,16 @@ export function EmptyRevenueChart() {
 Supported loading skeleton types:
 
 ```ts
-'bar' | 'combo' | 'line' | 'donut' | 'half-donut' | 'histogram' | 'sparkline' | 'pointer-scale' | 'map-bubble' | 'sankey'
+'bar' |
+  'combo' |
+  'line' |
+  'donut' |
+  'half-donut' |
+  'histogram' |
+  'sparkline' |
+  'pointer-scale' |
+  'map-bubble' |
+  'sankey';
 ```
 
 ## Local Development

@@ -39,10 +39,7 @@ export function BarMark({
   const surfaceStyle: CSSProperties = {
     top,
     height: magnitude,
-    background:
-      fillStyle === 'solid'
-        ? fill
-        : getFillStyleBackground(fillStyle, fill, stroke),
+    background: fillStyle === 'solid' ? fill : getFillStyleBackground(fillStyle, fill, stroke),
     borderColor: stroke,
     borderRadius: isPositive
       ? `${chartTokens.radii.card}px ${chartTokens.radii.card}px 0 0`

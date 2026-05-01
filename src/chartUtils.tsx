@@ -34,9 +34,7 @@ export interface PlotPoint {
 }
 
 export function getPaletteColor(index: number) {
-  return chartTokens.categorical.axisPalette[
-    index % chartTokens.categorical.axisPalette.length
-  ];
+  return chartTokens.categorical.axisPalette[index % chartTokens.categorical.axisPalette.length];
 }
 
 export function resolveFillStyle(
@@ -59,14 +57,10 @@ export function resolveFillLegendMarker(
 
 export function getLineLegendMarker(item: LineSeriesConfig) {
   if (item.showDots === false) {
-    return item.lineStyle === 'dashed'
-      ? ('line-dashed' as const)
-      : ('line' as const);
+    return item.lineStyle === 'dashed' ? ('line-dashed' as const) : ('line' as const);
   }
 
-  return item.lineStyle === 'dashed'
-    ? ('dot-line-dashed' as const)
-    : ('dot-line' as const);
+  return item.lineStyle === 'dashed' ? ('dot-line-dashed' as const) : ('dot-line' as const);
 }
 
 export function formatTooltipValue(value: number) {
@@ -76,10 +70,7 @@ export function formatTooltipValue(value: number) {
   }).format(value);
 }
 
-export function getEstimatedHoverCardHeight(
-  rowCount: number,
-  hasTotalRow = false
-) {
+export function getEstimatedHoverCardHeight(rowCount: number, hasTotalRow = false) {
   return 54 + rowCount * 26 + (hasTotalRow ? 30 : 0);
 }
 
@@ -175,20 +166,13 @@ export function getHoverCardLeft(
   return clamp(anchorX + offset, 12, Math.max(boundaryWidth - cardWidth - 12, 12));
 }
 
-export function getHoverIndex(
-  pointerX: number,
-  plotWidth: number,
-  itemCount: number
-) {
+export function getHoverIndex(pointerX: number, plotWidth: number, itemCount: number) {
   if (itemCount <= 1) {
     return 0;
   }
 
   const boundedX = clamp(pointerX, 0, Math.max(plotWidth - 1, 0));
-  return Math.min(
-    itemCount - 1,
-    Math.max(0, Math.floor((boundedX / plotWidth) * itemCount))
-  );
+  return Math.min(itemCount - 1, Math.max(0, Math.floor((boundedX / plotWidth) * itemCount)));
 }
 
 export function resolveBarDatum(
@@ -240,10 +224,7 @@ export function getGroupedExtent(series: BarSeries[]) {
   };
 }
 
-export function getStackedExtent(
-  series: BarSeries[],
-  categoryCount: number
-) {
+export function getStackedExtent(series: BarSeries[], categoryCount: number) {
   let min = 0;
   let max = 1;
 
@@ -252,11 +233,7 @@ export function getStackedExtent(
     let negative = 0;
 
     series.forEach((item, seriesIndex) => {
-      const resolved = resolveBarDatum(
-        item.data[categoryIndex] ?? 0,
-        item,
-        seriesIndex
-      );
+      const resolved = resolveBarDatum(item.data[categoryIndex] ?? 0, item, seriesIndex);
 
       if (resolved.value >= 0) {
         positive += resolved.value;
@@ -308,20 +285,12 @@ export function resolveTickEntries(
   }));
 }
 
-export function createLinearScale(
-  minValue: number,
-  maxValue: number,
-  size: number
-) {
+export function createLinearScale(minValue: number, maxValue: number, size: number) {
   const range = maxValue - minValue || 1;
   return (value: number) => ((value - minValue) / range) * size;
 }
 
-export function createInvertedScale(
-  minValue: number,
-  maxValue: number,
-  size: number
-) {
+export function createInvertedScale(minValue: number, maxValue: number, size: number) {
   const scale = createLinearScale(minValue, maxValue, size);
   return (value: number) => size - scale(value);
 }
@@ -370,9 +339,7 @@ export function describeLinePath(points: PlotPoint[]) {
   }
 
   return points
-    .map((point, index) =>
-      `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
-    )
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
     .join(' ');
 }
 
@@ -655,10 +622,7 @@ export function buildLegendItemsFromDonutSegments(
   return segments
     .filter((segment) => segment.value > 0 && segment.showLegendItem !== false)
     .map((segment) => {
-      const resolvedFillStyle = resolveFillStyle(
-        segment.fillStyle ?? 'solid',
-        fillStyleOverride
-      );
+      const resolvedFillStyle = resolveFillStyle(segment.fillStyle ?? 'solid', fillStyleOverride);
 
       return {
         label: segment.legendLabel ?? segment.label,
@@ -681,13 +645,16 @@ export function buildLegendItemsFromBubbles(
   fillStyleOverride: FillStyleMode = 'inherit',
   legendMarker: LegendMarkerMode = 'auto'
 ) {
-  const deduped = new Map<string, {
-    label: string;
-    color: string;
-    strokeColor?: string;
-    fillStyle?: FillStyle;
-    active?: boolean;
-  }>();
+  const deduped = new Map<
+    string,
+    {
+      label: string;
+      color: string;
+      strokeColor?: string;
+      fillStyle?: FillStyle;
+      active?: boolean;
+    }
+  >();
 
   points.forEach((point) => {
     if (!deduped.has(point.label)) {

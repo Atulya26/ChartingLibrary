@@ -22,11 +22,7 @@ export function getSeriesColor(index: number) {
   return palette[index % palette.length];
 }
 
-export function getFillStyleBackground(
-  fillStyle: FillStyle,
-  color: string,
-  strokeColor?: string
-) {
+export function getFillStyleBackground(fillStyle: FillStyle, color: string, strokeColor?: string) {
   if (fillStyle === 'texture') {
     return `repeating-linear-gradient(135deg, ${color}, ${color} 4px, ${withAlpha(
       strokeColor ?? chartTokens.neutral.white,
@@ -35,10 +31,7 @@ export function getFillStyleBackground(
   }
 
   if (fillStyle === 'gradient') {
-    return `linear-gradient(180deg, ${withAlpha(color, 0.92)} 0%, ${withAlpha(
-      color,
-      0.65
-    )} 100%)`;
+    return `linear-gradient(180deg, ${withAlpha(color, 0.92)} 0%, ${withAlpha(color, 0.65)} 100%)`;
   }
 
   return color;

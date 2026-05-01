@@ -177,8 +177,7 @@ export function layoutSankey({
   const scale = Math.min(...columnScale.filter((s) => s > 0));
 
   // --- 5. Column x positions ------------------------------------------------
-  const xStep =
-    numColumns > 1 ? (plotWidth - nodeWidth) / (numColumns - 1) : 0;
+  const xStep = numColumns > 1 ? (plotWidth - nodeWidth) / (numColumns - 1) : 0;
 
   // --- 6. Initial y positions: stack + vertical-center within column --------
   type NodeRect = {

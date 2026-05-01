@@ -72,17 +72,11 @@ export interface SankeyChartProps extends ChartHeaderProps {
 const DEFAULT_PALETTE = chartTokens.categorical.axisPalette;
 
 function resolveNodeColor(node: SankeyNode, index: number): string {
-  return (
-    node.fill ??
-    DEFAULT_PALETTE[index % DEFAULT_PALETTE.length].fill
-  );
+  return node.fill ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length].fill;
 }
 
 function resolveNodeStroke(node: SankeyNode, index: number): string {
-  return (
-    node.stroke ??
-    DEFAULT_PALETTE[index % DEFAULT_PALETTE.length].stroke
-  );
+  return node.stroke ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length].stroke;
 }
 
 export function SankeyChart({
@@ -272,21 +266,12 @@ export function SankeyChart({
   // Hover card copy.
   const hoveredLink = hoveredLinkIdx != null ? layout.links[hoveredLinkIdx] : null;
   const hoveredSource =
-    hoveredLink != null
-      ? nodes[nodeIndexById.get(hoveredLink.source) ?? -1]
-      : null;
+    hoveredLink != null ? nodes[nodeIndexById.get(hoveredLink.source) ?? -1] : null;
   const hoveredTarget =
-    hoveredLink != null
-      ? nodes[nodeIndexById.get(hoveredLink.target) ?? -1]
-      : null;
-  const hoveredNode =
-    hoveredNodeId != null
-      ? nodes[nodeIndexById.get(hoveredNodeId) ?? -1]
-      : null;
+    hoveredLink != null ? nodes[nodeIndexById.get(hoveredLink.target) ?? -1] : null;
+  const hoveredNode = hoveredNodeId != null ? nodes[nodeIndexById.get(hoveredNodeId) ?? -1] : null;
   const hoveredNodeLayout =
-    hoveredNodeId != null
-      ? layout.nodes.find((n) => n.id === hoveredNodeId) ?? null
-      : null;
+    hoveredNodeId != null ? (layout.nodes.find((n) => n.id === hoveredNodeId) ?? null) : null;
 
   const hoverCardPosition = mousePos
     ? getViewportHoverCardPosition(
@@ -336,8 +321,7 @@ export function SankeyChart({
                 link.targetY0,
                 link.targetY1
               );
-              const isActive =
-                activeLinkIndices == null ? true : activeLinkIndices.has(i);
+              const isActive = activeLinkIndices == null ? true : activeLinkIndices.has(i);
               const opacity = isActive ? linkOpacity : linkDimmedOpacity;
               const hoverOpacity = hoveredLinkIdx === i ? Math.min(linkOpacity + 0.25, 1) : opacity;
               return (
@@ -347,7 +331,10 @@ export function SankeyChart({
                   fill={resolveLinkFill(i)}
                   stroke="none"
                   opacity={hoverOpacity}
-                  style={{ transition: 'opacity 120ms ease-out', cursor: onLinkClick ? 'pointer' : 'default' }}
+                  style={{
+                    transition: 'opacity 120ms ease-out',
+                    cursor: onLinkClick ? 'pointer' : 'default'
+                  }}
                   onMouseMove={(event) => {
                     setHoveredLinkIdx(i);
                     setHoveredNodeId(null);
@@ -451,19 +438,15 @@ export function SankeyChart({
               {
                 label: hoveredSource.label,
                 value: 'Source',
-                color:
-                  nodeColors[nodeIndexById.get(hoveredSource.id) ?? 0].fill,
-                strokeColor:
-                  nodeColors[nodeIndexById.get(hoveredSource.id) ?? 0].stroke,
+                color: nodeColors[nodeIndexById.get(hoveredSource.id) ?? 0].fill,
+                strokeColor: nodeColors[nodeIndexById.get(hoveredSource.id) ?? 0].stroke,
                 marker: 'solid'
               },
               {
                 label: hoveredTarget.label,
                 value: 'Target',
-                color:
-                  nodeColors[nodeIndexById.get(hoveredTarget.id) ?? 0].fill,
-                strokeColor:
-                  nodeColors[nodeIndexById.get(hoveredTarget.id) ?? 0].stroke,
+                color: nodeColors[nodeIndexById.get(hoveredTarget.id) ?? 0].fill,
+                strokeColor: nodeColors[nodeIndexById.get(hoveredTarget.id) ?? 0].stroke,
                 marker: 'solid'
               }
             ]}
@@ -489,10 +472,8 @@ export function SankeyChart({
               {
                 label: 'Throughput',
                 value: formatTooltipValue(hoveredNodeLayout.value),
-                color:
-                  nodeColors[nodeIndexById.get(hoveredNode.id) ?? 0].fill,
-                strokeColor:
-                  nodeColors[nodeIndexById.get(hoveredNode.id) ?? 0].stroke,
+                color: nodeColors[nodeIndexById.get(hoveredNode.id) ?? 0].fill,
+                strokeColor: nodeColors[nodeIndexById.get(hoveredNode.id) ?? 0].stroke,
                 marker: 'solid'
               }
             ]}

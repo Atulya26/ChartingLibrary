@@ -34,10 +34,7 @@ export const PaletteSystem: Story = {
                 <div className="cl-swatch-row">
                   {getSequentialScale(paletteName).map((color, index) => (
                     <div className="cl-swatch" key={`${paletteName}-${index}`}>
-                      <div
-                        className="cl-swatch__chip"
-                        style={{ background: color }}
-                      />
+                      <div className="cl-swatch__chip" style={{ background: color }} />
                       <span className="cl-swatch__label">{color}</span>
                     </div>
                   ))}
@@ -81,10 +78,7 @@ export const PaletteSystem: Story = {
                   chartTokens.categorical.secondary
                 ].map((color, index) => (
                   <div className="cl-swatch" key={`${color}-${index}`}>
-                    <div
-                      className="cl-swatch__chip"
-                      style={{ background: color }}
-                    />
+                    <div className="cl-swatch__chip" style={{ background: color }} />
                     <span className="cl-swatch__label">{color}</span>
                   </div>
                 ))}

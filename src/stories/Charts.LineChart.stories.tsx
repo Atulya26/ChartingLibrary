@@ -34,26 +34,31 @@ const meta = {
   argTypes: {
     ...surfaceArgTypes,
     ...hiddenEventArgTypes,
-    categories: advancedDataArg('Advanced category labels. Hidden from Storybook controls for a cleaner playground.'),
-    series: advancedDataArg('Advanced line-series data. Hidden from controls because raw object editing is not user-friendly.'),
+    categories: advancedDataArg(
+      'Advanced category labels. Hidden from Storybook controls for a cleaner playground.'
+    ),
+    series: advancedDataArg(
+      'Advanced line-series data. Hidden from controls because raw object editing is not user-friendly.'
+    ),
     yAxis: advancedDataArg('Advanced left-axis config.'),
-    secondaryYAxis: advancedDataArg('Advanced right-axis config.', { arg: 'showSecondaryYAxis', truthy: true }),
+    secondaryYAxis: advancedDataArg('Advanced right-axis config.', {
+      arg: 'showSecondaryYAxis',
+      truthy: true
+    }),
     grid: advancedDataArg('Advanced grid config.'),
     referenceLines: advancedDataArg('Advanced reference lines.'),
-    showSecondaryYAxis: booleanArg(
-      'Boolean toggle for the right-side axis.'
-    ),
+    showSecondaryYAxis: booleanArg('Boolean toggle for the right-side axis.'),
     showHoverCard: hoverCardArg(),
-    plotWidth: numberArg(
-      'Numeric plot width in pixels.',
-      'Layout',
-      { min: 240, max: 700, step: 10 }
-    ),
-    plotHeight: numberArg(
-      'Numeric plot height in pixels.',
-      'Layout',
-      { min: 120, max: 360, step: 10 }
-    )
+    plotWidth: numberArg('Numeric plot width in pixels.', 'Layout', {
+      min: 240,
+      max: 700,
+      step: 10
+    }),
+    plotHeight: numberArg('Numeric plot height in pixels.', 'Layout', {
+      min: 120,
+      max: 360,
+      step: 10
+    })
   }
 } satisfies Meta<typeof LineChart>;
 
@@ -144,19 +149,9 @@ export const SingleLinePlayground: Story = {
         dashed: 'Dashed'
       }
     ),
-    lineThickness: rangeArg(
-      'Line thickness in pixels.',
-      'Line style',
-      { min: 1, max: 6, step: 1 }
-    ),
-    showAreaFill: booleanArg(
-      'Toggle the soft area fill under the line.',
-      'Area fill'
-    ),
-    showLineLabels: booleanArg(
-      'Toggle numeric labels on each point.',
-      'Line labels'
-    ),
+    lineThickness: rangeArg('Line thickness in pixels.', 'Line style', { min: 1, max: 6, step: 1 }),
+    showAreaFill: booleanArg('Toggle the soft area fill under the line.', 'Area fill'),
+    showLineLabels: booleanArg('Toggle numeric labels on each point.', 'Line labels'),
     labelPosition: selectArg(
       ['top', 'bottom-left'],
       'Position labels above the point or bottom-left of the point.',
@@ -168,10 +163,7 @@ export const SingleLinePlayground: Story = {
         'bottom-left': 'Bottom left'
       }
     ),
-    showDots: booleanArg(
-      'Toggle point dots.',
-      'Dots'
-    ),
+    showDots: booleanArg('Toggle point dots.', 'Dots'),
     dotSize: selectArg(
       ['small', 'medium', 'large'],
       'Finite dot size choice.',
@@ -184,15 +176,11 @@ export const SingleLinePlayground: Story = {
         large: 'Large'
       }
     ),
-    dotOutline: booleanArg(
-      'Use an outlined dot instead of a filled dot.',
-      'Dots',
-      { arg: 'showDots', truthy: true }
-    ),
-    showTargetLine: booleanArg(
-      'Toggle a target reference line.',
-      'Reference line'
-    )
+    dotOutline: booleanArg('Use an outlined dot instead of a filled dot.', 'Dots', {
+      arg: 'showDots',
+      truthy: true
+    }),
+    showTargetLine: booleanArg('Toggle a target reference line.', 'Reference line')
   } as any,
   render: (args) => {
     const {

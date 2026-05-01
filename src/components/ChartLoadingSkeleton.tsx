@@ -8,15 +8,9 @@ import { chartTokens } from '../theme/tokens';
 import { cx } from '../utils/cx';
 import { describeArcSegment } from '../chartUtils';
 import { describeSankeyRibbon } from '../sankeyLayout';
-import type {
-  ChartLoadingSkeletonProps,
-  ChartLoadingType
-} from '../types';
+import type { ChartLoadingSkeletonProps, ChartLoadingType } from '../types';
 
-const statesCollection = feature(
-  statesAtlas as any,
-  (statesAtlas as any).objects.states
-) as any;
+const statesCollection = feature(statesAtlas as any, (statesAtlas as any).objects.states) as any;
 
 const dimensionsByType: Record<
   ChartLoadingType,
@@ -62,18 +56,11 @@ function CartesianFrame({
     <div className="cl-loading-skeleton__cartesian" style={{ width: plotWidth + 42 }}>
       <div className="cl-loading-skeleton__y-axis">
         {[28, 22, 18].map((width, index) => (
-          <span
-            key={index}
-            className="cl-loading-skeleton__shape"
-            style={{ width, height: 8 }}
-          />
+          <span key={index} className="cl-loading-skeleton__shape" style={{ width, height: 8 }} />
         ))}
       </div>
       <div className="cl-loading-skeleton__cartesian-main">
-        <div
-          className="cl-loading-skeleton__plot"
-          style={{ width: plotWidth, height: plotHeight }}
-        >
+        <div className="cl-loading-skeleton__plot" style={{ width: plotWidth, height: plotHeight }}>
           <div className="cl-loading-skeleton__grid">
             {[0, 1, 2].map((item) => (
               <span key={item} />
@@ -164,13 +151,7 @@ function LineOverlay({
   );
 }
 
-function LineSkeleton({
-  plotWidth,
-  plotHeight
-}: {
-  plotWidth: number;
-  plotHeight: number;
-}) {
+function LineSkeleton({ plotWidth, plotHeight }: { plotWidth: number; plotHeight: number }) {
   return (
     <CartesianFrame plotWidth={plotWidth} plotHeight={plotHeight}>
       <LineOverlay plotWidth={plotWidth} plotHeight={plotHeight} showSecondary />
@@ -178,13 +159,7 @@ function LineSkeleton({
   );
 }
 
-function ComboSkeleton({
-  plotWidth,
-  plotHeight
-}: {
-  plotWidth: number;
-  plotHeight: number;
-}) {
+function ComboSkeleton({ plotWidth, plotHeight }: { plotWidth: number; plotHeight: number }) {
   return (
     <CartesianFrame plotWidth={plotWidth} plotHeight={plotHeight}>
       <BarSkeleton plotWidth={plotWidth} plotHeight={plotHeight} variant="combo" />
@@ -221,12 +196,7 @@ function DonutSkeleton() {
 
   return (
     <div className="cl-loading-skeleton__radial">
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        role="presentation"
-      >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="presentation">
         <circle
           className="cl-loading-skeleton__ring-base"
           cx={center}
@@ -245,14 +215,8 @@ function DonutSkeleton() {
         />
       </svg>
       <div className="cl-loading-skeleton__radial-center">
-        <span
-          className="cl-loading-skeleton__shape"
-          style={{ width: 56, height: 16 }}
-        />
-        <span
-          className="cl-loading-skeleton__shape"
-          style={{ width: 36, height: 8 }}
-        />
+        <span className="cl-loading-skeleton__shape" style={{ width: 56, height: 16 }} />
+        <span className="cl-loading-skeleton__shape" style={{ width: 36, height: 8 }} />
       </div>
     </div>
   );
@@ -296,39 +260,21 @@ function HalfDonutSkeleton() {
         className="cl-loading-skeleton__radial-center cl-loading-skeleton__radial-center--half"
         style={{ top: centerY - 28 }}
       >
-        <span
-          className="cl-loading-skeleton__shape"
-          style={{ width: 52, height: 16 }}
-        />
-        <span
-          className="cl-loading-skeleton__shape"
-          style={{ width: 32, height: 8 }}
-        />
+        <span className="cl-loading-skeleton__shape" style={{ width: 52, height: 16 }} />
+        <span className="cl-loading-skeleton__shape" style={{ width: 32, height: 8 }} />
       </div>
       <div
         className="cl-loading-skeleton__radial-endlabels"
         style={{ top: centerY + 14, width: radius * 2 + 24, left: centerX - radius - 12 }}
       >
-        <span
-          className="cl-loading-skeleton__shape"
-          style={{ width: 18, height: 8 }}
-        />
-        <span
-          className="cl-loading-skeleton__shape"
-          style={{ width: 22, height: 8 }}
-        />
+        <span className="cl-loading-skeleton__shape" style={{ width: 18, height: 8 }} />
+        <span className="cl-loading-skeleton__shape" style={{ width: 22, height: 8 }} />
       </div>
     </div>
   );
 }
 
-function SparklineSkeleton({
-  plotWidth,
-  plotHeight
-}: {
-  plotWidth: number;
-  plotHeight: number;
-}) {
+function SparklineSkeleton({ plotWidth, plotHeight }: { plotWidth: number; plotHeight: number }) {
   return (
     <div
       className="cl-loading-skeleton__sparkline"
@@ -361,10 +307,7 @@ function PointerScaleSkeleton({ plotWidth }: { plotWidth: number }) {
           <span className="cl-loading-skeleton__pointer-segment" />
           <span className="cl-loading-skeleton__pointer-segment" />
         </div>
-        <span
-          className="cl-loading-skeleton__pointer-needle"
-          style={{ left: '58%' }}
-        />
+        <span className="cl-loading-skeleton__pointer-needle" style={{ left: '58%' }} />
       </div>
       <div className="cl-loading-skeleton__pointer-range-labels">
         <span className="cl-loading-skeleton__shape" style={{ width: 22, height: 8 }} />
@@ -379,13 +322,7 @@ function PointerScaleSkeleton({ plotWidth }: { plotWidth: number }) {
   );
 }
 
-function MapSkeleton({
-  plotWidth,
-  plotHeight
-}: {
-  plotWidth: number;
-  plotHeight: number;
-}) {
+function MapSkeleton({ plotWidth, plotHeight }: { plotWidth: number; plotHeight: number }) {
   const statePaths = useMemo(() => {
     const projection = geoAlbersUsa().fitExtent(
       [
@@ -411,10 +348,7 @@ function MapSkeleton({
   ];
 
   return (
-    <div
-      className="cl-loading-skeleton__map"
-      style={{ width: plotWidth, height: plotHeight }}
-    >
+    <div className="cl-loading-skeleton__map" style={{ width: plotWidth, height: plotHeight }}>
       <svg
         width={plotWidth}
         height={plotHeight}
@@ -464,11 +398,13 @@ function buildSankeyRibbons(
 ) {
   const sourceCursors: number[] = source.nodes.map(() => 0);
   const targetCursors: number[] = target.nodes.map(() => 0);
-  const sourceTotals: number[] = source.nodes.map((node, index) =>
-    links.filter((link) => link.from === index).reduce((sum, link) => sum + link.weight, 0) || 1
+  const sourceTotals: number[] = source.nodes.map(
+    (node, index) =>
+      links.filter((link) => link.from === index).reduce((sum, link) => sum + link.weight, 0) || 1
   );
-  const targetTotals: number[] = target.nodes.map((_, index) =>
-    links.filter((link) => link.to === index).reduce((sum, link) => sum + link.weight, 0) || 1
+  const targetTotals: number[] = target.nodes.map(
+    (_, index) =>
+      links.filter((link) => link.to === index).reduce((sum, link) => sum + link.weight, 0) || 1
   );
 
   return links.map((link) => {
@@ -496,13 +432,7 @@ function buildSankeyRibbons(
   });
 }
 
-function SankeySkeleton({
-  plotWidth,
-  plotHeight
-}: {
-  plotWidth: number;
-  plotHeight: number;
-}) {
+function SankeySkeleton({ plotWidth, plotHeight }: { plotWidth: number; plotHeight: number }) {
   const nodeWidth = 6;
   const padX = 24;
   const designHeight = 320;
@@ -565,10 +495,7 @@ function SankeySkeleton({
   const ribbons = [...leftToMid, ...midToRight];
 
   return (
-    <div
-      className="cl-loading-skeleton__sankey"
-      style={{ width: plotWidth, height: plotHeight }}
-    >
+    <div className="cl-loading-skeleton__sankey" style={{ width: plotWidth, height: plotHeight }}>
       <svg
         width={plotWidth}
         height={plotHeight}
@@ -598,11 +525,7 @@ function SankeySkeleton({
   );
 }
 
-function renderSkeleton(
-  type: ChartLoadingType,
-  plotWidth: number,
-  plotHeight: number
-) {
+function renderSkeleton(type: ChartLoadingType, plotWidth: number, plotHeight: number) {
   switch (type) {
     case 'combo':
       return <ComboSkeleton plotWidth={plotWidth} plotHeight={plotHeight} />;
@@ -613,13 +536,7 @@ function renderSkeleton(
     case 'half-donut':
       return <HalfDonutSkeleton />;
     case 'histogram':
-      return (
-        <BarSkeletonFrame
-          plotWidth={plotWidth}
-          plotHeight={plotHeight}
-          variant="histogram"
-        />
-      );
+      return <BarSkeletonFrame plotWidth={plotWidth} plotHeight={plotHeight} variant="histogram" />;
     case 'sparkline':
       return <SparklineSkeleton plotWidth={plotWidth} plotHeight={plotHeight} />;
     case 'pointer-scale':
@@ -630,13 +547,7 @@ function renderSkeleton(
       return <SankeySkeleton plotWidth={plotWidth} plotHeight={plotHeight} />;
     case 'bar':
     default:
-      return (
-        <BarSkeletonFrame
-          plotWidth={plotWidth}
-          plotHeight={plotHeight}
-          variant="bar"
-        />
-      );
+      return <BarSkeletonFrame plotWidth={plotWidth} plotHeight={plotHeight} variant="bar" />;
   }
 }
 
@@ -666,7 +577,11 @@ export function ChartLoadingSkeleton({
         animate && 'cl-loading-skeleton--animated'
       )}
     >
-      <figure className="cl-chart-shell" aria-busy="true" aria-label={`${resolvedTitle} is loading`}>
+      <figure
+        className="cl-chart-shell"
+        aria-busy="true"
+        aria-label={`${resolvedTitle} is loading`}
+      >
         <h3 className="cl-header__title cl-loading-skeleton__title">{resolvedTitle}</h3>
         <div className="cl-chart-shell__body">
           <div className="cl-chart-shell__main">

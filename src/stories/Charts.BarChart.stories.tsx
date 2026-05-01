@@ -102,11 +102,10 @@ const meta = {
       'Display',
       { arg: 'mode', neq: 'distribution' }
     ),
-    showTotalLabels: booleanArg(
-      'Boolean toggle for top total labels on stacked bars.',
-      'Display',
-      { arg: 'mode', neq: 'distribution' }
-    ),
+    showTotalLabels: booleanArg('Boolean toggle for top total labels on stacked bars.', 'Display', {
+      arg: 'mode',
+      neq: 'distribution'
+    }),
     showScale: booleanArg(
       'Boolean toggle for the helper scale under distribution mode.',
       'Display',
@@ -152,10 +151,10 @@ const meta = {
       'Advanced axis config. Hidden because object editing is better handled in code or story presets.',
       { arg: 'mode', neq: 'distribution' }
     ),
-    grid: advancedDataArg(
-      'Advanced grid config for code-level tweaking.',
-      { arg: 'mode', neq: 'distribution' }
-    )
+    grid: advancedDataArg('Advanced grid config for code-level tweaking.', {
+      arg: 'mode',
+      neq: 'distribution'
+    })
   }
 } satisfies Meta<typeof BarChart>;
 

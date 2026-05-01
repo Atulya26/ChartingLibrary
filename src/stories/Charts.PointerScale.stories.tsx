@@ -30,27 +30,13 @@ const meta = {
   argTypes: {
     ...surfaceArgTypes,
     ...hiddenEventArgTypes,
-    ranges: advancedDataArg('Advanced pointer-band ranges. Hidden from controls because raw array editing is not friendly.'),
-    value: rangeArg(
-      'Current pointer value.',
-      'Data',
-      { min: 0, max: 100, step: 1 }
+    ranges: advancedDataArg(
+      'Advanced pointer-band ranges. Hidden from controls because raw array editing is not friendly.'
     ),
-    target: rangeArg(
-      'Optional target marker value.',
-      'Data',
-      { min: 0, max: 100, step: 1 }
-    ),
-    min: numberArg(
-      'Minimum scale value.',
-      'Data',
-      { min: -100, max: 100, step: 1 }
-    ),
-    max: numberArg(
-      'Maximum scale value.',
-      'Data',
-      { min: 1, max: 200, step: 1 }
-    ),
+    value: rangeArg('Current pointer value.', 'Data', { min: 0, max: 100, step: 1 }),
+    target: rangeArg('Optional target marker value.', 'Data', { min: 0, max: 100, step: 1 }),
+    min: numberArg('Minimum scale value.', 'Data', { min: -100, max: 100, step: 1 }),
+    max: numberArg('Maximum scale value.', 'Data', { min: 1, max: 200, step: 1 }),
     showHoverCard: hoverCardArg()
   }
 } satisfies Meta<typeof PointerScale>;

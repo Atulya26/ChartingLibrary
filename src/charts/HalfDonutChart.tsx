@@ -151,7 +151,7 @@ export function HalfDonutChart({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const centerX = size / 2;
   const centerY = size * 0.55;
-  const radius = size * 0.40;
+  const radius = size * 0.4;
   const outerRadius = radius + thickness / 2;
   const innerRadius = radius - thickness / 2;
   const endAngle = startAngle + sweepAngle;
@@ -212,15 +212,22 @@ export function HalfDonutChart({
     }
   ];
   const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(hoverRows.length))
+    ? getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(hoverRows.length)
+      )
     : null;
 
-  const legendItems = showLegend ? ranges.map(range => ({
-    label: range.label ?? `${range.from}-${range.to}`,
-    marker: 'solid' as const,
-    color: range.color,
-    active: true
-  })) : [];
+  const legendItems = showLegend
+    ? ranges.map((range) => ({
+        label: range.label ?? `${range.from}-${range.to}`,
+        marker: 'solid' as const,
+        color: range.color,
+        active: true
+      }))
+    : [];
 
   return (
     <ChartShell
@@ -237,8 +244,22 @@ export function HalfDonutChart({
       <div
         className="cl-chart-half-donut"
         style={{ position: 'relative', width: size, margin: '0 auto' }}
-        onMouseMove={showHoverCard ? (event) => { setHovered(true); setMousePos({ x: event.clientX, y: event.clientY }); } : undefined}
-        onMouseLeave={showHoverCard ? () => { setHovered(false); setMousePos(null); } : undefined}
+        onMouseMove={
+          showHoverCard
+            ? (event) => {
+                setHovered(true);
+                setMousePos({ x: event.clientX, y: event.clientY });
+              }
+            : undefined
+        }
+        onMouseLeave={
+          showHoverCard
+            ? () => {
+                setHovered(false);
+                setMousePos(null);
+              }
+            : undefined
+        }
       >
         <svg
           width={size}
@@ -248,16 +269,8 @@ export function HalfDonutChart({
           aria-label={title}
           style={{ overflow: 'visible' }}
         >
-          <path
-            d={trackPath}
-            fill={chartTokens.neutral.surfaceTint}
-          />
-          {progressPath ? (
-            <path
-              d={progressPath}
-              fill={valueColor ?? activeRange.color}
-            />
-          ) : null}
+          <path d={trackPath} fill={chartTokens.neutral.surfaceTint} />
+          {progressPath ? <path d={progressPath} fill={valueColor ?? activeRange.color} /> : null}
           <text
             x={centerX}
             y={centerY - 20}

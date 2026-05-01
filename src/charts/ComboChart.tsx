@@ -208,12 +208,8 @@ export function ComboChart({
         const laterSeries = barSeries.slice(seriesIndex + 1);
         const hasEarlierPositive = earlierSeries.some(
           (seriesItem, offset) =>
-            resolveBarDatum(
-              seriesItem.data[categoryIndex] ?? 0,
-              seriesItem,
-              offset,
-              barFillStyle
-            ).value > 0
+            resolveBarDatum(seriesItem.data[categoryIndex] ?? 0, seriesItem, offset, barFillStyle)
+              .value > 0
         );
         const hasLaterPositive = laterSeries.some(
           (seriesItem, offset) =>
@@ -226,12 +222,8 @@ export function ComboChart({
         );
         const hasEarlierNegative = earlierSeries.some(
           (seriesItem, offset) =>
-            resolveBarDatum(
-              seriesItem.data[categoryIndex] ?? 0,
-              seriesItem,
-              offset,
-              barFillStyle
-            ).value < 0
+            resolveBarDatum(seriesItem.data[categoryIndex] ?? 0, seriesItem, offset, barFillStyle)
+              .value < 0
         );
         const hasLaterNegative = laterSeries.some(
           (seriesItem, offset) =>
@@ -356,9 +348,11 @@ export function ComboChart({
       const stroke = item.stroke ?? chartTokens.categorical.secondary;
       const baseline =
         chartTokens.chart.lineXInset +
-        createInvertedScale(extent.min, extent.max, plotHeight - chartTokens.chart.lineXInset * 2)(
-          Math.max(extent.min, 0)
-        );
+        createInvertedScale(
+          extent.min,
+          extent.max,
+          plotHeight - chartTokens.chart.lineXInset * 2
+        )(Math.max(extent.min, 0));
 
       if (item.showAreaFill) {
         lineLayers.push(
@@ -422,12 +416,7 @@ export function ComboChart({
   const hoveredBarRows =
     hoveredIndex !== null
       ? barSeries.map((item, index) => {
-          const resolved = resolveBarDatum(
-            item.data[hoveredIndex] ?? 0,
-            item,
-            index,
-            barFillStyle
-          );
+          const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, barFillStyle);
 
           return {
             label: item.label,
@@ -452,13 +441,7 @@ export function ComboChart({
     hoveredIndex !== null && barLayout === 'stacked'
       ? barSeries.reduce(
           (sum, item, index) =>
-            sum +
-            resolveBarDatum(
-              item.data[hoveredIndex] ?? 0,
-              item,
-              index,
-              barFillStyle
-            ).value,
+            sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, barFillStyle).value,
           0
         )
       : undefined;
@@ -476,9 +459,8 @@ export function ComboChart({
               chartTokens.chart.lineXInset
             )[hoveredIndex];
           })
-          .filter(
-            (point): point is { x: number; y: number; value: number; index: number } =>
-              Boolean(point)
+          .filter((point): point is { x: number; y: number; value: number; index: number } =>
+            Boolean(point)
           )
       : [];
   const hoverCardPosition =
@@ -551,7 +533,12 @@ export function ComboChart({
                     : undefined
                 }
                 onMouseLeave={
-                  showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined
+                  showHoverCard
+                    ? () => {
+                        setHoveredIndex(null);
+                        setMousePos(null);
+                      }
+                    : undefined
                 }
               >
                 <svg
@@ -596,8 +583,7 @@ export function ComboChart({
                   {lineLayers}
                   {showHoverCard && hoveredIndex !== null && showOverlayLine
                     ? lineSeries.map((item) => {
-                        const extent =
-                          item.axis === 'right' ? rightExtent : leftExtent;
+                        const extent = item.axis === 'right' ? rightExtent : leftExtent;
                         const points = buildLinePoints(
                           item.data,
                           resolvedPlotWidth,

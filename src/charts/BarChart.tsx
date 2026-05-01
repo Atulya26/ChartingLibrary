@@ -159,18 +159,17 @@ export function BarChart({
     mode === 'vertical' ? 414 : 454,
     mode === 'vertical' ? 88 : 48
   );
-  const resolvedDistributionSegments =
-    distributionSegments?.length
-      ? distributionSegments
-      : series[0]?.data.map((datum, index) => {
-          const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
+  const resolvedDistributionSegments = distributionSegments?.length
+    ? distributionSegments
+    : (series[0]?.data.map((datum, index) => {
+        const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
 
-          return {
-            label: categories[index] ?? series[0].label,
-            value: resolved.value,
-            fill: resolved.fill
-          };
-        }) ?? [];
+        return {
+          label: categories[index] ?? series[0].label,
+          value: resolved.value,
+          fill: resolved.fill
+        };
+      }) ?? []);
 
   /* ---------- Distribution band mode ---------- */
   if (mode === 'distribution' && resolvedDistributionSegments.length) {
@@ -180,9 +179,7 @@ export function BarChart({
       marker: 'solid' as const,
       color:
         seg.fill ??
-        chartTokens.categorical.axisPalette[
-          i % chartTokens.categorical.axisPalette.length
-        ].fill,
+        chartTokens.categorical.axisPalette[i % chartTokens.categorical.axisPalette.length].fill,
       active: true
     }));
     const hoveredSegment =
@@ -216,23 +213,30 @@ export function BarChart({
               background: 'transparent'
             }}
             onMouseLeave={
-              showHoverCard ? () => { setHoveredDistributionIndex(null); setMousePos(null); } : undefined
+              showHoverCard
+                ? () => {
+                    setHoveredDistributionIndex(null);
+                    setMousePos(null);
+                  }
+                : undefined
             }
           >
             {resolvedDistributionSegments.map((seg, i) => {
               const percent = total > 0 ? seg.value / total : 0;
               const color =
                 seg.fill ??
-                chartTokens.categorical.axisPalette[
-                  i % chartTokens.categorical.axisPalette.length
-                ].fill;
+                chartTokens.categorical.axisPalette[i % chartTokens.categorical.axisPalette.length]
+                  .fill;
               const stroke = 'stroke' in seg ? seg.stroke : undefined;
               return (
                 <div
                   key={i}
                   onMouseMove={
                     showHoverCard
-                      ? (event: React.MouseEvent) => { setHoveredDistributionIndex(i); setMousePos({ x: event.clientX, y: event.clientY }); }
+                      ? (event: React.MouseEvent) => {
+                          setHoveredDistributionIndex(i);
+                          setMousePos({ x: event.clientX, y: event.clientY });
+                        }
                       : undefined
                   }
                   style={{
@@ -246,10 +250,7 @@ export function BarChart({
                     borderRadius: chartTokens.radii.bar,
                     boxShadow: `inset 0 0 0 1px ${stroke ?? withAlpha(chartTokens.neutral.white, 0.35)}`,
                     opacity:
-                      hoveredDistributionIndex === null ||
-                      hoveredDistributionIndex === i
-                        ? 1
-                        : 0.78
+                      hoveredDistributionIndex === null || hoveredDistributionIndex === i ? 1 : 0.78
                   }}
                 >
                   {percent > 0.08 && (
@@ -324,9 +325,7 @@ export function BarChart({
                   value: `${Math.round((hoveredSegment.value / Math.max(total, 1)) * 100)}%`,
                   color:
                     hoveredSegment.fill ??
-                    chartTokens.categorical.axisPalette[
-                      hoveredDistributionIndex ?? 0
-                    ].fill,
+                    chartTokens.categorical.axisPalette[hoveredDistributionIndex ?? 0].fill,
                   marker: 'solid'
                 }
               ]}
@@ -345,9 +344,7 @@ export function BarChart({
     ? buildLegendItemsFromBarSeriesWithOverrides(series, fillStyle, legendMarker)
     : [];
   const extent =
-    layout === 'stacked'
-      ? getStackedExtent(series, categories.length)
-      : getGroupedExtent(series);
+    layout === 'stacked' ? getStackedExtent(series, categories.length) : getGroupedExtent(series);
   const tickEntries = resolveTickEntries(
     yAxis,
     extent.min,
@@ -409,21 +406,13 @@ export function BarChart({
           const earlierSeries = series.slice(0, seriesIndex);
           const hasEarlierPositive = earlierSeries.some(
             (seriesItem, offset) =>
-              resolveBarDatum(
-                seriesItem.data[categoryIndex] ?? 0,
-                seriesItem,
-                offset,
-                fillStyle
-              ).value > 0
+              resolveBarDatum(seriesItem.data[categoryIndex] ?? 0, seriesItem, offset, fillStyle)
+                .value > 0
           );
           const hasEarlierNegative = earlierSeries.some(
             (seriesItem, offset) =>
-              resolveBarDatum(
-                seriesItem.data[categoryIndex] ?? 0,
-                seriesItem,
-                offset,
-                fillStyle
-              ).value < 0
+              resolveBarDatum(seriesItem.data[categoryIndex] ?? 0, seriesItem, offset, fillStyle)
+                .value < 0
           );
           const laterSeries = series.slice(seriesIndex + 1);
           const hasLaterPositive = laterSeries.some(
@@ -524,7 +513,12 @@ export function BarChart({
           }
         });
 
-        if (showTotalLabels && totalLabelX !== null && totalLabelY !== null && totalLabelValue > 0) {
+        if (
+          showTotalLabels &&
+          totalLabelX !== null &&
+          totalLabelY !== null &&
+          totalLabelValue > 0
+        ) {
           valueLabels.push(
             <text
               key={`h-total-${category}`}
@@ -596,12 +590,7 @@ export function BarChart({
     const hoveredRows =
       hoveredIndex !== null
         ? series.map((item, index) => {
-            const resolved = resolveBarDatum(
-              item.data[hoveredIndex] ?? 0,
-              item,
-              index,
-              fillStyle
-            );
+            const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle);
 
             return {
               label: item.label,
@@ -616,13 +605,7 @@ export function BarChart({
       hoveredIndex !== null && layout === 'stacked'
         ? series.reduce(
             (sum, item, index) =>
-              sum +
-              resolveBarDatum(
-                item.data[hoveredIndex] ?? 0,
-                item,
-                index,
-                fillStyle
-              ).value,
+              sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle).value,
             0
           )
         : undefined;
@@ -632,10 +615,7 @@ export function BarChart({
             mousePos.x,
             mousePos.y,
             196,
-            getEstimatedHoverCardHeight(
-              hoveredRows.length,
-              typeof hoveredStackTotal === 'number'
-            )
+            getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
           )
         : null;
 
@@ -651,10 +631,7 @@ export function BarChart({
         description={description}
         {...headerProps}
       >
-        <div
-          className="cl-horizontal-bar-chart"
-          style={{ width: resolvedPlotWidth }}
-        >
+        <div className="cl-horizontal-bar-chart" style={{ width: resolvedPlotWidth }}>
           <div
             className="cl-horizontal-bar-chart__frame"
             style={{ width: resolvedPlotWidth, height: horizontalFrameHeight }}
@@ -670,7 +647,12 @@ export function BarChart({
                 : undefined
             }
             onMouseLeave={
-              showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined
+              showHoverCard
+                ? () => {
+                    setHoveredIndex(null);
+                    setMousePos(null);
+                  }
+                : undefined
             }
           >
             <div
@@ -828,21 +810,13 @@ export function BarChart({
         const earlierSeries = series.slice(0, seriesIndex);
         const hasEarlierPositive = earlierSeries.some(
           (seriesItem, offset) =>
-            resolveBarDatum(
-              seriesItem.data[categoryIndex] ?? 0,
-              seriesItem,
-              offset,
-              fillStyle
-            ).value > 0
+            resolveBarDatum(seriesItem.data[categoryIndex] ?? 0, seriesItem, offset, fillStyle)
+              .value > 0
         );
         const hasEarlierNegative = earlierSeries.some(
           (seriesItem, offset) =>
-            resolveBarDatum(
-              seriesItem.data[categoryIndex] ?? 0,
-              seriesItem,
-              offset,
-              fillStyle
-            ).value < 0
+            resolveBarDatum(seriesItem.data[categoryIndex] ?? 0, seriesItem, offset, fillStyle)
+              .value < 0
         );
         const laterSeries = series.slice(seriesIndex + 1);
         const hasLaterPositive = laterSeries.some(
@@ -952,12 +926,7 @@ export function BarChart({
     }
 
     series.forEach((item, seriesIndex) => {
-      const resolved = resolveBarDatum(
-        item.data[categoryIndex] ?? 0,
-        item,
-        seriesIndex,
-        fillStyle
-      );
+      const resolved = resolveBarDatum(item.data[categoryIndex] ?? 0, item, seriesIndex, fillStyle);
       const x = startX + seriesIndex * (groupedBarWidth + barGap);
       const valueY = scaleY(resolved.value);
       const y = resolved.value >= 0 ? valueY : zeroY;
@@ -997,12 +966,7 @@ export function BarChart({
   const hoveredRows =
     hoveredIndex !== null
       ? series.map((item, index) => {
-          const resolved = resolveBarDatum(
-            item.data[hoveredIndex] ?? 0,
-            item,
-            index,
-            fillStyle
-          );
+          const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle);
 
           return {
             label: item.label,
@@ -1017,13 +981,7 @@ export function BarChart({
     hoveredIndex !== null && layout === 'stacked'
       ? series.reduce(
           (sum, item, index) =>
-            sum +
-            resolveBarDatum(
-              item.data[hoveredIndex] ?? 0,
-              item,
-              index,
-              fillStyle
-            ).value,
+            sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle).value,
           0
         )
       : undefined;
@@ -1033,10 +991,7 @@ export function BarChart({
           mousePos.x,
           mousePos.y,
           196,
-          getEstimatedHoverCardHeight(
-            hoveredRows.length,
-            typeof hoveredStackTotal === 'number'
-          )
+          getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
         )
       : null;
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
@@ -1097,7 +1052,12 @@ export function BarChart({
                     : undefined
                 }
                 onMouseLeave={
-                  showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined
+                  showHoverCard
+                    ? () => {
+                        setHoveredIndex(null);
+                        setMousePos(null);
+                      }
+                    : undefined
                 }
               >
                 <svg

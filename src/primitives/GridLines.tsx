@@ -24,17 +24,7 @@ export function GridLines({
     >
       {Array.from({ length: count }, (_, index) => {
         const y = (height / Math.max(count - 1, 1)) * index;
-        return (
-          <line
-            key={index}
-            x1="0"
-            y1={y}
-            x2={width}
-            y2={y}
-            stroke={color}
-            strokeWidth="1"
-          />
-        );
+        return <line key={index} x1="0" y1={y} x2={width} y2={y} stroke={color} strokeWidth="1" />;
       })}
     </svg>
   );

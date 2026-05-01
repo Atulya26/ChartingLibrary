@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { SankeyChart } from '../charts/SankeyChart';
-import {
-  edFlowLinks,
-  edFlowNodes,
-  revenueFlowLinks,
-  revenueFlowNodes
-} from './storyData';
+import { edFlowLinks, edFlowNodes, revenueFlowLinks, revenueFlowNodes } from './storyData';
 import {
   advancedDataArg,
   baseDocNote,
@@ -87,47 +82,49 @@ const meta = {
     ),
     showHoverCard: hoverCardArg(),
     showNodeLabels: booleanArg('Boolean toggle for label text next to each node.', 'Display'),
-    showNodeValues: booleanArg('Boolean toggle for showing the node throughput value under the label.', 'Display'),
-    nodeWidth: rangeArg(
-      'Width of each node rectangle in pixels.',
-      'Layout',
-      { min: 6, max: 28, step: 1 }
+    showNodeValues: booleanArg(
+      'Boolean toggle for showing the node throughput value under the label.',
+      'Display'
     ),
-    nodePadding: rangeArg(
-      'Vertical gap between nodes in the same column.',
-      'Layout',
-      { min: 4, max: 40, step: 1 }
-    ),
-    nodeCornerRadius: rangeArg(
-      'Corner radius on node rectangles.',
-      'Layout',
-      { min: 0, max: 8, step: 1 }
-    ),
-    linkOpacity: rangeArg(
-      'Base link opacity when idle.',
-      'Style',
-      { min: 0.15, max: 0.8, step: 0.01 }
-    ),
-    linkDimmedOpacity: rangeArg(
-      'Opacity applied to unrelated links during hover.',
-      'Style',
-      { min: 0, max: 0.4, step: 0.01 }
-    ),
-    neutralLinkColor: colorArg(
-      'Fallback link color for `linkColorMode: neutral`.',
-      'Style',
-      { arg: 'linkColorMode', eq: 'neutral' }
-    ),
-    plotWidth: numberArg(
-      'Numeric plot width in pixels.',
-      'Layout',
-      { min: 320, max: 900, step: 10 }
-    ),
-    plotHeight: numberArg(
-      'Numeric plot height in pixels.',
-      'Layout',
-      { min: 160, max: 520, step: 10 }
-    )
+    nodeWidth: rangeArg('Width of each node rectangle in pixels.', 'Layout', {
+      min: 6,
+      max: 28,
+      step: 1
+    }),
+    nodePadding: rangeArg('Vertical gap between nodes in the same column.', 'Layout', {
+      min: 4,
+      max: 40,
+      step: 1
+    }),
+    nodeCornerRadius: rangeArg('Corner radius on node rectangles.', 'Layout', {
+      min: 0,
+      max: 8,
+      step: 1
+    }),
+    linkOpacity: rangeArg('Base link opacity when idle.', 'Style', {
+      min: 0.15,
+      max: 0.8,
+      step: 0.01
+    }),
+    linkDimmedOpacity: rangeArg('Opacity applied to unrelated links during hover.', 'Style', {
+      min: 0,
+      max: 0.4,
+      step: 0.01
+    }),
+    neutralLinkColor: colorArg('Fallback link color for `linkColorMode: neutral`.', 'Style', {
+      arg: 'linkColorMode',
+      eq: 'neutral'
+    }),
+    plotWidth: numberArg('Numeric plot width in pixels.', 'Layout', {
+      min: 320,
+      max: 900,
+      step: 10
+    }),
+    plotHeight: numberArg('Numeric plot height in pixels.', 'Layout', {
+      min: 160,
+      max: 520,
+      step: 10
+    })
   }
 } satisfies Meta<typeof SankeyChart>;
 
@@ -151,7 +148,7 @@ export const PatientFlow: Story = {
     showHoverCard: true,
     showMenu: true,
     actions: [{ id: 'save-image', label: 'Save', onClick: () => {} }],
-    nodeAlignment: "center",
+    nodeAlignment: 'center',
     nodeCornerRadius: 0,
     nodePadding: 32,
     nodeWidth: 6
