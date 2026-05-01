@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual release workflow scaffold for validated npm publishes.
 - Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
 
+### Changed
+
+- Memoized chart and primitive exports for re-render avoidance. Pass stable data and config
+  references for the optimization to take effect.
+
 ## 2026-04-30
 
 ### Visual alignment and chart state polish
