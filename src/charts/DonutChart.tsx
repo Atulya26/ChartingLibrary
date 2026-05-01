@@ -10,6 +10,7 @@ import type {
   FillStyleMode,
   LegendPosition,
   LegendMarkerMode,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -23,8 +24,14 @@ import {
   resolveFillLegendMarker,
   resolveFillStyle
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  describeSegmentChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
-export interface DonutChartProps extends ChartHeaderProps {
+export interface DonutChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   segments: DonutSegment[];
@@ -142,6 +149,9 @@ export const DonutChart = memo(function DonutChart({
   legendMarker = 'auto',
   roundedCaps = false,
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: DonutChartProps) {
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null);
@@ -155,10 +165,31 @@ export const DonutChart = memo(function DonutChart({
     [segments]
   );
   const svgId = useId().replace(/:/g, '');
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
   const legendItems = useMemo(
     () => (showLegend ? buildLegendItemsFromDonutSegments(segments, fillStyle, legendMarker) : []),
     [fillStyle, legendMarker, segments, showLegend]
   );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSegmentChart({
+          chartType: 'Donut chart',
+          segments
+        })
+      }),
+    [ariaDescription, ariaLabel, description, segments, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const center = size / 2;
   const radius = center - thickness / 2 - 2;
   const outerRadius = radius + thickness / 2;
@@ -288,10 +319,15 @@ export const DonutChart = memo(function DonutChart({
             width={size}
             height={size}
             viewBox={`0 0 ${size} ${size}`}
-            role="img"
-            aria-label={title}
+            {...chartA11yProps}
             style={{ overflow: 'visible' }}
           >
+            <ChartSvgA11y
+              titleId={a11yTitleId}
+              descriptionId={a11yDescriptionId}
+              label={a11yContent.label}
+              description={a11yContent.description}
+            />
             <circle
               cx={center}
               cy={center}

@@ -133,6 +133,37 @@ const series = [
 
 This adapter-style approach keeps CSV parsing outside the chart renderer and makes the same chart usable with backend API responses.
 
+## Accessibility
+
+Every chart graphic includes a generated accessible title and description. You can override them
+when product language needs to be more specific:
+
+```tsx
+<LineChart
+  title="Average PMPM Trend"
+  ariaLabel="Average PMPM trend over four quarters"
+  ariaDescription="Line chart showing current PMPM, projected PMPM, and target values."
+  categories={['Q1', 'Q2', 'Q3', 'Q4']}
+  series={series}
+/>
+```
+
+Keyboard focus is intentionally opt-in for now so existing chart visuals do not change by default.
+Enable it per chart when you want the chart graphic to become keyboard-focusable:
+
+```tsx
+<BarChart
+  enableKeyboardNavigation
+  title="Revenue by payer"
+  categories={categories}
+  series={series}
+/>
+```
+
+In this release, `enableKeyboardNavigation` makes the chart graphic focusable and shows a focus
+ring. Arrow-key data point navigation and live announcements are planned for the next accessibility
+slice.
+
 ## Chart States
 
 Use chart states when data is loading, unavailable, or failed:

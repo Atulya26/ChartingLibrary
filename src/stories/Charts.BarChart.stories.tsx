@@ -12,6 +12,7 @@ import {
   stackedBarSeries
 } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -154,7 +155,8 @@ const meta = {
     grid: advancedDataArg('Advanced grid config for code-level tweaking.', {
       arg: 'mode',
       neq: 'distribution'
-    })
+    }),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof BarChart>;
 

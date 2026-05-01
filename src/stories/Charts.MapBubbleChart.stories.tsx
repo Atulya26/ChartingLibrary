@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { MapBubbleChart } from '../charts/MapBubbleChart';
 import { mapBubblePoints, mapBubbleTableConfig } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -175,7 +176,8 @@ const meta = {
     borderColor: colorArg('Border color for geographic outlines.', 'Style', {
       arg: 'view',
       eq: 'map'
-    })
+    }),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof MapBubbleChart>;
 

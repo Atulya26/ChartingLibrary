@@ -12,6 +12,7 @@ import { ChartShell } from '../components/ChartShell';
 import { getStateFipsFromCode } from '../mapMetadata';
 import type {
   BubbleStyle,
+  ChartAccessibilityProps,
   FillStyleMode,
   LegendMarkerMode,
   LegendPosition,
@@ -29,6 +30,12 @@ import {
   resolveFillStyle
 } from '../chartUtils';
 import { useRafCallback } from '../utils/useRafCallback';
+import {
+  ChartSvgA11y,
+  describeSegmentChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
 const statesCollection = feature(statesAtlas as any, (statesAtlas as any).objects.states) as any;
 const countiesCollection = feature(
@@ -97,7 +104,7 @@ function getBubbleRadius(
   return minRadius + scaledRatio * (maxRadius - minRadius);
 }
 
-export interface MapBubbleChartProps extends ChartHeaderProps {
+export interface MapBubbleChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   points: MapBubblePoint[];
@@ -157,11 +164,16 @@ export const MapBubbleChart = memo(function MapBubbleChart({
   showCountyLines = true,
   showBubbleShadow = true,
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: MapBubbleChartProps) {
   const { actions: userActions = [], ...restHeaderProps } = headerProps;
 
   const mapIdBase = useId().replace(/:/g, '');
+  const a11yTitleId = `${mapIdBase}-title`;
+  const a11yDescriptionId = `${mapIdBase}-description`;
   const [zoomLevel, setZoomLevel] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -309,6 +321,28 @@ export const MapBubbleChart = memo(function MapBubbleChart({
     () => getSortedPoints(scopedPoints, bubbleSort),
     [bubbleSort, scopedPoints]
   );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSegmentChart({
+          chartType: regionScope === 'state' ? 'State map bubble chart' : 'Map bubble chart',
+          segments: renderPoints.map((point) => ({
+            label: point.label,
+            value: point.value
+          }))
+        })
+      }),
+    [ariaDescription, ariaLabel, description, regionScope, renderPoints, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const { minValue, maxValue } = useMemo(() => {
     const pointValues = renderPoints.map((point) => point.value);
     return {
@@ -517,8 +551,7 @@ export const MapBubbleChart = memo(function MapBubbleChart({
             width={plotWidth}
             height={plotHeight}
             viewBox={`0 0 ${plotWidth} ${plotHeight}`}
-            role="img"
-            aria-label={title}
+            {...chartA11yProps}
             className="cl-chart-map"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -526,6 +559,12 @@ export const MapBubbleChart = memo(function MapBubbleChart({
             onMouseLeave={handleMapMouseLeave}
             style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
           >
+            <ChartSvgA11y
+              titleId={a11yTitleId}
+              descriptionId={a11yDescriptionId}
+              label={a11yContent.label}
+              description={a11yContent.description}
+            />
             <defs>
               <filter
                 id={`${mapIdBase}-map-bubble-shadow`}

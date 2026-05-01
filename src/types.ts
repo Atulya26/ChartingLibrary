@@ -232,6 +232,15 @@ export interface ChartHeaderProps {
   onMenuClick?: () => void;
 }
 
+export interface ChartAccessibilityProps {
+  /** Accessible label for the chart graphic. Defaults to the chart title. */
+  ariaLabel?: string;
+  /** Accessible summary for the chart graphic. Defaults to a generated chart description. */
+  ariaDescription?: string;
+  /** Opt-in keyboard focus for the chart graphic. Disabled by default to avoid visual changes. */
+  enableKeyboardNavigation?: boolean;
+}
+
 export interface ChartShellProps extends ChartHeaderProps {
   width?: number | string;
   showCardBackground?: boolean;

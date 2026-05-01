@@ -6,6 +6,7 @@ import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import { formatNumberCompact } from '../utils/chart';
 import type {
+  ChartAccessibilityProps,
   ChartHeaderProps,
   LegendItem,
   LegendPosition,
@@ -21,8 +22,9 @@ import {
   getViewportHoverCardPosition
 } from '../chartUtils';
 import { describeSankeyRibbon, layoutSankey } from '../sankeyLayout';
+import { ChartSvgA11y, getChartA11yContent, getChartA11yProps } from '../utils/a11y';
 
-export interface SankeyChartProps extends ChartHeaderProps {
+export interface SankeyChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   nodes: SankeyNode[];
@@ -109,11 +111,16 @@ export const SankeyChart = memo(function SankeyChart({
   neutralLinkColor = chartTokens.neutral.stoneLight,
 
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   onLinkClick,
   onNodeClick,
   ...headerProps
 }: SankeyChartProps) {
   const svgId = useId().replace(/:/g, '');
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
   const [hoveredLinkIdx, setHoveredLinkIdx] = useState<number | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -131,6 +138,22 @@ export const SankeyChart = memo(function SankeyChart({
       }),
     [nodes, links, plotWidth, plotHeight, nodeWidth, nodePadding, nodeAlignment]
   );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: `Sankey chart with ${nodes.length} nodes and ${links.length} links.`
+      }),
+    [ariaDescription, ariaLabel, description, links.length, nodes.length, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
 
   const nodeIndexById = useMemo(() => {
     const m = new Map<string, number>();
@@ -325,11 +348,16 @@ export const SankeyChart = memo(function SankeyChart({
           width={plotWidth}
           height={plotHeight}
           viewBox={`0 0 ${plotWidth} ${plotHeight}`}
-          role="img"
-          aria-label={title}
+          {...chartA11yProps}
           style={{ overflow: 'visible', display: 'block' }}
           onMouseLeave={handleMouseLeave}
         >
+          <ChartSvgA11y
+            titleId={a11yTitleId}
+            descriptionId={a11yDescriptionId}
+            label={a11yContent.label}
+            description={a11yContent.description}
+          />
           <defs>{gradientDefs}</defs>
 
           {/* Links first so nodes render on top. */}

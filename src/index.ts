@@ -10,6 +10,7 @@ export type {
   BubbleStyle,
   ChartAction,
   ChartActionId,
+  ChartAccessibilityProps,
   ChartHeaderProps,
   ChartLoadingSkeletonProps,
   ChartLoadingType,

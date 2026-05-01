@@ -13,6 +13,7 @@ import type {
   LegendPosition,
   LineSeriesConfig,
   ReferenceLine,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -31,8 +32,14 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  describeCategoricalChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
-export interface LineChartProps extends ChartHeaderProps {
+export interface LineChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   categories: string[];
@@ -95,11 +102,16 @@ export const LineChart = memo(function LineChart({
   grid,
   referenceLines = [],
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: LineChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const gradientBaseId = useId().replace(/:/g, '');
+  const a11yTitleId = `${gradientBaseId}-title`;
+  const a11yDescriptionId = `${gradientBaseId}-description`;
   const leftSeries = useMemo(() => series.filter((item) => item.axis !== 'right'), [series]);
   const rightSeries = useMemo(() => series.filter((item) => item.axis === 'right'), [series]);
   const resolvedPlotWidth = useMemo(
@@ -107,6 +119,29 @@ export const LineChart = memo(function LineChart({
     [plotWidth, width]
   );
   const referenceValues = useMemo(() => referenceLines.map((item) => item.value), [referenceLines]);
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeCategoricalChart({
+          chartType: showSecondaryYAxis ? 'Dual-axis line chart' : 'Line chart',
+          categories,
+          series: series.map((item) => ({
+            label: item.label,
+            values: item.data
+          }))
+        })
+      }),
+    [ariaDescription, ariaLabel, categories, description, series, showSecondaryYAxis, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const rawLeftExtent = useMemo(
     () => getSeriesExtent(leftSeries, referenceValues),
     [leftSeries, referenceValues]
@@ -368,10 +403,15 @@ export const LineChart = memo(function LineChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   {gradientLayers.length ? <defs>{gradientLayers}</defs> : null}
                   {showHoverCard && hoveredIndex !== null ? (
                     <>

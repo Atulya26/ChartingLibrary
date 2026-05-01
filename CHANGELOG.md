@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chromatic workflow scaffolding for visual regression review.
 - Manual release workflow scaffold for validated npm publishes.
 - Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
+- Shared accessibility props for chart graphics: `ariaLabel`, `ariaDescription`, and opt-in
+  `enableKeyboardNavigation`.
 
 ### Changed
 

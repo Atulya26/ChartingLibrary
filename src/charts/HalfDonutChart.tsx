@@ -1,9 +1,14 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useId, useMemo, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
-import type { HalfDonutRange, LegendPosition, ChartHeaderProps } from '../types';
+import type {
+  ChartAccessibilityProps,
+  HalfDonutRange,
+  LegendPosition,
+  ChartHeaderProps
+} from '../types';
 import {
   clamp,
   formatTooltipValue,
@@ -12,8 +17,14 @@ import {
   mapValueToAngle,
   polarToCartesian
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  describeSingleValueChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
-export interface HalfDonutChartProps extends ChartHeaderProps {
+export interface HalfDonutChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   value: number;
@@ -145,8 +156,14 @@ export const HalfDonutChart = memo(function HalfDonutChart({
   showLegend = false,
   legendPosition = 'bottom',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: HalfDonutChartProps) {
+  const a11yId = useId().replace(/:/g, '');
+  const a11yTitleId = `${a11yId}-title`;
+  const a11yDescriptionId = `${a11yId}-description`;
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const centerX = size / 2;
@@ -156,6 +173,27 @@ export const HalfDonutChart = memo(function HalfDonutChart({
   const innerRadius = radius - thickness / 2;
   const endAngle = startAngle + sweepAngle;
   const clampedValue = clamp(value, min, max);
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSingleValueChart({
+          chartType: 'Half donut gauge',
+          value: clampedValue,
+          min,
+          max
+        })
+      }),
+    [ariaDescription, ariaLabel, clampedValue, description, max, min, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const valueAngle = mapValueToAngle(clampedValue, min, max, startAngle, endAngle);
   const segmentCornerRadius = roundedCaps ? Math.min(4, thickness / 3) : 0;
   const joinGapAngle =
@@ -309,10 +347,15 @@ export const HalfDonutChart = memo(function HalfDonutChart({
           width={size}
           height={size * 0.68}
           viewBox={`0 0 ${size} ${size * 0.68}`}
-          role="img"
-          aria-label={title}
+          {...chartA11yProps}
           style={{ overflow: 'visible' }}
         >
+          <ChartSvgA11y
+            titleId={a11yTitleId}
+            descriptionId={a11yDescriptionId}
+            label={a11yContent.label}
+            description={a11yContent.description}
+          />
           <path d={trackPath} fill={chartTokens.neutral.surfaceTint} />
           {progressPath ? <path d={progressPath} fill={valueColor ?? activeRange.color} /> : null}
           <text

@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { DonutChart } from '../charts/DonutChart';
 import { donutSegments } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -75,7 +76,12 @@ const meta = {
       max: 320,
       step: 10
     }),
-    thickness: rangeArg('Numeric ring thickness in pixels.', 'Layout', { min: 8, max: 32, step: 1 })
+    thickness: rangeArg('Numeric ring thickness in pixels.', 'Layout', {
+      min: 8,
+      max: 32,
+      step: 1
+    }),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof DonutChart>;
 

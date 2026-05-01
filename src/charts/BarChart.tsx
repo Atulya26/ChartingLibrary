@@ -16,6 +16,7 @@ import type {
   GridConfig,
   LegendPosition,
   LegendMarkerMode,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -36,8 +37,17 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  ChartRoleA11yContent,
+  describeCategoricalChart,
+  describeSegmentChart,
+  getChartA11yContent,
+  getChartA11yProps,
+  getChartRoleA11yProps
+} from '../utils/a11y';
 
-export interface BarChartProps extends ChartHeaderProps {
+export interface BarChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   categories?: string[];
@@ -145,9 +155,14 @@ export const BarChart = memo(function BarChart({
   fillStyle = 'inherit',
   legendMarker = 'auto',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: BarChartProps) {
   const svgId = useId().replace(/:/g, '');
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
   const stackedSegmentGap = layout === 'stacked' ? 3 : 0;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredDistributionIndex, setHoveredDistributionIndex] = useState<number | null>(null);
@@ -197,6 +212,54 @@ export const BarChart = memo(function BarChart({
       ),
     [extent.max, extent.min, grid?.count, yAxis]
   );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription:
+          mode === 'distribution'
+            ? describeSegmentChart({
+                chartType: 'Distribution bar chart',
+                segments: resolvedDistributionSegments
+              })
+            : describeCategoricalChart({
+                chartType: layout === 'stacked' ? 'Stacked bar chart' : 'Grouped bar chart',
+                categories,
+                series: series.map((item) => ({
+                  label: item.label,
+                  values: item.data.map((datum) =>
+                    typeof datum === 'number' ? datum : datum.value
+                  )
+                }))
+              })
+      }),
+    [
+      ariaDescription,
+      ariaLabel,
+      categories,
+      description,
+      layout,
+      mode,
+      resolvedDistributionSegments,
+      series,
+      title
+    ]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
+  const chartRoleA11yProps = getChartRoleA11yProps({
+    labelId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    label: a11yContent.label,
+    description: a11yContent.description,
+    enableKeyboardNavigation
+  });
 
   /* ---------- Distribution band mode ---------- */
   if (mode === 'distribution' && resolvedDistributionSegments.length) {
@@ -230,7 +293,16 @@ export const BarChart = memo(function BarChart({
         legendPosition={legendPosition}
         {...headerProps}
       >
-        <div style={{ padding: '4px 0', position: 'relative', width: resolvedPlotWidth }}>
+        <div
+          {...chartRoleA11yProps}
+          style={{ padding: '4px 0', position: 'relative', width: resolvedPlotWidth }}
+        >
+          <ChartRoleA11yContent
+            labelId={a11yTitleId}
+            descriptionId={a11yDescriptionId}
+            label={a11yContent.label}
+            description={a11yContent.description}
+          />
           <div
             style={{
               display: 'flex',
@@ -689,10 +761,15 @@ export const BarChart = memo(function BarChart({
               width={resolvedPlotWidth}
               height={horizontalFrameHeight}
               viewBox={`0 0 ${resolvedPlotWidth} ${horizontalFrameHeight}`}
-              role="img"
-              aria-label={title}
+              {...chartA11yProps}
               style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
             >
+              <ChartSvgA11y
+                titleId={a11yTitleId}
+                descriptionId={a11yDescriptionId}
+                label={a11yContent.label}
+                description={a11yContent.description}
+              />
               <defs>{defs}</defs>
               <g transform={`translate(${labelWidth} 0)`}>
                 {(grid?.show ?? true)
@@ -1079,10 +1156,15 @@ export const BarChart = memo(function BarChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   <defs>{defs}</defs>
                   {showHoverCard && hoveredIndex !== null ? (
                     <rect

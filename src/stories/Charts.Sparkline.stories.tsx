@@ -4,6 +4,7 @@ import { Sparkline } from '../charts/Sparkline';
 import { chartTokens } from '../theme/tokens';
 import { sparklineLabels, sparklineValues } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -46,7 +47,8 @@ const meta = {
       step: 2
     }),
     strokeWidth: rangeArg('Numeric line width in pixels.', 'Style', { min: 1, max: 6, step: 0.5 }),
-    color: colorArg('Line color for the sparkline.')
+    color: colorArg('Line color for the sparkline.'),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof Sparkline>;
 
