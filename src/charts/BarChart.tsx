@@ -1,11 +1,11 @@
-import { Fragment, memo, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
 import { chartTokens } from '../theme/tokens';
 import { formatNumberCompact } from '../utils/chart';
-import { withAlpha } from '../utils/color';
+import { getAccessibleTextColor, withAlpha } from '../utils/color';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import type {
@@ -38,14 +38,15 @@ import {
   resolveTickEntries
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   ChartRoleA11yContent,
   describeCategoricalChart,
   describeSegmentChart,
   getChartA11yContent,
-  getChartA11yProps,
-  getChartRoleA11yProps
+  getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface BarChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -167,6 +168,9 @@ export const BarChart = memo(function BarChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredDistributionIndex, setHoveredDistributionIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const distributionRef = useRef<HTMLDivElement>(null);
+  const horizontalFrameRef = useRef<HTMLDivElement>(null);
+  const verticalPlotRef = useRef<HTMLDivElement>(null);
   const resolvedPlotWidth = useMemo(
     () =>
       resolveResponsivePlotWidth(
@@ -253,13 +257,41 @@ export const BarChart = memo(function BarChart({
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
   });
-  const chartRoleA11yProps = getChartRoleA11yProps({
-    labelId: a11yTitleId,
-    descriptionId: a11yDescriptionId,
-    label: a11yContent.label,
-    description: a11yContent.description,
-    enableKeyboardNavigation
+  const keyboardItems = useMemo(
+    () =>
+      mode === 'distribution'
+        ? resolvedDistributionSegments.map((segment) => ({
+            label: segment.label,
+            value: segment.value
+          }))
+        : categories.map((category, categoryIndex) => ({
+            label: category,
+            value: series.reduce(
+              (sum, item, seriesIndex) =>
+                sum +
+                resolveBarDatum(item.data[categoryIndex] ?? 0, item, seriesIndex, fillStyle).value,
+              0
+            )
+          })),
+    [categories, fillStyle, mode, resolvedDistributionSegments, series]
+  );
+  const keyboardNav = useChartKeyboardNav({
+    items: keyboardItems,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (item, index) =>
+      `${index + 1} of ${keyboardItems.length}: ${item.label}, ${formatTooltipValue(item.value)}.`,
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setHoveredDistributionIndex(null);
+      setMousePos(null);
+    }
   });
+  const activeDistributionIndex =
+    mode === 'distribution'
+      ? (keyboardNav.focusedIndex ?? hoveredDistributionIndex)
+      : hoveredDistributionIndex;
+  const activeBarIndex =
+    mode !== 'distribution' ? (keyboardNav.focusedIndex ?? hoveredIndex) : hoveredIndex;
 
   /* ---------- Distribution band mode ---------- */
   if (mode === 'distribution' && resolvedDistributionSegments.length) {
@@ -273,13 +305,22 @@ export const BarChart = memo(function BarChart({
       active: true
     }));
     const hoveredSegment =
-      hoveredDistributionIndex !== null
-        ? resolvedDistributionSegments[hoveredDistributionIndex]
+      activeDistributionIndex !== null
+        ? resolvedDistributionSegments[activeDistributionIndex]
         : null;
     const hoveredDistributionCardHeight = getEstimatedHoverCardHeight(1, true);
     const hoveredDistributionPosition = mousePos
       ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoveredDistributionCardHeight)
-      : null;
+      : activeDistributionIndex !== null && distributionRef.current
+        ? getViewportHoverCardPosition(
+            distributionRef.current.getBoundingClientRect().left +
+              (activeDistributionIndex + 0.5) *
+                (resolvedPlotWidth / Math.max(resolvedDistributionSegments.length, 1)),
+            distributionRef.current.getBoundingClientRect().top + barHeight / 2,
+            196,
+            hoveredDistributionCardHeight
+          )
+        : null;
 
     return (
       <ChartShell
@@ -293,8 +334,17 @@ export const BarChart = memo(function BarChart({
         legendPosition={legendPosition}
         {...headerProps}
       >
+        {/* Chart inspection uses one focus target with role=img; arrow-key behavior is opt-in. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <div
-          {...chartRoleA11yProps}
+          ref={distributionRef}
+          role="img"
+          aria-labelledby={a11yTitleId}
+          aria-describedby={a11yDescriptionId}
+          {...(enableKeyboardNavigation ? { tabIndex: 0 } : {})}
+          onKeyDown={keyboardNav.handlers.onKeyDown}
+          onFocus={keyboardNav.handlers.onFocus}
+          onBlur={keyboardNav.handlers.onBlur}
           style={{ padding: '4px 0', position: 'relative', width: resolvedPlotWidth }}
         >
           <ChartRoleA11yContent
@@ -349,7 +399,7 @@ export const BarChart = memo(function BarChart({
                     borderRadius: chartTokens.radii.bar,
                     boxShadow: `inset 0 0 0 1px ${stroke ?? withAlpha(chartTokens.neutral.white, 0.35)}`,
                     opacity:
-                      hoveredDistributionIndex === null || hoveredDistributionIndex === i ? 1 : 0.78
+                      activeDistributionIndex === null || activeDistributionIndex === i ? 1 : 0.78
                   }}
                 >
                   {percent > 0.08 && (
@@ -357,7 +407,7 @@ export const BarChart = memo(function BarChart({
                       style={{
                         fontSize: '12px',
                         fontWeight: 600,
-                        color: chartTokens.text.inverse,
+                        color: getAccessibleTextColor(color),
                         fontFamily: chartTokens.fontFamily
                       }}
                     >
@@ -415,6 +465,7 @@ export const BarChart = memo(function BarChart({
               ))}
             </div>
           )}
+          <ChartLiveRegion announcement={keyboardNav.announcement} />
           {showHoverCard && hoveredSegment ? (
             <ChartHoverCard
               title={hoveredSegment.label}
@@ -424,7 +475,7 @@ export const BarChart = memo(function BarChart({
                   value: `${Math.round((hoveredSegment.value / Math.max(total, 1)) * 100)}%`,
                   color:
                     hoveredSegment.fill ??
-                    chartTokens.categorical.axisPalette[hoveredDistributionIndex ?? 0].fill,
+                    chartTokens.categorical.axisPalette[activeDistributionIndex ?? 0].fill,
                   marker: 'solid'
                 }
               ]}
@@ -582,7 +633,7 @@ export const BarChart = memo(function BarChart({
                 fill={
                   resolved.fill === chartTokens.neutral.surfaceTint
                     ? chartTokens.text.default
-                    : chartTokens.text.inverse
+                    : getAccessibleTextColor(resolved.fill)
                 }
               >
                 {formatNumberCompact(resolved.value)}
@@ -675,9 +726,14 @@ export const BarChart = memo(function BarChart({
     });
 
     const hoveredRows =
-      hoveredIndex !== null
+      activeBarIndex !== null
         ? series.map((item, index) => {
-            const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle);
+            const resolved = resolveBarDatum(
+              item.data[activeBarIndex] ?? 0,
+              item,
+              index,
+              fillStyle
+            );
 
             return {
               label: item.label,
@@ -689,21 +745,37 @@ export const BarChart = memo(function BarChart({
           })
         : [];
     const hoveredStackTotal =
-      hoveredIndex !== null && layout === 'stacked'
+      activeBarIndex !== null && layout === 'stacked'
         ? series.reduce(
             (sum, item, index) =>
-              sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle).value,
+              sum + resolveBarDatum(item.data[activeBarIndex] ?? 0, item, index, fillStyle).value,
             0
           )
         : undefined;
     const hoverCardPosition =
-      hoveredIndex !== null && mousePos
-        ? getViewportHoverCardPosition(
-            mousePos.x,
-            mousePos.y,
-            196,
-            getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
-          )
+      activeBarIndex !== null
+        ? mousePos
+          ? getViewportHoverCardPosition(
+              mousePos.x,
+              mousePos.y,
+              196,
+              getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
+            )
+          : keyboardNav.focusedIndex !== null && horizontalFrameRef.current
+            ? getViewportHoverCardPosition(
+                horizontalFrameRef.current.getBoundingClientRect().left +
+                  labelWidth +
+                  horizontalPlotWidth / 2,
+                horizontalFrameRef.current.getBoundingClientRect().top +
+                  activeBarIndex * categoryHeight +
+                  categoryHeight / 2,
+                196,
+                getEstimatedHoverCardHeight(
+                  hoveredRows.length,
+                  typeof hoveredStackTotal === 'number'
+                )
+              )
+            : null
         : null;
 
     return (
@@ -720,6 +792,7 @@ export const BarChart = memo(function BarChart({
       >
         <div className="cl-horizontal-bar-chart" style={{ width: resolvedPlotWidth }}>
           <div
+            ref={horizontalFrameRef}
             className="cl-horizontal-bar-chart__frame"
             style={{ width: resolvedPlotWidth, height: horizontalFrameHeight }}
             onMouseMove={
@@ -762,6 +835,9 @@ export const BarChart = memo(function BarChart({
               height={horizontalFrameHeight}
               viewBox={`0 0 ${resolvedPlotWidth} ${horizontalFrameHeight}`}
               {...chartA11yProps}
+              onKeyDown={keyboardNav.handlers.onKeyDown}
+              onFocus={keyboardNav.handlers.onFocus}
+              onBlur={keyboardNav.handlers.onBlur}
               style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
             >
               <ChartSvgA11y
@@ -788,10 +864,10 @@ export const BarChart = memo(function BarChart({
                       );
                     })
                   : null}
-                {showHoverCard && hoveredIndex !== null ? (
+                {showHoverCard && activeBarIndex !== null ? (
                   <rect
                     x={0}
-                    y={hoveredIndex * categoryHeight}
+                    y={activeBarIndex * categoryHeight}
                     width={horizontalPlotWidth}
                     height={categoryHeight}
                     fill={chartTokens.neutral.surfaceTint}
@@ -840,9 +916,10 @@ export const BarChart = memo(function BarChart({
                 );
               })}
             </div>
-            {showHoverCard && hoveredIndex !== null ? (
+            <ChartLiveRegion announcement={keyboardNav.announcement} />
+            {showHoverCard && activeBarIndex !== null ? (
               <ChartHoverCard
-                title={categories[hoveredIndex]}
+                title={categories[activeBarIndex]}
                 rows={hoveredRows}
                 totalLabel={layout === 'stacked' ? 'Bar total' : undefined}
                 totalValue={
@@ -986,7 +1063,7 @@ export const BarChart = memo(function BarChart({
                 resolved.value,
                 resolved.fill === chartTokens.neutral.surfaceTint
                   ? chartTokens.text.default
-                  : chartTokens.text.inverse
+                  : getAccessibleTextColor(resolved.fill)
               )}
             </Fragment>
           );
@@ -1056,9 +1133,9 @@ export const BarChart = memo(function BarChart({
   });
 
   const hoveredRows =
-    hoveredIndex !== null
+    activeBarIndex !== null
       ? series.map((item, index) => {
-          const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle);
+          const resolved = resolveBarDatum(item.data[activeBarIndex] ?? 0, item, index, fillStyle);
 
           return {
             label: item.label,
@@ -1070,21 +1147,32 @@ export const BarChart = memo(function BarChart({
         })
       : [];
   const hoveredStackTotal =
-    hoveredIndex !== null && layout === 'stacked'
+    activeBarIndex !== null && layout === 'stacked'
       ? series.reduce(
           (sum, item, index) =>
-            sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle).value,
+            sum + resolveBarDatum(item.data[activeBarIndex] ?? 0, item, index, fillStyle).value,
           0
         )
       : undefined;
   const hoverCardPosition =
-    hoveredIndex !== null && mousePos
-      ? getViewportHoverCardPosition(
-          mousePos.x,
-          mousePos.y,
-          196,
-          getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
-        )
+    activeBarIndex !== null
+      ? mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
+          )
+        : keyboardNav.focusedIndex !== null && verticalPlotRef.current
+          ? getViewportHoverCardPosition(
+              verticalPlotRef.current.getBoundingClientRect().left +
+                activeBarIndex * categoryWidth +
+                categoryWidth / 2,
+              verticalPlotRef.current.getBoundingClientRect().top + plotHeight / 2,
+              196,
+              getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
+            )
+          : null
       : null;
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
@@ -1127,6 +1215,7 @@ export const BarChart = memo(function BarChart({
                 />
               ) : null}
               <div
+                ref={verticalPlotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
@@ -1157,6 +1246,9 @@ export const BarChart = memo(function BarChart({
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
                   <ChartSvgA11y
@@ -1166,9 +1258,9 @@ export const BarChart = memo(function BarChart({
                     description={a11yContent.description}
                   />
                   <defs>{defs}</defs>
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showHoverCard && activeBarIndex !== null ? (
                     <rect
-                      x={hoveredIndex * categoryWidth}
+                      x={activeBarIndex * categoryWidth}
                       y={0}
                       width={categoryWidth}
                       height={plotHeight}
@@ -1187,9 +1279,10 @@ export const BarChart = memo(function BarChart({
                   {marks}
                   {labels}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showHoverCard && activeBarIndex !== null ? (
                   <ChartHoverCard
-                    title={categories[hoveredIndex]}
+                    title={categories[activeBarIndex]}
                     rows={hoveredRows}
                     totalLabel={layout === 'stacked' ? 'Total' : undefined}
                     totalValue={

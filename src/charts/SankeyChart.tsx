@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -22,7 +22,14 @@ import {
   getViewportHoverCardPosition
 } from '../chartUtils';
 import { describeSankeyRibbon, layoutSankey } from '../sankeyLayout';
-import { ChartSvgA11y, getChartA11yContent, getChartA11yProps } from '../utils/a11y';
+import {
+  ChartLiveRegion,
+  ChartSvgA11y,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import { useReducedMotion } from '../utils/useReducedMotion';
 
 export interface SankeyChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -124,6 +131,8 @@ export const SankeyChart = memo(function SankeyChart({
   const [hoveredLinkIdx, setHoveredLinkIdx] = useState<number | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const layout = useMemo(
     () =>
@@ -154,6 +163,26 @@ export const SankeyChart = memo(function SankeyChart({
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
   });
+  const keyboardNav = useChartKeyboardNav({
+    items: layout.nodes,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (node, index) =>
+      `${index + 1} of ${layout.nodes.length}: ${node.label}, throughput ${formatTooltipValue(node.value)}.`,
+    onSelect: (node) => {
+      const originalNode = nodes.find((item) => item.id === node.id);
+      if (originalNode && onNodeClick) {
+        onNodeClick(originalNode);
+      }
+    },
+    onDismiss: () => {
+      setHoveredLinkIdx(null);
+      setHoveredNodeId(null);
+      setMousePos(null);
+    }
+  });
+  const focusedNodeId =
+    keyboardNav.focusedIndex != null ? layout.nodes[keyboardNav.focusedIndex]?.id : null;
+  const activeNodeId = focusedNodeId ?? hoveredNodeId;
 
   const nodeIndexById = useMemo(() => {
     const m = new Map<string, number>();
@@ -208,7 +237,7 @@ export const SankeyChart = memo(function SankeyChart({
       traceDownstream(hovered.target);
       return result;
     }
-    if (hoveredNodeId != null) {
+    if (activeNodeId != null) {
       const result = new Set<number>();
       if (highlightMode === 'path') {
         const trace = (nodeId: string, dir: 'up' | 'down') => {
@@ -220,17 +249,17 @@ export const SankeyChart = memo(function SankeyChart({
             }
           });
         };
-        trace(hoveredNodeId, 'up');
-        trace(hoveredNodeId, 'down');
+        trace(activeNodeId, 'up');
+        trace(activeNodeId, 'down');
       } else {
         layout.links.forEach((l, i) => {
-          if (l.source === hoveredNodeId || l.target === hoveredNodeId) result.add(i);
+          if (l.source === activeNodeId || l.target === activeNodeId) result.add(i);
         });
       }
       return result;
     }
     return null;
-  }, [hoveredLinkIdx, hoveredNodeId, highlightMode, layout.links]);
+  }, [activeNodeId, hoveredLinkIdx, highlightMode, layout.links]);
 
   // Gradient defs for link color interpolation.
   const gradientDefs = useMemo<ReactNode[]>(() => {
@@ -304,27 +333,34 @@ export const SankeyChart = memo(function SankeyChart({
     [hoveredLink, nodeIndexById, nodes]
   );
   const hoveredNode = useMemo(
-    () => (hoveredNodeId != null ? nodes[nodeIndexById.get(hoveredNodeId) ?? -1] : null),
-    [hoveredNodeId, nodeIndexById, nodes]
+    () => (activeNodeId != null ? nodes[nodeIndexById.get(activeNodeId) ?? -1] : null),
+    [activeNodeId, nodeIndexById, nodes]
   );
   const hoveredNodeLayout = useMemo(
-    () =>
-      hoveredNodeId != null ? (layout.nodes.find((n) => n.id === hoveredNodeId) ?? null) : null,
-    [hoveredNodeId, layout.nodes]
+    () => (activeNodeId != null ? (layout.nodes.find((n) => n.id === activeNodeId) ?? null) : null),
+    [activeNodeId, layout.nodes]
   );
 
-  const hoverCardPosition = useMemo(
-    () =>
-      mousePos
-        ? getViewportHoverCardPosition(
-            mousePos.x,
-            mousePos.y,
-            220,
-            getEstimatedHoverCardHeight(2, true)
-          )
-        : null,
-    [mousePos]
-  );
+  const hoverCardPosition = useMemo(() => {
+    if (focusedNodeId && hoveredNodeLayout && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      return getViewportHoverCardPosition(
+        rect.left + hoveredNodeLayout.x + hoveredNodeLayout.width,
+        rect.top + hoveredNodeLayout.y + hoveredNodeLayout.height / 2,
+        220,
+        getEstimatedHoverCardHeight(2, true)
+      );
+    }
+
+    return mousePos
+      ? getViewportHoverCardPosition(
+          mousePos.x,
+          mousePos.y,
+          220,
+          getEstimatedHoverCardHeight(2, true)
+        )
+      : null;
+  }, [focusedNodeId, hoveredNodeLayout, mousePos]);
   const handleMouseLeave = useCallback(() => {
     setHoveredLinkIdx(null);
     setHoveredNodeId(null);
@@ -345,11 +381,15 @@ export const SankeyChart = memo(function SankeyChart({
     >
       <div style={{ position: 'relative', width: plotWidth }}>
         <svg
+          ref={svgRef}
           width={plotWidth}
           height={plotHeight}
           viewBox={`0 0 ${plotWidth} ${plotHeight}`}
           {...chartA11yProps}
           style={{ overflow: 'visible', display: 'block' }}
+          onKeyDown={keyboardNav.handlers.onKeyDown}
+          onFocus={keyboardNav.handlers.onFocus}
+          onBlur={keyboardNav.handlers.onBlur}
           onMouseLeave={handleMouseLeave}
         >
           <ChartSvgA11y
@@ -382,7 +422,7 @@ export const SankeyChart = memo(function SankeyChart({
                   stroke="none"
                   opacity={hoverOpacity}
                   style={{
-                    transition: 'opacity 120ms ease-out',
+                    transition: reducedMotion ? undefined : 'opacity 120ms ease-out',
                     cursor: onLinkClick ? 'pointer' : 'default'
                   }}
                   onMouseMove={(event) => {
@@ -401,7 +441,7 @@ export const SankeyChart = memo(function SankeyChart({
             {layout.nodes.map((n) => {
               const idx = nodeIndexById.get(n.id)!;
               const colors = nodeColors[idx];
-              const isHovered = hoveredNodeId === n.id;
+              const isHovered = activeNodeId === n.id;
               return (
                 <Fragment key={n.id}>
                   <rect
@@ -417,7 +457,7 @@ export const SankeyChart = memo(function SankeyChart({
                     opacity={n.active === false ? 0.45 : 1}
                     style={{
                       cursor: onNodeClick ? 'pointer' : 'default',
-                      transition: 'filter 120ms ease-out'
+                      transition: reducedMotion ? undefined : 'filter 120ms ease-out'
                     }}
                     filter={isHovered ? chartTokens.shadow.chartHoverFilter : undefined}
                     onMouseMove={(event) => {
@@ -480,6 +520,7 @@ export const SankeyChart = memo(function SankeyChart({
             </g>
           ) : null}
         </svg>
+        <ChartLiveRegion announcement={keyboardNav.announcement} />
 
         {showHoverCard && hoveredLink && hoveredSource && hoveredTarget ? (
           <ChartHoverCard

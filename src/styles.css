@@ -224,6 +224,10 @@ body {
 }
 
 .cl-legend__item--inactive {
+  color: var(--cl-text-subtle);
+}
+
+.cl-legend__item--inactive .cl-legend__marker {
   opacity: 0.55;
 }
 
@@ -970,6 +974,7 @@ body {
   .cl-loading-skeleton--animated .cl-loading-skeleton__sankey-ribbons path,
   .cl-loading-skeleton--animated .cl-loading-skeleton__sankey-nodes rect {
     animation: none;
+    transition: none;
   }
 }
 

@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -17,11 +17,12 @@ import {
   getPointerScaleStops
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartRoleA11yContent,
   describeSingleValueChart,
-  getChartA11yContent,
-  getChartRoleA11yProps
+  getChartA11yContent
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface PointerScaleProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -70,6 +71,7 @@ export const PointerScale = memo(function PointerScale({
 }: PointerScaleProps) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const a11yId = useMemo(() => title.replace(/\W+/g, '-').toLowerCase(), [title]);
   const a11yTitleId = `${a11yId || 'pointer-scale'}-title`;
   const a11yDescriptionId = `${a11yId || 'pointer-scale'}-description`;
@@ -92,12 +94,15 @@ export const PointerScale = memo(function PointerScale({
       }),
     [ariaDescription, ariaLabel, clampedValue, description, max, min, title]
   );
-  const chartA11yProps = getChartRoleA11yProps({
-    labelId: a11yTitleId,
-    descriptionId: a11yDescriptionId,
-    label: a11yContent.label,
-    description: a11yContent.description,
-    enableKeyboardNavigation
+  const keyboardNav = useChartKeyboardNav({
+    items: ranges,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (range, index) =>
+      `${index + 1} of ${ranges.length}: ${range.label ?? `${range.from} to ${range.to}`}. Current value ${formatTooltipValue(clampedValue)}.`,
+    onDismiss: () => {
+      setHovered(false);
+      setMousePos(null);
+    }
   });
   const activeRange = useMemo(
     () =>
@@ -144,18 +149,28 @@ export const PointerScale = memo(function PointerScale({
       min
     ]
   );
-  const hoverCardPosition = useMemo(
-    () =>
-      mousePos
-        ? getViewportHoverCardPosition(
-            mousePos.x,
-            mousePos.y,
-            196,
-            getEstimatedHoverCardHeight(hoverRows.length)
-          )
-        : null,
-    [hoverRows.length, mousePos]
-  );
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(hoverRows.length)
+      );
+    }
+
+    if (keyboardNav.focusedIndex === null || !containerRef.current) {
+      return null;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + rect.width / 2,
+      rect.top + 36,
+      196,
+      getEstimatedHoverCardHeight(hoverRows.length)
+    );
+  }, [hoverRows.length, keyboardNav.focusedIndex, mousePos]);
 
   const legendItems = useMemo(
     () =>
@@ -182,9 +197,18 @@ export const PointerScale = memo(function PointerScale({
       legendPosition={legendPosition}
       {...headerProps}
     >
+      {/* Chart inspection uses one focus target with role=img; arrow-key behavior is opt-in. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
+        ref={containerRef}
         className="cl-chart-pointer"
-        {...chartA11yProps}
+        role="img"
+        aria-labelledby={a11yTitleId}
+        aria-describedby={a11yDescriptionId}
+        {...(enableKeyboardNavigation ? { tabIndex: 0 } : {})}
+        onKeyDown={keyboardNav.handlers.onKeyDown}
+        onFocus={keyboardNav.handlers.onFocus}
+        onBlur={keyboardNav.handlers.onBlur}
         style={{ position: 'relative' }}
         onMouseMove={
           showHoverCard
@@ -209,6 +233,7 @@ export const PointerScale = memo(function PointerScale({
           label={a11yContent.label}
           description={a11yContent.description}
         />
+        <ChartLiveRegion announcement={keyboardNav.announcement} />
         <div className="cl-chart-pointer__value">
           {centerLabel ?? `${Math.round(clampedValue)}`}
         </div>
@@ -261,7 +286,7 @@ export const PointerScale = memo(function PointerScale({
           <span>{min}</span>
           <span>{max}</span>
         </div>
-        {showHoverCard && hovered ? (
+        {showHoverCard && (hovered || keyboardNav.focusedIndex !== null) ? (
           <ChartHoverCard
             title={title}
             rows={hoverRows}

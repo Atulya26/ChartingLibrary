@@ -1,4 +1,4 @@
-import { Fragment, memo, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -38,11 +38,13 @@ import {
   resolveTickEntries
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   describeSegmentChart,
   getChartA11yContent,
   getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface HistogramChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -97,6 +99,7 @@ export const HistogramChart = memo(function HistogramChart({
 }: HistogramChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const svgId = useId().replace(/:/g, '');
   const a11yTitleId = `${svgId}-title`;
   const a11yDescriptionId = `${svgId}-description`;
@@ -126,6 +129,16 @@ export const HistogramChart = memo(function HistogramChart({
     titleId: a11yTitleId,
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
+  });
+  const keyboardNav = useChartKeyboardNav({
+    items: resolvedBins,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (bin, index) =>
+      `${index + 1} of ${resolvedBins.length}: ${bin.label}, ${formatTooltipValue(bin.value)}.`,
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
   });
   const extent = useMemo(
     () => getValueExtent(resolvedBins.map((bin) => bin.value)),
@@ -254,18 +267,33 @@ export const HistogramChart = memo(function HistogramChart({
       })),
     [barWidth, extent.max, extent.min, plotHeight, resolvedBins, resolvedPlotWidth]
   );
-  const hoverCardPosition = useMemo(
-    () =>
-      hoveredIndex !== null && mousePos
-        ? getViewportHoverCardPosition(
-            mousePos.x,
-            mousePos.y,
-            196,
-            getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
-          )
-        : null,
-    [hoveredIndex, mousePos, overlayLine]
-  );
+  const activeIndex = keyboardNav.focusedIndex ?? hoveredIndex;
+  const hoverCardPosition = useMemo(() => {
+    if (activeIndex === null) {
+      return null;
+    }
+
+    if (mousePos) {
+      return getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
+      );
+    }
+
+    if (keyboardNav.focusedIndex === null || !plotRef.current) {
+      return null;
+    }
+
+    const rect = plotRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + activeIndex * barWidth + barWidth / 2,
+      rect.top + plotHeight / 2,
+      196,
+      getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
+    );
+  }, [activeIndex, barWidth, keyboardNav.focusedIndex, mousePos, overlayLine, plotHeight]);
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
@@ -307,6 +335,7 @@ export const HistogramChart = memo(function HistogramChart({
                 />
               ) : null}
               <div
+                ref={plotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
@@ -337,6 +366,9 @@ export const HistogramChart = memo(function HistogramChart({
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
                   <ChartSvgA11y
@@ -346,9 +378,9 @@ export const HistogramChart = memo(function HistogramChart({
                     description={a11yContent.description}
                   />
                   <defs>{defs}</defs>
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showHoverCard && activeIndex !== null ? (
                     <rect
-                      x={hoveredIndex * barWidth}
+                      x={activeIndex * barWidth}
                       y={0}
                       width={barWidth}
                       height={plotHeight}
@@ -391,18 +423,19 @@ export const HistogramChart = memo(function HistogramChart({
                     </Fragment>
                   ) : null}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showHoverCard && activeIndex !== null ? (
                   <ChartHoverCard
-                    title={resolvedBins[hoveredIndex].label}
+                    title={resolvedBins[activeIndex].label}
                     rows={
                       [
                         {
-                          label: resolvedBins[hoveredIndex].legendLabel ?? 'Observed distribution',
-                          value: formatTooltipValue(resolvedBins[hoveredIndex].value),
-                          color: resolvedBins[hoveredIndex].fill,
-                          strokeColor: resolvedBins[hoveredIndex].stroke,
+                          label: resolvedBins[activeIndex].legendLabel ?? 'Observed distribution',
+                          value: formatTooltipValue(resolvedBins[activeIndex].value),
+                          color: resolvedBins[activeIndex].fill,
+                          strokeColor: resolvedBins[activeIndex].stroke,
                           marker: resolveFillLegendMarker(
-                            resolvedBins[hoveredIndex].fillStyle,
+                            resolvedBins[activeIndex].fillStyle,
                             legendMarker
                           ) as TooltipRow['marker']
                         },
@@ -411,8 +444,8 @@ export const HistogramChart = memo(function HistogramChart({
                               {
                                 label: overlayLegendLabel,
                                 value: formatTooltipValue(
-                                  overlayPoints[hoveredIndex]?.value ??
-                                    resolvedBins[hoveredIndex].value
+                                  overlayPoints[activeIndex]?.value ??
+                                    resolvedBins[activeIndex].value
                                 ),
                                 color: chartTokens.categorical.secondary,
                                 strokeColor: chartTokens.categorical.secondary,
