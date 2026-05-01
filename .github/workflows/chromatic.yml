@@ -42,8 +42,8 @@ jobs:
 
       - name: Publish baseline from main
         if: env.CHROMATIC_PROJECT_TOKEN != '' && github.event_name == 'push'
-        run: npm run chromatic -- --project-token="$CHROMATIC_PROJECT_TOKEN" --auto-accept-changes
+        run: npm run chromatic:ci -- --project-token="$CHROMATIC_PROJECT_TOKEN" --auto-accept-changes
 
       - name: Check pull request changes
         if: env.CHROMATIC_PROJECT_TOKEN != '' && github.event_name == 'pull_request'
-        run: npm run chromatic -- --project-token="$CHROMATIC_PROJECT_TOKEN"
+        run: npm run chromatic:ci -- --project-token="$CHROMATIC_PROJECT_TOKEN"

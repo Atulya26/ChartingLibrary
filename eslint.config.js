@@ -50,6 +50,8 @@ export default tseslint.config(
       ...jsxA11y.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       'react-hooks/exhaustive-deps': 'error',
+      // Existing chart render helpers use local accumulator mutation; re-enable
+      // this after the Milestone 2 memoization/refactor pass removes that pattern.
       'react-hooks/immutability': 'off',
       'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

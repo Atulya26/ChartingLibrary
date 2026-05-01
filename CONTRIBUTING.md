@@ -30,6 +30,10 @@ npm run build-storybook
 npm run size
 ```
 
+`npm run size` checks brotli-compressed package artifacts. The current budgets are
+50 KB for the ESM bundle and 5 KB for the CSS bundle, which gives the project a
+real regression guardrail while still leaving room for Milestone 2 improvements.
+
 ## Visual Review
 
 Storybook is the source of truth for visual review. If a pull request changes chart
@@ -41,6 +45,9 @@ Chromatic behavior:
 - `main` pushes auto-accept the baseline after review setup.
 - Pull requests should fail on visual diffs once the baseline is approved.
 - If `CHROMATIC_PROJECT_TOKEN` is not configured, the workflow skips safely.
+- External fork pull requests do not receive repository secrets, so visual regression
+  may skip there. A maintainer should rerun Chromatic from a trusted branch before merge
+  when a forked PR changes visuals.
 
 ## Release Process
 

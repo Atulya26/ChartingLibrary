@@ -60,18 +60,19 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "size": "npm run build && size-limit",
-    "chromatic": "chromatic"
+    "chromatic": "chromatic --exit-zero-on-changes",
+    "chromatic:ci": "chromatic"
   },
   "size-limit": [
     {
       "name": "ESM bundle",
       "path": "dist/index.js",
-      "limit": "270 KB"
+      "limit": "50 KB"
     },
     {
       "name": "CSS bundle",
       "path": "dist/index.css",
-      "limit": "28 KB"
+      "limit": "5 KB"
     }
   ],
   "peerDependencies": {
