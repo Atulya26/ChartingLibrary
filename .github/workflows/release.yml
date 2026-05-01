@@ -60,7 +60,15 @@ jobs:
 
       - name: Version package
         if: inputs.publish
-        run: npm version "${{ inputs.version }}" -m "Release v%s"
+        run: |
+          current_version="$(node -p "require('./package.json').version")"
+          requested_version="${{ inputs.version }}"
+
+          if [ "$requested_version" = "$current_version" ]; then
+            npm version "$requested_version" --allow-same-version -m "Release v%s"
+          else
+            npm version "$requested_version" -m "Release v%s"
+          fi
 
       - name: Rebuild release artifact
         if: inputs.publish
