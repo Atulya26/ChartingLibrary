@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -131,39 +131,62 @@ export const ComboChart = memo(function ComboChart({
 }: ComboChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
-  const barLegendItems = buildLegendItemsFromBarSeriesWithOverrides(
-    barSeries,
-    barFillStyle,
-    barLegendMarker
+  const resolvedPlotWidth = useMemo(
+    () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
+    [plotWidth, width]
   );
-  const lineLegendItems = buildLegendItemsFromLineSeries(lineSeries);
-  const legendItems = showLegend
-    ? [
-        ...barLegendItems,
-        ...lineLegendItems.map((item) => ({
-          ...item,
-          active: showOverlayLine ? item.active : false
-        }))
-      ]
-    : [];
-  const leftExtent =
-    barLayout === 'stacked'
-      ? getStackedExtent(barSeries, categories.length)
-      : getGroupedExtent(barSeries);
-  const rightLines = lineSeries.filter((item) => item.axis === 'right');
-  const rightExtent = rightLines.length ? getLineExtent(rightLines) : getLineExtent(lineSeries);
-  const leftTicks = resolveTickEntries(
-    yAxis,
-    leftExtent.min,
-    leftExtent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
+  const barLegendItems = useMemo(
+    () => buildLegendItemsFromBarSeriesWithOverrides(barSeries, barFillStyle, barLegendMarker),
+    [barFillStyle, barLegendMarker, barSeries]
   );
-  const rightTicks = resolveTickEntries(
-    secondaryYAxis,
-    rightExtent.min,
-    rightExtent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
+  const lineLegendItems = useMemo(() => buildLegendItemsFromLineSeries(lineSeries), [lineSeries]);
+  const legendItems = useMemo(
+    () =>
+      showLegend
+        ? [
+            ...barLegendItems,
+            ...lineLegendItems.map((item) => ({
+              ...item,
+              active: showOverlayLine ? item.active : false
+            }))
+          ]
+        : [],
+    [barLegendItems, lineLegendItems, showLegend, showOverlayLine]
+  );
+  const leftExtent = useMemo(
+    () =>
+      barLayout === 'stacked'
+        ? getStackedExtent(barSeries, categories.length)
+        : getGroupedExtent(barSeries),
+    [barLayout, barSeries, categories.length]
+  );
+  const rightLines = useMemo(
+    () => lineSeries.filter((item) => item.axis === 'right'),
+    [lineSeries]
+  );
+  const rightExtent = useMemo(
+    () => (rightLines.length ? getLineExtent(rightLines) : getLineExtent(lineSeries)),
+    [lineSeries, rightLines]
+  );
+  const leftTicks = useMemo(
+    () =>
+      resolveTickEntries(
+        yAxis,
+        leftExtent.min,
+        leftExtent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [grid?.count, leftExtent.max, leftExtent.min, yAxis]
+  );
+  const rightTicks = useMemo(
+    () =>
+      resolveTickEntries(
+        secondaryYAxis,
+        rightExtent.min,
+        rightExtent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [grid?.count, rightExtent.max, rightExtent.min, secondaryYAxis]
   );
   const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
   const usableCategoryWidth = categoryWidth * (1 - categoryGapRatio);
@@ -177,6 +200,39 @@ export const ComboChart = memo(function ComboChart({
         );
   const scaleLeft = createInvertedScale(leftExtent.min, leftExtent.max, plotHeight);
   const zeroY = scaleLeft(0);
+  const lineRenderData = useMemo(
+    () =>
+      showOverlayLine
+        ? lineSeries.map((item) => {
+            const extent = item.axis === 'right' ? rightExtent : leftExtent;
+            const points = buildLinePoints(
+              item.data,
+              resolvedPlotWidth,
+              plotHeight,
+              extent.min,
+              extent.max,
+              chartTokens.chart.lineXInset
+            );
+            const stroke = item.stroke ?? chartTokens.categorical.secondary;
+            const baseline =
+              chartTokens.chart.lineXInset +
+              createInvertedScale(
+                extent.min,
+                extent.max,
+                plotHeight - chartTokens.chart.lineXInset * 2
+              )(Math.max(extent.min, 0));
+
+            return {
+              item,
+              points,
+              stroke,
+              areaPath: describeAreaPath(points, baseline),
+              linePath: describeLinePath(points)
+            };
+          })
+        : [],
+    [leftExtent, lineSeries, plotHeight, resolvedPlotWidth, rightExtent, showOverlayLine]
+  );
   const stackedSegmentGap = barLayout === 'stacked' ? 3 : 0;
   const defs: ReactNode[] = [];
   const barLayers: ReactNode[] = [];
@@ -334,30 +390,12 @@ export const ComboChart = memo(function ComboChart({
   });
 
   if (showOverlayLine) {
-    lineSeries.forEach((item) => {
-      const extent = item.axis === 'right' ? rightExtent : leftExtent;
-      const points = buildLinePoints(
-        item.data,
-        resolvedPlotWidth,
-        plotHeight,
-        extent.min,
-        extent.max,
-        chartTokens.chart.lineXInset
-      );
-      const stroke = item.stroke ?? chartTokens.categorical.secondary;
-      const baseline =
-        chartTokens.chart.lineXInset +
-        createInvertedScale(
-          extent.min,
-          extent.max,
-          plotHeight - chartTokens.chart.lineXInset * 2
-        )(Math.max(extent.min, 0));
-
+    lineRenderData.forEach(({ item, points, stroke, areaPath, linePath }) => {
       if (item.showAreaFill) {
         lineLayers.push(
           <path
             key={`area-${item.key}`}
-            d={describeAreaPath(points, baseline)}
+            d={areaPath}
             fill={withAlpha(stroke, 0.14)}
             stroke="none"
           />
@@ -367,7 +405,7 @@ export const ComboChart = memo(function ComboChart({
       lineLayers.push(
         <path
           key={`line-${item.key}`}
-          d={describeLinePath(points)}
+          d={linePath}
           fill="none"
           stroke={stroke}
           strokeWidth={item.strokeWidth ?? 2}
@@ -563,16 +601,7 @@ export const ComboChart = memo(function ComboChart({
                   {barLayers}
                   {lineLayers}
                   {showHoverCard && hoveredIndex !== null && showOverlayLine
-                    ? lineSeries.map((item) => {
-                        const extent = item.axis === 'right' ? rightExtent : leftExtent;
-                        const points = buildLinePoints(
-                          item.data,
-                          resolvedPlotWidth,
-                          plotHeight,
-                          extent.min,
-                          extent.max,
-                          chartTokens.chart.lineXInset
-                        );
+                    ? lineRenderData.map(({ item, points, stroke }) => {
                         const point = points[hoveredIndex];
 
                         if (!point) {
@@ -586,7 +615,7 @@ export const ComboChart = memo(function ComboChart({
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
                             fill={chartTokens.neutral.white}
-                            stroke={item.stroke ?? chartTokens.categorical.secondary}
+                            stroke={stroke}
                             strokeWidth={2}
                           />
                         );

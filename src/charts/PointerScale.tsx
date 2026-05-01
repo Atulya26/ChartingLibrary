@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -56,55 +56,79 @@ export const PointerScale = memo(function PointerScale({
 }: PointerScaleProps) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const stops = getPointerScaleStops(ranges);
+  const stops = useMemo(() => getPointerScaleStops(ranges), [ranges]);
   const clampedValue = clamp(value, min, max);
   const clampedTarget = typeof target === 'number' ? clamp(target, min, max) : undefined;
-  const activeRange =
-    ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
-    ranges[ranges.length - 1];
-  const hoverRows = [
-    {
-      label: 'Current',
-      value: centerLabel ?? formatTooltipValue(clampedValue),
-      color: activeRange.color,
-      marker: 'solid' as const
-    },
-    {
-      label: 'Band',
-      value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
-      color: activeRange.color,
-      marker: 'solid' as const
-    },
-    ...(typeof clampedTarget === 'number'
-      ? [
-          {
-            label: 'Target',
-            value: formatTooltipValue(clampedTarget)
-          }
-        ]
-      : []),
-    {
-      label: 'Scale',
-      value: `${min} - ${max}`
-    }
-  ];
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(
-        mousePos.x,
-        mousePos.y,
-        196,
-        getEstimatedHoverCardHeight(hoverRows.length)
-      )
-    : null;
+  const activeRange = useMemo(
+    () =>
+      ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
+      ranges[ranges.length - 1],
+    [clampedValue, ranges]
+  );
+  const hoverRows = useMemo(
+    () => [
+      {
+        label: 'Current',
+        value: centerLabel ?? formatTooltipValue(clampedValue),
+        color: activeRange.color,
+        marker: 'solid' as const
+      },
+      {
+        label: 'Band',
+        value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
+        color: activeRange.color,
+        marker: 'solid' as const
+      },
+      ...(typeof clampedTarget === 'number'
+        ? [
+            {
+              label: 'Target',
+              value: formatTooltipValue(clampedTarget)
+            }
+          ]
+        : []),
+      {
+        label: 'Scale',
+        value: `${min} - ${max}`
+      }
+    ],
+    [
+      activeRange.color,
+      activeRange.from,
+      activeRange.label,
+      activeRange.to,
+      centerLabel,
+      clampedTarget,
+      clampedValue,
+      max,
+      min
+    ]
+  );
+  const hoverCardPosition = useMemo(
+    () =>
+      mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(hoverRows.length)
+          )
+        : null,
+    [hoverRows.length, mousePos]
+  );
 
-  const legendItems = showLegend
-    ? ranges.map((range) => ({
-        label: range.label ?? `${range.from}-${range.to}`,
-        marker: 'solid' as const,
-        color: range.color,
-        active: true
-      }))
-    : [];
+  const legendItems = useMemo(
+    () =>
+      showLegend
+        ? ranges.map((range) => ({
+            label: range.label ?? `${range.from}-${range.to}`,
+            marker: 'solid' as const,
+            color: range.color,
+            active: true
+          }))
+        : [],
+    [ranges, showLegend]
+  );
 
   return (
     <ChartShell

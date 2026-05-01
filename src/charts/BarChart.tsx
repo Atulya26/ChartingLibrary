@@ -1,4 +1,4 @@
-import { Fragment, memo, useId, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -152,23 +152,51 @@ export const BarChart = memo(function BarChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredDistributionIndex, setHoveredDistributionIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const resolvedPlotWidth = resolveResponsivePlotWidth(
-    width,
-    plotWidth,
-    mode === 'vertical' ? 414 : 454,
-    mode === 'vertical' ? 88 : 48
+  const resolvedPlotWidth = useMemo(
+    () =>
+      resolveResponsivePlotWidth(
+        width,
+        plotWidth,
+        mode === 'vertical' ? 414 : 454,
+        mode === 'vertical' ? 88 : 48
+      ),
+    [mode, plotWidth, width]
   );
-  const resolvedDistributionSegments = distributionSegments?.length
-    ? distributionSegments
-    : (series[0]?.data.map((datum, index) => {
-        const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
+  const resolvedDistributionSegments = useMemo(
+    () =>
+      distributionSegments?.length
+        ? distributionSegments
+        : (series[0]?.data.map((datum, index) => {
+            const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
 
-        return {
-          label: categories[index] ?? series[0].label,
-          value: resolved.value,
-          fill: resolved.fill
-        };
-      }) ?? []);
+            return {
+              label: categories[index] ?? series[0].label,
+              value: resolved.value,
+              fill: resolved.fill
+            };
+          }) ?? []),
+    [categories, distributionSegments, fillStyle, series]
+  );
+  const legendItems = useMemo(
+    () =>
+      showLegend ? buildLegendItemsFromBarSeriesWithOverrides(series, fillStyle, legendMarker) : [],
+    [fillStyle, legendMarker, series, showLegend]
+  );
+  const extent = useMemo(
+    () =>
+      layout === 'stacked' ? getStackedExtent(series, categories.length) : getGroupedExtent(series),
+    [categories.length, layout, series]
+  );
+  const tickEntries = useMemo(
+    () =>
+      resolveTickEntries(
+        yAxis,
+        extent.min,
+        extent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [extent.max, extent.min, grid?.count, yAxis]
+  );
 
   /* ---------- Distribution band mode ---------- */
   if (mode === 'distribution' && resolvedDistributionSegments.length) {
@@ -338,18 +366,6 @@ export const BarChart = memo(function BarChart({
       </ChartShell>
     );
   }
-
-  const legendItems = showLegend
-    ? buildLegendItemsFromBarSeriesWithOverrides(series, fillStyle, legendMarker)
-    : [];
-  const extent =
-    layout === 'stacked' ? getStackedExtent(series, categories.length) : getGroupedExtent(series);
-  const tickEntries = resolveTickEntries(
-    yAxis,
-    extent.min,
-    extent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
-  );
 
   if (mode === 'horizontal') {
     const labelWidth = Math.min(
