@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drag and hover updates for smoother map interaction.
 - Honored `prefers-reduced-motion` across loading skeleton animation and inline chart hover
   transitions.
+- Raised the ESM bundle budget from `50 KB` to `55 KB` brotli for `1.0.x` patch headroom while
+  keeping the current package at `48.15 KB`.
 - Relaxed consumer Node engine support to `>=18.0.0` while keeping Node `20.19.0` as the local
   development baseline.
 

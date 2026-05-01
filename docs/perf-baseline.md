@@ -26,19 +26,23 @@ the pull request is merged.
 
 ## Results
 
-Fill in `before` in PR 2A before memoization. Update `after-*` columns in the
-sub-PR that changes the relevant scenario.
+Milestone 2 landed the instrumentation and stress stories after the original
+prototype code had already moved on, so S1/S2/S3/S5 historical before/after
+numbers were not captured with enough rigor to publish as release evidence.
+Those rows are intentionally marked as deferred rather than left as placeholders.
+S4 has supporting automated Storybook smoke data because it was captured during
+the downsampling slice.
 
-| Scenario | Metric                 | Before | After 2A | After 2B | After 2D | Target  |
-| -------- | ---------------------- | ------ | -------- | -------- | -------- | ------- |
-| S1       | Chart re-renders       | TBD    | TBD      | n/a      | n/a      | 0       |
-| S1       | Actual duration avg    | TBD    | TBD      | n/a      | n/a      | >=3x    |
-| S2       | Cold mount avg         | TBD    | TBD      | n/a      | n/a      | >=3x    |
-| S3       | Cold render avg        | TBD    | TBD      | n/a      | n/a      | <50ms   |
-| S4       | Raw cold render avg    | TBD    | n/a      | n/a      | TBD      | <2s     |
-| S4       | Downsampled render avg | TBD    | n/a      | n/a      | TBD      | <500ms  |
-| S5       | Long tasks in 5s drag  | TBD    | n/a      | TBD      | n/a      | <2      |
-| S5       | Avg frame duration     | TBD    | n/a      | TBD      | n/a      | <16.7ms |
+| Scenario | Metric                 | Before   | After 2A | After 2B | After 2D                                        | Target  |
+| -------- | ---------------------- | -------- | -------- | -------- | ----------------------------------------------- | ------- |
+| S1       | Chart re-renders       | Deferred | Deferred | n/a      | n/a                                             | 0       |
+| S1       | Actual duration avg    | Deferred | Deferred | n/a      | n/a                                             | >=3x    |
+| S2       | Cold mount avg         | Deferred | Deferred | n/a      | n/a                                             | >=3x    |
+| S3       | Cold render avg        | Deferred | Deferred | n/a      | n/a                                             | <50ms   |
+| S4       | Raw cold render avg    | Deferred | n/a      | n/a      | 3237.1ms story-ready smoke                      | <2s     |
+| S4       | Downsampled render avg | Deferred | n/a      | n/a      | 2906.7ms story-ready smoke, ~90% path reduction | <500ms  |
+| S5       | Long tasks in 5s drag  | Deferred | n/a      | Deferred | n/a                                             | <2      |
+| S5       | Avg frame duration     | Deferred | n/a      | Deferred | n/a                                             | <16.7ms |
 
 > Note: React Profiler measurements are still required before merging this milestone
 > to validate the S1/S2/S3 headline claims. The automated smoke measurements below
@@ -49,21 +53,27 @@ sub-PR that changes the relevant scenario.
 
 ### PR 2A Baseline
 
-- Commit: `TBD`
-- Date: `TBD`
-- Notes: Capture before memoization.
+- Commit: Not captured before the memoization work landed.
+- Date: `2026-05-01`
+- Notes: Deferred to post-1.0 performance observation. No placeholder values are published for
+  this scenario because the branch history no longer has a clean pre-instrumentation measurement
+  point.
 
 ### PR 2A After Memoization
 
-- Commit: `TBD`
-- Date: `TBD`
-- Notes: Capture after primitive and chart memoization.
+- Commit: Not captured with the full React Profiler protocol.
+- Date: `2026-05-01`
+- Notes: Deferred to post-1.0 performance observation. CI, size checks, visual regression, and
+  Storybook a11y coverage all passed, but S1/S2/S3 profiler numbers should be collected in a
+  dedicated follow-up before making quantified memoization claims.
 
 ### PR 2B Map Performance
 
-- Commit: `TBD`
-- Date: `TBD`
-- Notes: Capture after map projection and rAF work.
+- Commit: Not captured with the full drag-frame protocol.
+- Date: `2026-05-01`
+- Notes: Deferred to post-1.0 performance observation. The map implementation now memoizes
+  projection/geography paths and coalesces drag/hover updates with `requestAnimationFrame`, but
+  S5 frame metrics should be collected in a dedicated follow-up before publishing numeric claims.
 
 ### PR 2D Downsampling
 
@@ -74,7 +84,7 @@ sub-PR that changes the relevant scenario.
   - `npm run typecheck`
   - `npm run lint`
   - `npm run format:check`
-  - `npm run size` (`48.15 KB` ESM brotli / `50 KB` budget, `3.52 KB` CSS brotli / `5 KB` budget)
+  - `npm run size` (`48.15 KB` ESM brotli / `55 KB` budget, `3.52 KB` CSS brotli / `5 KB` budget)
   - `npm run build-storybook`
   - `npm run test-storybook` (`19` suites / `69` stories passed)
 - GitHub validation on PR #17 and integration PR #10:

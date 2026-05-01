@@ -70,7 +70,7 @@
     {
       "name": "ESM bundle",
       "path": "dist/index.js",
-      "limit": "50 KB"
+      "limit": "55 KB"
     },
     {
       "name": "CSS bundle",
