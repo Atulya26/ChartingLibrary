@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Memoized chart and primitive exports for re-render avoidance. Pass stable data and config
   references for the optimization to take effect.
+- Memoized derived line, sparkline, and Sankey calculations so stable chart props avoid
+  rebuilding paths, ticks, legends, gradients, and hover geometry.
 
 ## 2026-04-30
 
