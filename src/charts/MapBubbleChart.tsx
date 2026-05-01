@@ -31,11 +31,14 @@ import {
 } from '../chartUtils';
 import { useRafCallback } from '../utils/useRafCallback';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   describeSegmentChart,
   getChartA11yContent,
   getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import { useReducedMotion } from '../utils/useReducedMotion';
 
 const statesCollection = feature(statesAtlas as any, (statesAtlas as any).objects.states) as any;
 const countiesCollection = feature(
@@ -181,6 +184,8 @@ export const MapBubbleChart = memo(function MapBubbleChart({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const [hoveredBubble, setHoveredBubble] = useState<HoveredBubbleState | null>(null);
   const hoverGenerationRef = useRef(0);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const handleZoomIn = useCallback(() => setZoomLevel((z) => Math.min(z + 0.5, 4)), []);
   const handleZoomOut = useCallback(() => setZoomLevel((z) => Math.max(z - 0.5, 1)), []);
@@ -463,50 +468,90 @@ export const MapBubbleChart = memo(function MapBubbleChart({
       ]),
     [renderPoints, tableConfig?.rows]
   );
-  const hoveredRows = useMemo(
+  const keyboardNav = useChartKeyboardNav({
+    items: projectedBubbles,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (bubble, index) =>
+      `${index + 1} of ${projectedBubbles.length}: ${bubble.point.label}, ${formatTooltipValue(bubble.point.value)}.`,
+    onDismiss: () => {
+      setHoveredBubble(null);
+      setMousePos(null);
+    }
+  });
+  const keyboardFocusedBubble =
+    keyboardNav.focusedIndex != null ? projectedBubbles[keyboardNav.focusedIndex] : null;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const activeBubble = useMemo<HoveredBubbleState | null>(
     () =>
-      hoveredBubble?.point.details?.length
-        ? hoveredBubble.point.details.map((detail, index) => ({
+      keyboardFocusedBubble
+        ? {
+            point: keyboardFocusedBubble.point,
+            x: keyboardFocusedBubble.x,
+            y: keyboardFocusedBubble.y,
+            color: keyboardFocusedBubble.fill,
+            stroke: keyboardFocusedBubble.stroke,
+            marker: keyboardFocusedBubble.marker
+          }
+        : hoveredBubble,
+    [hoveredBubble, keyboardFocusedBubble]
+  );
+  const activeRows = useMemo(
+    () =>
+      activeBubble?.point.details?.length
+        ? activeBubble.point.details.map((detail, index) => ({
             label: detail.label,
             value:
               typeof detail.value === 'number' ? formatTooltipValue(detail.value) : detail.value,
             ...(index === 0
               ? {
-                  color: hoveredBubble.color,
-                  strokeColor: hoveredBubble.stroke,
-                  marker: hoveredBubble.marker
+                  color: activeBubble.color,
+                  strokeColor: activeBubble.stroke,
+                  marker: activeBubble.marker
                 }
               : {})
           }))
-        : hoveredBubble
+        : activeBubble
           ? [
               {
-                label: hoveredBubble.point.legendLabel ?? 'Dataset',
-                value: hoveredBubble.point.stateCode ?? 'US',
-                color: hoveredBubble.color,
-                strokeColor: hoveredBubble.stroke,
-                marker: hoveredBubble.marker
+                label: activeBubble.point.legendLabel ?? 'Dataset',
+                value: activeBubble.point.stateCode ?? 'US',
+                color: activeBubble.color,
+                strokeColor: activeBubble.stroke,
+                marker: activeBubble.marker
               },
               {
                 label: 'Value',
-                value: formatTooltipValue(hoveredBubble.point.value)
+                value: formatTooltipValue(activeBubble.point.value)
               }
             ]
           : [],
-    [hoveredBubble]
+    [activeBubble]
   );
-  const hoverCardPosition = useMemo(
-    () =>
-      hoveredBubble && mousePos
-        ? getViewportHoverCardPosition(
-            mousePos.x,
-            mousePos.y,
-            196,
-            getEstimatedHoverCardHeight(hoveredRows.length)
-          )
-        : null,
-    [hoveredBubble, hoveredRows.length, mousePos]
-  );
+  const hoverCardPosition = useMemo(() => {
+    if (!activeBubble) {
+      return null;
+    }
+
+    if (keyboardFocusedBubble && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      return getViewportHoverCardPosition(
+        rect.left + keyboardFocusedBubble.x,
+        rect.top + keyboardFocusedBubble.y,
+        196,
+        getEstimatedHoverCardHeight(activeRows.length)
+      );
+    }
+
+    return mousePos
+      ? getViewportHoverCardPosition(
+          mousePos.x,
+          mousePos.y,
+          196,
+          getEstimatedHoverCardHeight(activeRows.length)
+        )
+      : null;
+  }, [activeBubble, activeRows.length, keyboardFocusedBubble, mousePos]);
 
   return (
     <ChartShell
@@ -548,11 +593,15 @@ export const MapBubbleChart = memo(function MapBubbleChart({
       ) : (
         <div style={{ position: 'relative', width: plotWidth }}>
           <svg
+            ref={svgRef}
             width={plotWidth}
             height={plotHeight}
             viewBox={`0 0 ${plotWidth} ${plotHeight}`}
             {...chartA11yProps}
             className="cl-chart-map"
+            onKeyDown={keyboardNav.handlers.onKeyDown}
+            onFocus={keyboardNav.handlers.onFocus}
+            onBlur={keyboardNav.handlers.onBlur}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -648,7 +697,8 @@ export const MapBubbleChart = memo(function MapBubbleChart({
                 ))
               )}
               {projectedBubbles.map((bubble) => {
-                const isHovered = showHoverCard && hoveredBubble?.point.key === bubble.point.key;
+                const isHovered =
+                  showInteractionFeedback && activeBubble?.point.key === bubble.point.key;
                 const shadowId = isHovered
                   ? `${mapIdBase}-map-bubble-hover-shadow`
                   : `${mapIdBase}-map-bubble-shadow`;
@@ -661,7 +711,7 @@ export const MapBubbleChart = memo(function MapBubbleChart({
                       transform: `translate(${bubble.x}px, ${bubble.y}px) scale(${isHovered ? 1.18 : 1})`,
                       transformBox: 'fill-box',
                       transformOrigin: 'center',
-                      transition: 'transform 140ms ease-out'
+                      transition: reducedMotion ? undefined : 'transform 140ms ease-out'
                     }}
                     onMouseMove={
                       showHoverCard
@@ -708,10 +758,11 @@ export const MapBubbleChart = memo(function MapBubbleChart({
               })}
             </g>
           </svg>
-          {showHoverCard && hoveredBubble ? (
+          <ChartLiveRegion announcement={keyboardNav.announcement} />
+          {showInteractionFeedback && activeBubble ? (
             <ChartHoverCard
-              title={hoveredBubble.point.label}
-              rows={hoveredRows}
+              title={activeBubble.point.label}
+              rows={activeRows}
               left={hoverCardPosition?.left ?? 12}
               top={hoverCardPosition?.top ?? 12}
             />

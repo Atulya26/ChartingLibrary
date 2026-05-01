@@ -154,6 +154,14 @@ export function ChartRoleA11yContent({
   );
 }
 
+export function ChartLiveRegion({ announcement }: { announcement: string }) {
+  return (
+    <div className="cl-sr-only" role="status" aria-live="polite" aria-atomic="true">
+      {announcement}
+    </div>
+  );
+}
+
 export function describeCategoricalChart({
   chartType,
   categories = [],

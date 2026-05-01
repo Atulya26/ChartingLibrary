@@ -1,11 +1,11 @@
-import { memo, useId, useMemo, useState } from 'react';
+import { memo, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
 import { chartTokens } from '../theme/tokens';
 import { formatNumberCompact } from '../utils/chart';
-import { withAlpha } from '../utils/color';
+import { getAccessibleSeriesTextColor, withAlpha } from '../utils/color';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import type {
@@ -41,11 +41,13 @@ import {
   resolveTickEntries
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   describeCategoricalChart,
   getChartA11yContent,
   getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface ComboChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -144,6 +146,7 @@ export const ComboChart = memo(function ComboChart({
   const a11yDescriptionId = `${a11yId}-description`;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const resolvedPlotWidth = useMemo(
     () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
     [plotWidth, width]
@@ -194,6 +197,64 @@ export const ComboChart = memo(function ComboChart({
     titleId: a11yTitleId,
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
+  });
+  const keyboardItems = useMemo(() => {
+    const barItems = barSeries.map((item) => ({
+      label: item.label,
+      type: 'bar' as const,
+      values: item.data.map((datum) => (typeof datum === 'number' ? datum : datum.value))
+    }));
+    const lineItems = lineSeries.map((item) => ({
+      label: item.label,
+      type: 'line' as const,
+      values: item.data
+    }));
+
+    return [...barItems, ...lineItems].flatMap((item, seriesIndex) =>
+      categories.map((category, categoryIndex) => ({
+        category,
+        categoryIndex,
+        seriesIndex,
+        seriesLabel: item.label,
+        type: item.type,
+        value: item.values[categoryIndex] ?? 0
+      }))
+    );
+  }, [barSeries, categories, lineSeries]);
+  const keyboardNav = useChartKeyboardNav({
+    items: keyboardItems,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (item, index) =>
+      `${index + 1} of ${keyboardItems.length}: ${item.seriesLabel}, ${item.category}, ${formatTooltipValue(item.value)}.`,
+    getNextIndex: (currentIndex, key, itemCount) => {
+      const categoryCount = Math.max(categories.length, 1);
+      const seriesCount = Math.max(Math.ceil(itemCount / categoryCount), 1);
+      const currentSeries = Math.floor(currentIndex / categoryCount);
+      const currentCategory = currentIndex % categoryCount;
+
+      if (key === 'Home') return currentSeries * categoryCount;
+      if (key === 'End') return currentSeries * categoryCount + categoryCount - 1;
+      if (key === 'ArrowLeft') {
+        return (
+          currentSeries * categoryCount + ((currentCategory - 1 + categoryCount) % categoryCount)
+        );
+      }
+      if (key === 'ArrowRight') {
+        return currentSeries * categoryCount + ((currentCategory + 1) % categoryCount);
+      }
+      if (key === 'ArrowUp') {
+        return ((currentSeries - 1 + seriesCount) % seriesCount) * categoryCount + currentCategory;
+      }
+      if (key === 'ArrowDown') {
+        return ((currentSeries + 1) % seriesCount) * categoryCount + currentCategory;
+      }
+
+      return Math.min(currentIndex, itemCount - 1);
+    },
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
   });
   const leftExtent = useMemo(
     () =>
@@ -482,7 +543,7 @@ export const ComboChart = memo(function ComboChart({
               fontFamily={chartTokens.fontFamily}
               fontSize="12"
               fontWeight="600"
-              fill={chartTokens.text.inverse}
+              fill={getAccessibleSeriesTextColor(item.stroke ?? chartTokens.text.default)}
             >
               {formatNumberCompact(point.value)}
             </text>
@@ -492,10 +553,15 @@ export const ComboChart = memo(function ComboChart({
     });
   }
 
+  const activeKeyboardItem =
+    keyboardNav.focusedIndex !== null ? keyboardItems[keyboardNav.focusedIndex] : null;
+  const activeIndex = activeKeyboardItem?.categoryIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoveredBarRows =
-    hoveredIndex !== null
+    activeIndex !== null
       ? barSeries.map((item, index) => {
-          const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, barFillStyle);
+          const resolved = resolveBarDatum(item.data[activeIndex] ?? 0, item, index, barFillStyle);
 
           return {
             label: item.label,
@@ -507,34 +573,48 @@ export const ComboChart = memo(function ComboChart({
         })
       : [];
   const hoveredLineRows =
-    hoveredIndex !== null && showOverlayLine
+    activeIndex !== null && showOverlayLine
       ? lineSeries.map((item, index) => ({
           label: item.label,
-          value: formatTooltipValue(item.data[hoveredIndex] ?? 0),
+          value: formatTooltipValue(item.data[activeIndex] ?? 0),
           color: item.stroke ?? chartTokens.categorical.secondary,
           strokeColor: item.stroke ?? chartTokens.categorical.secondary,
           marker: lineLegendItems[index]?.marker
         }))
       : [];
   const hoveredStackTotal =
-    hoveredIndex !== null && barLayout === 'stacked'
+    activeIndex !== null && barLayout === 'stacked'
       ? barSeries.reduce(
           (sum, item, index) =>
-            sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, barFillStyle).value,
+            sum + resolveBarDatum(item.data[activeIndex] ?? 0, item, index, barFillStyle).value,
           0
         )
       : undefined;
   const hoverCardPosition =
-    hoveredIndex !== null && mousePos
-      ? getViewportHoverCardPosition(
-          mousePos.x,
-          mousePos.y,
-          196,
-          getEstimatedHoverCardHeight(
-            hoveredBarRows.length + hoveredLineRows.length,
-            typeof hoveredStackTotal === 'number'
+    activeIndex !== null
+      ? mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(
+              hoveredBarRows.length + hoveredLineRows.length,
+              typeof hoveredStackTotal === 'number'
+            )
           )
-        )
+        : activeKeyboardItem && plotRef.current
+          ? getViewportHoverCardPosition(
+              plotRef.current.getBoundingClientRect().left +
+                activeIndex * categoryWidth +
+                categoryWidth / 2,
+              plotRef.current.getBoundingClientRect().top + plotHeight / 2,
+              196,
+              getEstimatedHoverCardHeight(
+                hoveredBarRows.length + hoveredLineRows.length,
+                typeof hoveredStackTotal === 'number'
+              )
+            )
+          : null
       : null;
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
@@ -577,6 +657,7 @@ export const ComboChart = memo(function ComboChart({
                 />
               ) : null}
               <div
+                ref={plotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
@@ -607,6 +688,9 @@ export const ComboChart = memo(function ComboChart({
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
                   <ChartSvgA11y
@@ -616,10 +700,10 @@ export const ComboChart = memo(function ComboChart({
                     description={a11yContent.description}
                   />
                   <defs>{defs}</defs>
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <>
                       <rect
-                        x={hoveredIndex * categoryWidth}
+                        x={activeIndex * categoryWidth}
                         y={0}
                         width={categoryWidth}
                         height={plotHeight}
@@ -627,9 +711,9 @@ export const ComboChart = memo(function ComboChart({
                         opacity={0.38}
                       />
                       <line
-                        x1={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x1={activeIndex * categoryWidth + categoryWidth / 2}
                         y1={0}
-                        x2={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x2={activeIndex * categoryWidth + categoryWidth / 2}
                         y2={plotHeight}
                         stroke={chartTokens.neutral.stoneLight}
                         strokeWidth={1}
@@ -647,9 +731,9 @@ export const ComboChart = memo(function ComboChart({
                   />
                   {barLayers}
                   {lineLayers}
-                  {showHoverCard && hoveredIndex !== null && showOverlayLine
+                  {showInteractionFeedback && activeIndex !== null && showOverlayLine
                     ? lineRenderData.map(({ item, points, stroke }) => {
-                        const point = points[hoveredIndex];
+                        const point = points[activeIndex];
 
                         if (!point) {
                           return null;
@@ -657,7 +741,7 @@ export const ComboChart = memo(function ComboChart({
 
                         return (
                           <circle
-                            key={`hover-point-${item.key}-${hoveredIndex}`}
+                            key={`hover-point-${item.key}-${activeIndex}`}
                             cx={point.x}
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
@@ -669,9 +753,10 @@ export const ComboChart = memo(function ComboChart({
                       })
                     : null}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
-                    title={categories[hoveredIndex]}
+                    title={categories[activeIndex]}
                     rows={[...hoveredBarRows, ...hoveredLineRows]}
                     totalLabel={barLayout === 'stacked' ? 'Bar total' : undefined}
                     totalValue={

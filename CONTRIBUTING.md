@@ -27,6 +27,7 @@ npm run lint
 npm run format:check
 npm run build
 npm run build-storybook
+npm run test-storybook
 npm run size
 ```
 
@@ -96,16 +97,31 @@ Performance patterns:
 
 Accessibility patterns:
 
-- Keyboard chart inspection must be enabled by an explicit prop, planned as
-  `interactive={true}`. The default remains `interactive={false}` so existing chart
-  behavior and visuals do not change unexpectedly.
+- Keyboard chart inspection must be enabled by the explicit `enableKeyboardNavigation`
+  prop. The default remains `false` so existing chart behavior and visuals do not change
+  unexpectedly.
 - `ariaLabel` and `ariaDescription` can be available without enabling keyboard
   interaction because screen readers still need chart context.
-- Use one focus target per chart when `interactive` is enabled. Arrow keys cycle through
-  data points; `Tab` leaves the chart; `Escape` dismisses the tooltip.
+- Use one focus target per chart when keyboard navigation is enabled. Arrow keys cycle
+  through data points; `Tab` leaves the chart; `Escape` dismisses the tooltip.
 - Keep live regions persistent at the chart root. Do not mount `aria-live` inside a tooltip
   that appears and disappears.
 - Generate ARIA IDs with React `useId()`. Do not hand-roll counters or reuse chart titles
   as IDs.
 - Focus styling should use existing tokens and `:focus-visible` so pointer users do not see
   unexpected rings.
+
+Accessibility validation:
+
+- `npm run test-storybook` runs axe through Storybook and fails CI on serious or critical
+  WCAG 2.1 A/AA violations.
+- Moderate or minor axe findings may be documented in `docs/a11y-audit.md` when fixing them
+  would require visual redesign.
+- Before merging an accessibility-affecting pull request, manually verify on macOS Safari +
+  VoiceOver at minimum:
+  - [ ] Tab into BarChart, arrow through bars, and hear value announcements.
+  - [ ] Tab into LineChart, use ArrowUp/ArrowDown to switch series, and hear the active point.
+  - [ ] Tab into DonutChart, arrow through segments, and hear segment/share information.
+  - [ ] Tab into MapBubbleChart, arrow through bubbles, and see the hover card follow focus.
+  - [ ] `Escape` dismisses any visible tooltip.
+  - [ ] No chart creates a keyboard trap.

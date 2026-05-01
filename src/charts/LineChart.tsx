@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -33,11 +33,13 @@ import {
   resolveTickEntries
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   describeCategoricalChart,
   getChartA11yContent,
   getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface LineChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -109,6 +111,7 @@ export const LineChart = memo(function LineChart({
 }: LineChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const gradientBaseId = useId().replace(/:/g, '');
   const a11yTitleId = `${gradientBaseId}-title`;
   const a11yDescriptionId = `${gradientBaseId}-description`;
@@ -141,6 +144,63 @@ export const LineChart = memo(function LineChart({
     titleId: a11yTitleId,
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
+  });
+  const keyboardItems = useMemo(
+    () =>
+      series.flatMap((item, seriesIndex) =>
+        categories.map((category, categoryIndex) => ({
+          category,
+          categoryIndex,
+          seriesLabel: item.label,
+          seriesIndex,
+          value: item.data[categoryIndex] ?? 0
+        }))
+      ),
+    [categories, series]
+  );
+  const keyboardNav = useChartKeyboardNav({
+    items: keyboardItems,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (item, index) =>
+      `${index + 1} of ${keyboardItems.length}: ${item.seriesLabel}, ${item.category}, ${formatTooltipValue(item.value)}.`,
+    getNextIndex: (currentIndex, key, itemCount) => {
+      const categoryCount = Math.max(categories.length, 1);
+      const seriesCount = Math.max(series.length, 1);
+      const currentSeries = Math.floor(currentIndex / categoryCount);
+      const currentCategory = currentIndex % categoryCount;
+
+      if (key === 'Home') {
+        return currentSeries * categoryCount;
+      }
+
+      if (key === 'End') {
+        return currentSeries * categoryCount + categoryCount - 1;
+      }
+
+      if (key === 'ArrowLeft') {
+        return (
+          currentSeries * categoryCount + ((currentCategory - 1 + categoryCount) % categoryCount)
+        );
+      }
+
+      if (key === 'ArrowRight') {
+        return currentSeries * categoryCount + ((currentCategory + 1) % categoryCount);
+      }
+
+      if (key === 'ArrowUp') {
+        return ((currentSeries - 1 + seriesCount) % seriesCount) * categoryCount + currentCategory;
+      }
+
+      if (key === 'ArrowDown') {
+        return ((currentSeries + 1) % seriesCount) * categoryCount + currentCategory;
+      }
+
+      return Math.min(currentIndex, itemCount - 1);
+    },
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
   });
   const rawLeftExtent = useMemo(
     () => getSeriesExtent(leftSeries, referenceValues),
@@ -335,11 +395,35 @@ export const LineChart = memo(function LineChart({
     () => getEstimatedHoverCardHeight(series.length),
     [series.length]
   );
-  const hoverCardPosition = useMemo(
-    () =>
-      mousePos ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight) : null,
-    [hoverCardHeight, mousePos]
-  );
+  const activeKeyboardItem =
+    keyboardNav.focusedIndex !== null ? keyboardItems[keyboardNav.focusedIndex] : null;
+  const activeIndex = activeKeyboardItem?.categoryIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight);
+    }
+
+    if (!activeKeyboardItem || !plotRef.current) {
+      return null;
+    }
+
+    const point =
+      lineRenderData[activeKeyboardItem.seriesIndex]?.points[activeKeyboardItem.categoryIndex];
+
+    if (!point) {
+      return null;
+    }
+
+    const rect = plotRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + point.x,
+      rect.top + point.y,
+      196,
+      hoverCardHeight
+    );
+  }, [activeKeyboardItem, hoverCardHeight, lineRenderData, mousePos]);
   const handleMouseMove = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -395,6 +479,7 @@ export const LineChart = memo(function LineChart({
                 />
               ) : null}
               <div
+                ref={plotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={showHoverCard ? handleMouseMove : undefined}
                 onMouseLeave={showHoverCard ? handleMouseLeave : undefined}
@@ -404,6 +489,9 @@ export const LineChart = memo(function LineChart({
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
                   {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
                   <ChartSvgA11y
@@ -413,10 +501,10 @@ export const LineChart = memo(function LineChart({
                     description={a11yContent.description}
                   />
                   {gradientLayers.length ? <defs>{gradientLayers}</defs> : null}
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <>
                       <rect
-                        x={hoveredIndex * categoryWidth}
+                        x={activeIndex * categoryWidth}
                         y={0}
                         width={categoryWidth}
                         height={plotHeight}
@@ -424,9 +512,9 @@ export const LineChart = memo(function LineChart({
                         opacity={0.45}
                       />
                       <line
-                        x1={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x1={activeIndex * categoryWidth + categoryWidth / 2}
                         y1={0}
-                        x2={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x2={activeIndex * categoryWidth + categoryWidth / 2}
                         y2={plotHeight}
                         stroke={chartTokens.neutral.stoneLight}
                         strokeWidth={1}
@@ -436,9 +524,9 @@ export const LineChart = memo(function LineChart({
                   ) : null}
                   {referenceLayers}
                   {lineLayers}
-                  {showHoverCard && hoveredIndex !== null
+                  {showInteractionFeedback && activeIndex !== null
                     ? lineRenderData.map(({ item, points, stroke }) => {
-                        const point = points[hoveredIndex];
+                        const point = points[activeIndex];
 
                         if (!point) {
                           return null;
@@ -446,7 +534,7 @@ export const LineChart = memo(function LineChart({
 
                         return (
                           <circle
-                            key={`hover-point-${item.key}-${hoveredIndex}`}
+                            key={`hover-point-${item.key}-${activeIndex}`}
                             cx={point.x}
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
@@ -458,12 +546,13 @@ export const LineChart = memo(function LineChart({
                       })
                     : null}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
-                    title={categories[hoveredIndex]}
+                    title={categories[activeIndex]}
                     rows={series.map((item, index) => ({
                       label: item.label,
-                      value: formatTooltipValue(item.data[hoveredIndex] ?? 0),
+                      value: formatTooltipValue(item.data[activeIndex] ?? 0),
                       color: item.stroke ?? chartTokens.categorical.secondary,
                       strokeColor: item.stroke ?? chartTokens.categorical.secondary,
                       marker: lineLegendItems[index]?.marker

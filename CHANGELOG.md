@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
 - Shared accessibility props for chart graphics: `ariaLabel`, `ariaDescription`, and opt-in
   `enableKeyboardNavigation`.
+- Keyboard data-item navigation, live screen-reader announcements, and focus-driven hover cards for
+  charts with `enableKeyboardNavigation`.
+- Axe accessibility checks in CI through the Storybook test runner.
+- WCAG AA color contrast audit documentation for the default chart tokens.
 
 ### Changed
 
@@ -24,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   histogram, and pointer scale internals where it can be done without visual changes.
 - Optimized MapBubbleChart projection, geography paths, bubble render data, and rAF-coalesced
   drag and hover updates for smoother map interaction.
+- Honored `prefers-reduced-motion` across loading skeleton animation and inline chart hover
+  transitions.
 
 ## 2026-04-30
 

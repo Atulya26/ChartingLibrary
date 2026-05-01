@@ -1,4 +1,4 @@
-import { Fragment, memo, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -25,11 +25,13 @@ import {
   resolveFillStyle
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   describeSegmentChart,
   getChartA11yContent,
   getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface DonutChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -156,6 +158,7 @@ export const DonutChart = memo(function DonutChart({
 }: DonutChartProps) {
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const total = useMemo(
     () =>
       Math.max(
@@ -189,6 +192,16 @@ export const DonutChart = memo(function DonutChart({
     titleId: a11yTitleId,
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
+  });
+  const keyboardNav = useChartKeyboardNav({
+    items: segments,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (segment, index) =>
+      `${index + 1} of ${segments.length}: ${segment.legendLabel ?? segment.label}, ${formatTooltipValue(segment.value)}, ${Math.round((segment.value / total) * 100)} percent.`,
+    onDismiss: () => {
+      setHoveredSegmentIndex(null);
+      setMousePos(null);
+    }
   });
   const center = size / 2;
   const radius = center - thickness / 2 - 2;
@@ -278,17 +291,38 @@ export const DonutChart = memo(function DonutChart({
       }),
     [segmentLayouts]
   );
-  const hoveredSegment = useMemo(
-    () => (hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null),
-    [hoveredSegmentIndex, segments]
-  );
-  const hoverCardPosition = useMemo(
-    () =>
-      mousePos
-        ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(2))
-        : null,
-    [mousePos]
-  );
+  const activeSegmentIndex = keyboardNav.focusedIndex ?? hoveredSegmentIndex;
+  const activeSegment = activeSegmentIndex !== null ? segments[activeSegmentIndex] : null;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(2)
+      );
+    }
+
+    if (activeSegmentIndex === null || !containerRef.current) {
+      return null;
+    }
+
+    const layout = segmentLayouts[activeSegmentIndex];
+
+    if (!layout) {
+      return null;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + layout.labelX,
+      rect.top + layout.labelY,
+      196,
+      getEstimatedHoverCardHeight(2)
+    );
+  }, [activeSegmentIndex, mousePos, segmentLayouts]);
 
   return (
     <ChartShell
@@ -314,12 +348,18 @@ export const DonutChart = memo(function DonutChart({
             : undefined
         }
       >
-        <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
+        <div
+          ref={containerRef}
+          style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}
+        >
           <svg
             width={size}
             height={size}
             viewBox={`0 0 ${size} ${size}`}
             {...chartA11yProps}
+            onKeyDown={keyboardNav.handlers.onKeyDown}
+            onFocus={keyboardNav.handlers.onFocus}
+            onBlur={keyboardNav.handlers.onBlur}
             style={{ overflow: 'visible' }}
           >
             <ChartSvgA11y
@@ -345,7 +385,7 @@ export const DonutChart = memo(function DonutChart({
                 opacity={
                   segment.active === false
                     ? 0.4
-                    : hoveredSegmentIndex === null || hoveredSegmentIndex === index
+                    : activeSegmentIndex === null || activeSegmentIndex === index
                       ? 1
                       : 0.65
                 }
@@ -400,23 +440,24 @@ export const DonutChart = memo(function DonutChart({
               {centerSubLabel ?? 'Target'}
             </text>
           </svg>
-          {showHoverCard && hoveredSegment ? (
+          <ChartLiveRegion announcement={keyboardNav.announcement} />
+          {showInteractionFeedback && activeSegment ? (
             <ChartHoverCard
-              title={hoveredSegment.legendLabel ?? hoveredSegment.label}
+              title={activeSegment.legendLabel ?? activeSegment.label}
               rows={[
                 {
                   label: 'Value',
-                  value: formatTooltipValue(hoveredSegment.value),
-                  color: hoveredSegment.color,
-                  strokeColor: hoveredSegment.strokeColor,
+                  value: formatTooltipValue(activeSegment.value),
+                  color: activeSegment.color,
+                  strokeColor: activeSegment.strokeColor,
                   marker: resolveFillLegendMarker(
-                    resolveFillStyle(hoveredSegment.fillStyle ?? 'solid', fillStyle),
+                    resolveFillStyle(activeSegment.fillStyle ?? 'solid', fillStyle),
                     legendMarker
                   )
                 },
                 {
                   label: 'Share of total',
-                  value: `${Math.round((hoveredSegment.value / total) * 100)}%`
+                  value: `${Math.round((activeSegment.value / total) * 100)}%`
                 }
               ]}
               left={hoverCardPosition?.left ?? 12}

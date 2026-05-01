@@ -1,4 +1,4 @@
-import { memo, useCallback, useId, useMemo, useState } from 'react';
+import { memo, useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -15,11 +15,13 @@ import {
   getViewportHoverCardPosition
 } from '../chartUtils';
 import {
+  ChartLiveRegion,
   ChartSvgA11y,
   describeSingleValueChart,
   getChartA11yContent,
   getChartA11yProps
 } from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
 export interface SparklineProps extends ChartAccessibilityProps {
   title?: string;
@@ -75,6 +77,7 @@ export const Sparkline = memo(function Sparkline({
 }: SparklineProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgId = useId().replace(/:/g, '');
   const a11yTitleId = `${svgId}-title`;
   const a11yDescriptionId = `${svgId}-description`;
@@ -82,10 +85,6 @@ export const Sparkline = memo(function Sparkline({
   const points = useMemo(
     () => buildLinePoints(values, width, height, extent.min, extent.max, 2),
     [extent.max, extent.min, height, values, width]
-  );
-  const hoveredPoint = useMemo(
-    () => (hoveredIndex !== null ? points[hoveredIndex] : null),
-    [hoveredIndex, points]
   );
   const lastPoint = useMemo(() => (points.length ? points[points.length - 1] : null), [points]);
   const a11yContent = useMemo(
@@ -106,13 +105,42 @@ export const Sparkline = memo(function Sparkline({
     descriptionId: a11yDescriptionId,
     enableKeyboardNavigation
   });
-  const hoverCardPosition = useMemo(
-    () =>
-      mousePos
-        ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(1))
-        : null,
-    [mousePos]
-  );
+  const keyboardNav = useChartKeyboardNav({
+    items: points,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (point, index) =>
+      `${index + 1} of ${points.length}: ${labels?.[index] ?? `Point ${index + 1}`}, ${formatTooltipValue(point.value)}.`,
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
+  });
+  const activeIndex = keyboardNav.focusedIndex ?? hoveredIndex;
+  const activePoint = activeIndex !== null ? points[activeIndex] : null;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(1)
+      );
+    }
+
+    if (!activePoint || keyboardNav.focusedIndex === null || !containerRef.current) {
+      return null;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + activePoint.x,
+      rect.top + activePoint.y,
+      196,
+      getEstimatedHoverCardHeight(1)
+    );
+  }, [activePoint, keyboardNav.focusedIndex, mousePos]);
   const areaGradientId = `cl-sparkline-area-${svgId}`;
   const linePath = useMemo(() => describeLinePath(points), [points]);
   const areaPath = useMemo(() => describeAreaPath(points, height), [height, points]);
@@ -131,6 +159,7 @@ export const Sparkline = memo(function Sparkline({
 
   return (
     <div
+      ref={containerRef}
       style={{ position: 'relative', width, height }}
       onMouseMove={showHoverCard ? handleMouseMove : undefined}
       onMouseLeave={showHoverCard ? handleMouseLeave : undefined}
@@ -140,6 +169,9 @@ export const Sparkline = memo(function Sparkline({
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         {...chartA11yProps}
+        onKeyDown={keyboardNav.handlers.onKeyDown}
+        onFocus={keyboardNav.handlers.onFocus}
+        onBlur={keyboardNav.handlers.onBlur}
         style={{ display: 'block', overflow: 'visible' }}
       >
         <ChartSvgA11y
@@ -191,32 +223,28 @@ export const Sparkline = memo(function Sparkline({
             <circle cx={lastPoint.x} cy={lastPoint.y} r={getDotRadius('small')} fill={color} />
           </>
         ) : null}
-        {showHoverCard && hoveredPoint ? (
+        {showInteractionFeedback && activePoint ? (
           <>
             <circle
-              cx={hoveredPoint.x}
-              cy={hoveredPoint.y}
+              cx={activePoint.x}
+              cy={activePoint.y}
               r={getDotRadius('small') + 2}
               fill={chartTokens.neutral.white}
               stroke={color}
               strokeWidth={2}
             />
-            <circle
-              cx={hoveredPoint.x}
-              cy={hoveredPoint.y}
-              r={getDotRadius('small')}
-              fill={color}
-            />
+            <circle cx={activePoint.x} cy={activePoint.y} r={getDotRadius('small')} fill={color} />
           </>
         ) : null}
       </svg>
-      {showHoverCard && hoveredPoint ? (
+      <ChartLiveRegion announcement={keyboardNav.announcement} />
+      {showInteractionFeedback && activePoint && activeIndex !== null ? (
         <ChartHoverCard
-          title={labels?.[hoveredIndex!] ?? `Point ${hoveredIndex! + 1}`}
+          title={labels?.[activeIndex] ?? `Point ${activeIndex + 1}`}
           rows={[
             {
               label: 'Value',
-              value: formatTooltipValue(hoveredPoint.value),
+              value: formatTooltipValue(activePoint.value),
               color,
               strokeColor: color,
               marker: 'line'

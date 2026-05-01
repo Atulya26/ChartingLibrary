@@ -148,8 +148,9 @@ when product language needs to be more specific:
 />
 ```
 
-Keyboard focus is intentionally opt-in for now so existing chart visuals do not change by default.
-Enable it per chart when you want the chart graphic to become keyboard-focusable:
+Keyboard inspection is intentionally opt-in so existing chart visuals and tab order do not change by
+default. Enable it per chart when you want keyboard users to inspect marks, segments, bubbles, and
+nodes:
 
 ```tsx
 <BarChart
@@ -160,9 +161,23 @@ Enable it per chart when you want the chart graphic to become keyboard-focusable
 />
 ```
 
-In this release, `enableKeyboardNavigation` makes the chart graphic focusable and shows a focus
-ring. Arrow-key data point navigation and live announcements are planned for the next accessibility
-slice.
+Keyboard behavior:
+
+| Key                          | Action                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `Tab`                        | Focus the chart, then leave naturally on the next tab stop                 |
+| `Arrow Left` / `Arrow Right` | Move to the previous or next data item                                     |
+| `Arrow Up` / `Arrow Down`    | Move across series in multi-series charts; otherwise previous or next item |
+| `Home` / `End`               | Jump to the first or last item in the current series                       |
+| `Enter` / `Space`            | Trigger the chart item click callback when one exists                      |
+| `Escape`                     | Clear keyboard focus state and dismiss the hover card                      |
+
+Focused chart items reuse the same hover-card behavior and visual treatment as pointer hover. The
+library also honors `prefers-reduced-motion` for chart loading and hover transitions.
+
+The default palette and text tokens have been audited for the current chart backgrounds. If you pass
+custom colors, keep text at WCAG AA `4.5:1` contrast and graphical marks at `3:1` contrast against
+the chart background. See [`docs/a11y-audit.md`](./docs/a11y-audit.md) for the current audit notes.
 
 ## Chart States
 
