@@ -3,6 +3,7 @@ import type { MouseEvent } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
+import type { ChartAccessibilityProps } from '../types';
 import {
   buildLinePoints,
   describeAreaPath,
@@ -13,8 +14,15 @@ import {
   getHoverIndex,
   getViewportHoverCardPosition
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  describeSingleValueChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
-export interface SparklineProps {
+export interface SparklineProps extends ChartAccessibilityProps {
+  title?: string;
   values: number[];
   labels?: string[];
   width?: number;
@@ -50,6 +58,7 @@ function getSparklineExtent(values: number[]) {
 }
 
 export const Sparkline = memo(function Sparkline({
+  title = 'Sparkline',
   values,
   labels,
   width = 84,
@@ -59,11 +68,16 @@ export const Sparkline = memo(function Sparkline({
   showHoverCard = false,
   showAreaFill = false,
   showEndDot = false,
-  showDots = false
+  showDots = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false
 }: SparklineProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const svgId = useId().replace(/:/g, '');
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
   const extent = useMemo(() => getSparklineExtent(values), [values]);
   const points = useMemo(
     () => buildLinePoints(values, width, height, extent.min, extent.max, 2),
@@ -74,6 +88,24 @@ export const Sparkline = memo(function Sparkline({
     [hoveredIndex, points]
   );
   const lastPoint = useMemo(() => (points.length ? points[points.length - 1] : null), [points]);
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSingleValueChart({
+          chartType: 'Sparkline',
+          value: values[values.length - 1] ?? 0
+        })
+      }),
+    [ariaDescription, ariaLabel, title, values]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const hoverCardPosition = useMemo(
     () =>
       mousePos
@@ -107,10 +139,15 @@ export const Sparkline = memo(function Sparkline({
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label="Sparkline"
+        {...chartA11yProps}
         style={{ display: 'block', overflow: 'visible' }}
       >
+        <ChartSvgA11y
+          titleId={a11yTitleId}
+          descriptionId={a11yDescriptionId}
+          label={a11yContent.label}
+          description={a11yContent.description}
+        />
         {showAreaFill ? (
           <defs>
             <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">

@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HistogramChart } from '../charts/HistogramChart';
 import { histogramBins } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -80,7 +81,8 @@ const meta = {
       min: 120,
       max: 360,
       step: 10
-    })
+    }),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof HistogramChart>;
 

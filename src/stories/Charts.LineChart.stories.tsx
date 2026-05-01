@@ -4,6 +4,7 @@ import { LineChart } from '../charts/LineChart';
 import { chartTokens } from '../theme/tokens';
 import { selectOptions, lineCategories, lineSeries } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -58,7 +59,8 @@ const meta = {
       min: 120,
       max: 360,
       step: 10
-    })
+    }),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof LineChart>;
 
@@ -180,7 +182,8 @@ export const SingleLinePlayground: Story = {
       arg: 'showDots',
       truthy: true
     }),
-    showTargetLine: booleanArg('Toggle a target reference line.', 'Reference line')
+    showTargetLine: booleanArg('Toggle a target reference line.', 'Reference line'),
+    ...accessibilityArgTypes
   } as any,
   render: (args) => {
     const {

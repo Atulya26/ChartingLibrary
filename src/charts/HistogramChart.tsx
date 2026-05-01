@@ -16,6 +16,7 @@ import type {
   HistogramBin,
   LegendMarkerMode,
   LegendPosition,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -36,8 +37,14 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  describeSegmentChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
-export interface HistogramChartProps extends ChartHeaderProps {
+export interface HistogramChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   bins: HistogramBin[];
@@ -83,11 +90,16 @@ export const HistogramChart = memo(function HistogramChart({
   legendMarker = 'auto',
   overlayLegendLabel = 'Overlay line',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: HistogramChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const svgId = useId().replace(/:/g, '');
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
   const resolvedPlotWidth = useMemo(
     () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
     [plotWidth, width]
@@ -96,6 +108,25 @@ export const HistogramChart = memo(function HistogramChart({
     () => bins.map((bin, index) => resolveHistogramBin(bin, index, fillStyle)),
     [bins, fillStyle]
   );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSegmentChart({
+          chartType: 'Histogram',
+          segments: bins
+        })
+      }),
+    [ariaDescription, ariaLabel, bins, description, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const extent = useMemo(
     () => getValueExtent(resolvedBins.map((bin) => bin.value)),
     [resolvedBins]
@@ -305,10 +336,15 @@ export const HistogramChart = memo(function HistogramChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   <defs>{defs}</defs>
                   {showHoverCard && hoveredIndex !== null ? (
                     <rect

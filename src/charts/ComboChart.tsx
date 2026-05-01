@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -16,6 +16,7 @@ import type {
   LegendPosition,
   LegendMarkerMode,
   LineSeriesConfig,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -39,8 +40,14 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartSvgA11y,
+  describeCategoricalChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
 
-export interface ComboChartProps extends ChartHeaderProps {
+export interface ComboChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   categories: string[];
@@ -127,8 +134,14 @@ export const ComboChart = memo(function ComboChart({
   barFillStyle = 'inherit',
   barLegendMarker = 'auto',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: ComboChartProps) {
+  const a11yId = useId().replace(/:/g, '');
+  const a11yTitleId = `${a11yId}-title`;
+  const a11yDescriptionId = `${a11yId}-description`;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const resolvedPlotWidth = useMemo(
@@ -153,6 +166,35 @@ export const ComboChart = memo(function ComboChart({
         : [],
     [barLegendItems, lineLegendItems, showLegend, showOverlayLine]
   );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeCategoricalChart({
+          chartType: barLayout === 'stacked' ? 'Stacked combination chart' : 'Combination chart',
+          categories,
+          series: [
+            ...barSeries.map((item) => ({
+              label: item.label,
+              values: item.data.map((datum) => (typeof datum === 'number' ? datum : datum.value))
+            })),
+            ...lineSeries.map((item) => ({
+              label: item.label,
+              values: item.data
+            }))
+          ]
+        })
+      }),
+    [ariaDescription, ariaLabel, barLayout, barSeries, categories, description, lineSeries, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
   const leftExtent = useMemo(
     () =>
       barLayout === 'stacked'
@@ -564,10 +606,15 @@ export const ComboChart = memo(function ComboChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   <defs>{defs}</defs>
                   {showHoverCard && hoveredIndex !== null ? (
                     <>

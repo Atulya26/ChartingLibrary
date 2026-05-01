@@ -3,7 +3,12 @@ import { memo, useMemo, useState } from 'react';
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
-import type { LegendPosition, PointerScaleRange, ChartHeaderProps } from '../types';
+import type {
+  ChartAccessibilityProps,
+  LegendPosition,
+  PointerScaleRange,
+  ChartHeaderProps
+} from '../types';
 import {
   clamp,
   formatTooltipValue,
@@ -11,8 +16,14 @@ import {
   getViewportHoverCardPosition,
   getPointerScaleStops
 } from '../chartUtils';
+import {
+  ChartRoleA11yContent,
+  describeSingleValueChart,
+  getChartA11yContent,
+  getChartRoleA11yProps
+} from '../utils/a11y';
 
-export interface PointerScaleProps extends ChartHeaderProps {
+export interface PointerScaleProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   value: number;
@@ -52,13 +63,42 @@ export const PointerScale = memo(function PointerScale({
   ranges = defaultScaleRanges,
   centerLabel,
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: PointerScaleProps) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const a11yId = useMemo(() => title.replace(/\W+/g, '-').toLowerCase(), [title]);
+  const a11yTitleId = `${a11yId || 'pointer-scale'}-title`;
+  const a11yDescriptionId = `${a11yId || 'pointer-scale'}-description`;
   const stops = useMemo(() => getPointerScaleStops(ranges), [ranges]);
   const clampedValue = clamp(value, min, max);
   const clampedTarget = typeof target === 'number' ? clamp(target, min, max) : undefined;
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSingleValueChart({
+          chartType: 'Pointer scale',
+          value: clampedValue,
+          min,
+          max
+        })
+      }),
+    [ariaDescription, ariaLabel, clampedValue, description, max, min, title]
+  );
+  const chartA11yProps = getChartRoleA11yProps({
+    labelId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    label: a11yContent.label,
+    description: a11yContent.description,
+    enableKeyboardNavigation
+  });
   const activeRange = useMemo(
     () =>
       ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
@@ -144,6 +184,7 @@ export const PointerScale = memo(function PointerScale({
     >
       <div
         className="cl-chart-pointer"
+        {...chartA11yProps}
         style={{ position: 'relative' }}
         onMouseMove={
           showHoverCard
@@ -162,6 +203,12 @@ export const PointerScale = memo(function PointerScale({
             : undefined
         }
       >
+        <ChartRoleA11yContent
+          labelId={a11yTitleId}
+          descriptionId={a11yDescriptionId}
+          label={a11yContent.label}
+          description={a11yContent.description}
+        />
         <div className="cl-chart-pointer__value">
           {centerLabel ?? `${Math.round(clampedValue)}`}
         </div>
