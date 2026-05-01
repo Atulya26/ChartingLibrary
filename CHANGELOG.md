@@ -1,6 +1,16 @@
 # Changelog
 
-All notable updates to this workspace should be recorded here.
+All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Unreleased
+
+### Added
+
+- CI foundation for typecheck, lint, format, package build, Storybook build, and size checks.
+- Chromatic workflow scaffolding for visual regression review.
+- Manual release workflow scaffold for validated npm publishes.
+- Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
 
 ## 2026-04-30
 

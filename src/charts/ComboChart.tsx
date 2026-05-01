@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -176,7 +176,6 @@ export function ComboChart({
           8
         );
   const scaleLeft = createInvertedScale(leftExtent.min, leftExtent.max, plotHeight);
-  const scaleRight = createInvertedScale(rightExtent.min, rightExtent.max, plotHeight);
   const zeroY = scaleLeft(0);
   const stackedSegmentGap = barLayout === 'stacked' ? 3 : 0;
   const defs: ReactNode[] = [];
@@ -445,24 +444,6 @@ export function ComboChart({
           0
         )
       : undefined;
-  const hoveredLinePoints =
-    hoveredIndex !== null && showOverlayLine
-      ? lineSeries
-          .map((item) => {
-            const extent = item.axis === 'right' ? rightExtent : leftExtent;
-            return buildLinePoints(
-              item.data,
-              resolvedPlotWidth,
-              plotHeight,
-              extent.min,
-              extent.max,
-              chartTokens.chart.lineXInset
-            )[hoveredIndex];
-          })
-          .filter((point): point is { x: number; y: number; value: number; index: number } =>
-            Boolean(point)
-          )
-      : [];
   const hoverCardPosition =
     hoveredIndex !== null && mousePos
       ? getViewportHoverCardPosition(

@@ -25,7 +25,6 @@ import {
   formatTooltipValue,
   getDotRadius,
   getEstimatedHoverCardHeight,
-  getHoverCardPosition,
   getHoverIndex,
   getViewportHoverCardPosition,
   getValueExtent,
@@ -256,24 +255,6 @@ export function LineChart({
     });
   });
 
-  const hoveredPoints =
-    hoveredIndex !== null
-      ? series
-          .map((item) => {
-            const extent = item.axis === 'right' ? rightExtent : leftExtent;
-            return buildLinePoints(
-              item.data,
-              resolvedPlotWidth,
-              plotHeight,
-              extent.min,
-              extent.max,
-              chartTokens.chart.lineXInset
-            )[hoveredIndex];
-          })
-          .filter((point): point is { x: number; y: number; value: number; index: number } =>
-            Boolean(point)
-          )
-      : [];
   const hoverCardHeight = getEstimatedHoverCardHeight(series.length);
   const hoverCardPosition = mousePos
     ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight)

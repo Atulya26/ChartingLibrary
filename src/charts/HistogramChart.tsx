@@ -199,7 +199,6 @@ export function HistogramChart({
     ...point,
     x: point.x + barWidth / 2
   }));
-  const hoveredBin = hoveredIndex !== null ? resolvedBins[hoveredIndex] : null;
   const hoverCardPosition =
     hoveredIndex !== null && mousePos
       ? getViewportHoverCardPosition(

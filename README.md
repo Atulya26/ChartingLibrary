@@ -1,5 +1,10 @@
 # @atulya_26/charting-library
 
+[![CI](https://github.com/Atulya26/ChartingLibrary/actions/workflows/ci.yml/badge.svg)](https://github.com/Atulya26/ChartingLibrary/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@atulya_26/charting-library.svg)](https://www.npmjs.com/package/@atulya_26/charting-library)
+[![Live Storybook](https://img.shields.io/badge/storybook-live-ff4785)](https://atulya26.github.io/ChartingLibrary/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Atulya26/ChartingLibrary/blob/main/package.json)
+
 A Figma-aligned React charting library for product dashboards, analytics cards, and healthcare-style reporting experiences.
 
 The package is built around reusable chart primitives, polished Storybook props, MDS-compatible chrome, and realistic chart states for loading, empty, and error cases. It is currently an early library/prototype package, but it is npm-ready and intended for local product integration trials.
@@ -220,6 +225,17 @@ Then open:
 ```text
 http://localhost:6030
 ```
+
+## Quality Gates
+
+Pull requests are expected to pass typecheck, lint, formatting, package build,
+Storybook build, and package size checks. Visual changes should be reviewed in
+Chromatic once the project token and baseline are configured.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for local setup, validation commands,
+visual review expectations, and release workflow notes.
 
 ## Package Usage Notes
 

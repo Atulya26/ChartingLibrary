@@ -62,7 +62,6 @@ export function PointerScale({
   const activeRange =
     ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
     ranges[ranges.length - 1];
-  const valueRatio = (clampedValue - min) / (max - min || 1);
   const hoverRows = [
     {
       label: 'Current',

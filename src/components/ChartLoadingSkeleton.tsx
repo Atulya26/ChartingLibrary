@@ -4,7 +4,6 @@ import statesAtlas from 'us-atlas/states-10m.json';
 import { feature } from 'topojson-client';
 
 import { ChartCard } from './ChartCard';
-import { chartTokens } from '../theme/tokens';
 import { cx } from '../utils/cx';
 import { describeArcSegment } from '../chartUtils';
 import { describeSankeyRibbon } from '../sankeyLayout';
@@ -83,8 +82,8 @@ function CartesianFrame({
 }
 
 function BarSkeleton({
-  plotWidth,
-  plotHeight,
+  plotWidth: _plotWidth,
+  plotHeight: _plotHeight,
   variant = 'bar'
 }: {
   plotWidth: number;

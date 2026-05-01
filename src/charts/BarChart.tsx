@@ -27,7 +27,6 @@ import {
   formatTooltipValue,
   getGroupedExtent,
   getEstimatedHoverCardHeight,
-  getHoverCardPosition,
   getHoverIndex,
   getStackedExtent,
   getSvgFillDefinition,
