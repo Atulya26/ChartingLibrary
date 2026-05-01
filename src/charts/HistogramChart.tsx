@@ -268,6 +268,8 @@ export const HistogramChart = memo(function HistogramChart({
     [barWidth, extent.max, extent.min, plotHeight, resolvedBins, resolvedPlotWidth]
   );
   const activeIndex = keyboardNav.focusedIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoverCardPosition = useMemo(() => {
     if (activeIndex === null) {
       return null;
@@ -378,7 +380,7 @@ export const HistogramChart = memo(function HistogramChart({
                     description={a11yContent.description}
                   />
                   <defs>{defs}</defs>
-                  {showHoverCard && activeIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <rect
                       x={activeIndex * barWidth}
                       y={0}
@@ -424,7 +426,7 @@ export const HistogramChart = memo(function HistogramChart({
                   ) : null}
                 </svg>
                 <ChartLiveRegion announcement={keyboardNav.announcement} />
-                {showHoverCard && activeIndex !== null ? (
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
                     title={resolvedBins[activeIndex].label}
                     rows={

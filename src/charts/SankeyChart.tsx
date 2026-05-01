@@ -183,6 +183,8 @@ export const SankeyChart = memo(function SankeyChart({
   const focusedNodeId =
     keyboardNav.focusedIndex != null ? layout.nodes[keyboardNav.focusedIndex]?.id : null;
   const activeNodeId = focusedNodeId ?? hoveredNodeId;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
 
   const nodeIndexById = useMemo(() => {
     const m = new Map<string, number>();
@@ -548,7 +550,10 @@ export const SankeyChart = memo(function SankeyChart({
           />
         ) : null}
 
-        {showHoverCard && hoveredNode && hoveredNodeLayout && !hoveredLink ? (
+        {showInteractionFeedback &&
+        hoveredNode &&
+        hoveredNodeLayout &&
+        (showKeyboardFeedback || !hoveredLink) ? (
           <ChartHoverCard
             title={hoveredNode.label}
             rows={[

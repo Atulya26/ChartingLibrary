@@ -117,6 +117,8 @@ export const Sparkline = memo(function Sparkline({
   });
   const activeIndex = keyboardNav.focusedIndex ?? hoveredIndex;
   const activePoint = activeIndex !== null ? points[activeIndex] : null;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoverCardPosition = useMemo(() => {
     if (mousePos) {
       return getViewportHoverCardPosition(
@@ -221,7 +223,7 @@ export const Sparkline = memo(function Sparkline({
             <circle cx={lastPoint.x} cy={lastPoint.y} r={getDotRadius('small')} fill={color} />
           </>
         ) : null}
-        {showHoverCard && activePoint ? (
+        {showInteractionFeedback && activePoint ? (
           <>
             <circle
               cx={activePoint.x}
@@ -236,7 +238,7 @@ export const Sparkline = memo(function Sparkline({
         ) : null}
       </svg>
       <ChartLiveRegion announcement={keyboardNav.announcement} />
-      {showHoverCard && activePoint && activeIndex !== null ? (
+      {showInteractionFeedback && activePoint && activeIndex !== null ? (
         <ChartHoverCard
           title={labels?.[activeIndex] ?? `Point ${activeIndex + 1}`}
           rows={[

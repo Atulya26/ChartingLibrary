@@ -556,6 +556,8 @@ export const ComboChart = memo(function ComboChart({
   const activeKeyboardItem =
     keyboardNav.focusedIndex !== null ? keyboardItems[keyboardNav.focusedIndex] : null;
   const activeIndex = activeKeyboardItem?.categoryIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoveredBarRows =
     activeIndex !== null
       ? barSeries.map((item, index) => {
@@ -698,7 +700,7 @@ export const ComboChart = memo(function ComboChart({
                     description={a11yContent.description}
                   />
                   <defs>{defs}</defs>
-                  {showHoverCard && activeIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <>
                       <rect
                         x={activeIndex * categoryWidth}
@@ -729,7 +731,7 @@ export const ComboChart = memo(function ComboChart({
                   />
                   {barLayers}
                   {lineLayers}
-                  {showHoverCard && activeIndex !== null && showOverlayLine
+                  {showInteractionFeedback && activeIndex !== null && showOverlayLine
                     ? lineRenderData.map(({ item, points, stroke }) => {
                         const point = points[activeIndex];
 
@@ -752,7 +754,7 @@ export const ComboChart = memo(function ComboChart({
                     : null}
                 </svg>
                 <ChartLiveRegion announcement={keyboardNav.announcement} />
-                {showHoverCard && activeIndex !== null ? (
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
                     title={categories[activeIndex]}
                     rows={[...hoveredBarRows, ...hoveredLineRows]}

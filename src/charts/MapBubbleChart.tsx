@@ -480,6 +480,8 @@ export const MapBubbleChart = memo(function MapBubbleChart({
   });
   const keyboardFocusedBubble =
     keyboardNav.focusedIndex != null ? projectedBubbles[keyboardNav.focusedIndex] : null;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const activeBubble = useMemo<HoveredBubbleState | null>(
     () =>
       keyboardFocusedBubble
@@ -695,7 +697,8 @@ export const MapBubbleChart = memo(function MapBubbleChart({
                 ))
               )}
               {projectedBubbles.map((bubble) => {
-                const isHovered = showHoverCard && activeBubble?.point.key === bubble.point.key;
+                const isHovered =
+                  showInteractionFeedback && activeBubble?.point.key === bubble.point.key;
                 const shadowId = isHovered
                   ? `${mapIdBase}-map-bubble-hover-shadow`
                   : `${mapIdBase}-map-bubble-shadow`;
@@ -756,7 +759,7 @@ export const MapBubbleChart = memo(function MapBubbleChart({
             </g>
           </svg>
           <ChartLiveRegion announcement={keyboardNav.announcement} />
-          {showHoverCard && activeBubble ? (
+          {showInteractionFeedback && activeBubble ? (
             <ChartHoverCard
               title={activeBubble.point.label}
               rows={activeRows}

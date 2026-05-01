@@ -293,6 +293,8 @@ export const DonutChart = memo(function DonutChart({
   );
   const activeSegmentIndex = keyboardNav.focusedIndex ?? hoveredSegmentIndex;
   const activeSegment = activeSegmentIndex !== null ? segments[activeSegmentIndex] : null;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoverCardPosition = useMemo(() => {
     if (mousePos) {
       return getViewportHoverCardPosition(
@@ -439,7 +441,7 @@ export const DonutChart = memo(function DonutChart({
             </text>
           </svg>
           <ChartLiveRegion announcement={keyboardNav.announcement} />
-          {showHoverCard && activeSegment ? (
+          {showInteractionFeedback && activeSegment ? (
             <ChartHoverCard
               title={activeSegment.legendLabel ?? activeSegment.label}
               rows={[

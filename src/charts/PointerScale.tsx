@@ -104,6 +104,8 @@ export const PointerScale = memo(function PointerScale({
       setMousePos(null);
     }
   });
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const activeRange = useMemo(
     () =>
       ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
@@ -286,7 +288,7 @@ export const PointerScale = memo(function PointerScale({
           <span>{min}</span>
           <span>{max}</span>
         </div>
-        {showHoverCard && (hovered || keyboardNav.focusedIndex !== null) ? (
+        {showInteractionFeedback && (hovered || showKeyboardFeedback) ? (
           <ChartHoverCard
             title={title}
             rows={hoverRows}

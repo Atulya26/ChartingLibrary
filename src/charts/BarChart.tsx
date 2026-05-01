@@ -292,6 +292,8 @@ export const BarChart = memo(function BarChart({
       : hoveredDistributionIndex;
   const activeBarIndex =
     mode !== 'distribution' ? (keyboardNav.focusedIndex ?? hoveredIndex) : hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
 
   /* ---------- Distribution band mode ---------- */
   if (mode === 'distribution' && resolvedDistributionSegments.length) {
@@ -466,7 +468,7 @@ export const BarChart = memo(function BarChart({
             </div>
           )}
           <ChartLiveRegion announcement={keyboardNav.announcement} />
-          {showHoverCard && hoveredSegment ? (
+          {showInteractionFeedback && hoveredSegment ? (
             <ChartHoverCard
               title={hoveredSegment.label}
               rows={[
@@ -864,7 +866,7 @@ export const BarChart = memo(function BarChart({
                       );
                     })
                   : null}
-                {showHoverCard && activeBarIndex !== null ? (
+                {showInteractionFeedback && activeBarIndex !== null ? (
                   <rect
                     x={0}
                     y={activeBarIndex * categoryHeight}
@@ -917,7 +919,7 @@ export const BarChart = memo(function BarChart({
               })}
             </div>
             <ChartLiveRegion announcement={keyboardNav.announcement} />
-            {showHoverCard && activeBarIndex !== null ? (
+            {showInteractionFeedback && activeBarIndex !== null ? (
               <ChartHoverCard
                 title={categories[activeBarIndex]}
                 rows={hoveredRows}
@@ -1258,7 +1260,7 @@ export const BarChart = memo(function BarChart({
                     description={a11yContent.description}
                   />
                   <defs>{defs}</defs>
-                  {showHoverCard && activeBarIndex !== null ? (
+                  {showInteractionFeedback && activeBarIndex !== null ? (
                     <rect
                       x={activeBarIndex * categoryWidth}
                       y={0}
@@ -1280,7 +1282,7 @@ export const BarChart = memo(function BarChart({
                   {labels}
                 </svg>
                 <ChartLiveRegion announcement={keyboardNav.announcement} />
-                {showHoverCard && activeBarIndex !== null ? (
+                {showInteractionFeedback && activeBarIndex !== null ? (
                   <ChartHoverCard
                     title={categories[activeBarIndex]}
                     rows={hoveredRows}

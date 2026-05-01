@@ -207,6 +207,8 @@ export const HalfDonutChart = memo(function HalfDonutChart({
       setMousePos(null);
     }
   });
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const valueAngle = mapValueToAngle(clampedValue, min, max, startAngle, endAngle);
   const segmentCornerRadius = roundedCaps ? Math.min(4, thickness / 3) : 0;
   const joinGapAngle =
@@ -431,7 +433,7 @@ export const HalfDonutChart = memo(function HalfDonutChart({
           </text>
         </svg>
         <ChartLiveRegion announcement={keyboardNav.announcement} />
-        {showHoverCard && (hovered || keyboardNav.focusedIndex !== null) ? (
+        {showInteractionFeedback && (hovered || showKeyboardFeedback) ? (
           <ChartHoverCard
             title={title}
             rows={hoverRows}

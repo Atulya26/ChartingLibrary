@@ -183,7 +183,7 @@ export const accessibilityArgTypes = {
     type: 'string'
   },
   enableKeyboardNavigation: booleanArg(
-    'Opt-in focusability for the chart graphic. Arrow-key data point navigation is planned for the next accessibility slice.',
+    'Opt-in keyboard chart inspection. Tab into the chart once, then use arrow keys to move through data items.',
     'Accessibility'
   )
 } satisfies Record<string, InputType>;

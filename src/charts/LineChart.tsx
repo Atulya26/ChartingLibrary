@@ -398,6 +398,8 @@ export const LineChart = memo(function LineChart({
   const activeKeyboardItem =
     keyboardNav.focusedIndex !== null ? keyboardItems[keyboardNav.focusedIndex] : null;
   const activeIndex = activeKeyboardItem?.categoryIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoverCardPosition = useMemo(() => {
     if (mousePos) {
       return getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight);
@@ -499,7 +501,7 @@ export const LineChart = memo(function LineChart({
                     description={a11yContent.description}
                   />
                   {gradientLayers.length ? <defs>{gradientLayers}</defs> : null}
-                  {showHoverCard && activeIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <>
                       <rect
                         x={activeIndex * categoryWidth}
@@ -522,7 +524,7 @@ export const LineChart = memo(function LineChart({
                   ) : null}
                   {referenceLayers}
                   {lineLayers}
-                  {showHoverCard && activeIndex !== null
+                  {showInteractionFeedback && activeIndex !== null
                     ? lineRenderData.map(({ item, points, stroke }) => {
                         const point = points[activeIndex];
 
@@ -545,7 +547,7 @@ export const LineChart = memo(function LineChart({
                     : null}
                 </svg>
                 <ChartLiveRegion announcement={keyboardNav.announcement} />
-                {showHoverCard && activeIndex !== null ? (
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
                     title={categories[activeIndex]}
                     rows={series.map((item, index) => ({
