@@ -3,14 +3,16 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.0.0 - 2026-05-01
 
 ### Added
 
+- First stable release of `@atulya_26/charting-library`.
 - CI foundation for typecheck, lint, format, package build, Storybook build, and size checks.
 - Chromatic workflow scaffolding for visual regression review.
 - Manual release workflow scaffold for validated npm publishes.
 - Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
+- Public API inventory and migration guide for the `1.0.0` package surface.
 - Shared accessibility props for chart graphics: `ariaLabel`, `ariaDescription`, and opt-in
   `enableKeyboardNavigation`.
 - Keyboard data-item navigation, live screen-reader announcements, and focus-driven hover cards for
@@ -35,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drag and hover updates for smoother map interaction.
 - Honored `prefers-reduced-motion` across loading skeleton animation and inline chart hover
   transitions.
+- Relaxed consumer Node engine support to `>=18.0.0` while keeping Node `20.19.0` as the local
+  development baseline.
 
 ## 2026-04-30
 

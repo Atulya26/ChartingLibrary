@@ -7,7 +7,7 @@
 
 A Figma-aligned React charting library for product dashboards, analytics cards, and healthcare-style reporting experiences.
 
-The package is built around reusable chart primitives, polished Storybook props, MDS-compatible chrome, and realistic chart states for loading, empty, and error cases. It is currently an early library/prototype package, but it is npm-ready and intended for local product integration trials.
+The package is built around reusable chart primitives, polished Storybook props, MDS-compatible chrome, accessibility hooks, performance guardrails, and realistic chart states for loading, empty, and error cases.
 
 **Live demo:** [atulya26.github.io/ChartingLibrary](https://atulya26.github.io/ChartingLibrary/)
 
@@ -309,6 +309,22 @@ Then open:
 http://localhost:6030
 ```
 
+## Public API
+
+The `1.0.0` package root intentionally exports chart components, shared chart chrome, chart
+primitives, public data types, token helpers, Sankey layout helpers, and the `downsampleLttb`
+utility. The full inventory is documented in [`docs/api-inventory.md`](./docs/api-inventory.md).
+
+Avoid importing private source files such as `src/utils/*`, `src/stories/*`, or `src/chartUtils.tsx`.
+If you need an internal helper promoted to public API, open an issue with the use case.
+
+`chartTokens` is public and read-only for `1.0.0`. It is useful for matching custom chart colors to
+the default visual language, but mutating it at runtime is not a supported theming API.
+
+Sankey layout output is deterministic for a given input, but exact node coordinates and ribbon
+routing are not part of the semver contract. This keeps room for future layout-quality improvements
+without requiring a major version.
+
 ## Quality Gates
 
 Pull requests are expected to pass typecheck, lint, formatting, package build,
@@ -324,9 +340,22 @@ visual review expectations, and release workflow notes.
 
 - Import `@atulya_26/charting-library/styles.css` once per app.
 - The library uses `@innovaccer/design-system` CSS internally and imports it from the package entry.
-- React and React DOM are peer dependencies.
+- React and React DOM are peer dependencies. `1.0.0` supports React `18`.
 - Map charts use `d3-geo`, `topojson-client`, and `us-atlas`.
 - Published package output lives in `dist/`.
+- Consumer installs support Node `>=18.0.0`. Local library development uses the Node version in
+  `.nvmrc`.
+
+## Versioning
+
+This package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from `1.0.0`
+onward:
+
+- **Major** releases may include breaking API changes and will include migration notes.
+- **Minor** releases add features without breaking the stable public API.
+- **Patch** releases include compatible fixes and documentation updates.
+
+See [MIGRATION.md](./MIGRATION.md) for migration notes and policy details.
 
 ## Release Flow
 
@@ -334,18 +363,13 @@ For maintainers:
 
 ```bash
 git pull origin main
-npm version patch
 npm run build
-npm publish
-git push origin main --tags
+npm run size
+npm publish --access public --provenance
 ```
 
-Use `minor` or `major` instead of `patch` when the API changes significantly:
-
-```bash
-npm version minor
-npm version major
-```
+Prefer the repository's manual release workflow for official publishes so package build, size, and
+provenance checks run in a clean environment.
 
 ## Links
 
