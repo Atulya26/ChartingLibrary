@@ -1,4 +1,4 @@
-import { useState, useCallback, useId } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { geoAlbersUsa, geoMercator, geoPath } from 'd3-geo';
 import countiesAtlas from 'us-atlas/counties-10m.json';
@@ -97,7 +97,7 @@ export interface MapBubbleChartProps extends ChartHeaderProps {
   showHoverCard?: boolean;
 }
 
-export function MapBubbleChart({
+export const MapBubbleChart = memo(function MapBubbleChart({
   title = 'Map Bubble Chart',
   description,
   points,
@@ -534,4 +534,4 @@ export function MapBubbleChart({
       )}
     </ChartShell>
   );
-}
+});

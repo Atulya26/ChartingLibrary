@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, memo, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -76,7 +76,7 @@ function getSeriesExtent(series: LineSeriesConfig[], extraValues: number[] = [])
   return { min, max };
 }
 
-export function LineChart({
+export const LineChart = memo(function LineChart({
   title = 'Line Chart',
   description,
   categories,
@@ -429,4 +429,4 @@ export function LineChart({
       </div>
     </ChartShell>
   );
-}
+});

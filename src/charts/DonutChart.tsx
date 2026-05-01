@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, memo, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -122,7 +122,7 @@ function describeRoundedDonutSegment(
   ].join(' ');
 }
 
-export function DonutChart({
+export const DonutChart = memo(function DonutChart({
   title = 'Pie Chart Example',
   description,
   segments,
@@ -359,4 +359,4 @@ export function DonutChart({
       </div>
     </ChartShell>
   );
-}
+});

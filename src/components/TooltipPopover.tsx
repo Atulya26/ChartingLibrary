@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import type { TooltipRow } from '../types';
 import { LegendMarker } from './Legend';
 
@@ -8,7 +10,12 @@ export interface TooltipPopoverProps {
   totalValue?: string | number;
 }
 
-export function TooltipPopover({ title, rows, totalLabel, totalValue }: TooltipPopoverProps) {
+export const TooltipPopover = memo(function TooltipPopover({
+  title,
+  rows,
+  totalLabel,
+  totalValue
+}: TooltipPopoverProps) {
   return (
     <div className="cl-tooltip">
       <div>
@@ -37,4 +44,4 @@ export function TooltipPopover({ title, rows, totalLabel, totalValue }: TooltipP
       </div>
     </div>
   );
-}
+});

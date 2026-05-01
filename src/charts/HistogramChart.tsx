@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, memo, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -61,7 +61,7 @@ export interface HistogramChartProps extends ChartHeaderProps {
   showHoverCard?: boolean;
 }
 
-export function HistogramChart({
+export const HistogramChart = memo(function HistogramChart({
   title = 'Histogram',
   description,
   bins,
@@ -381,4 +381,4 @@ export function HistogramChart({
       </div>
     </ChartShell>
   );
-}
+});

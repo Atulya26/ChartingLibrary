@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { chartTokens } from '../theme/tokens';
 
 export interface GridLinesProps {
@@ -7,7 +9,7 @@ export interface GridLinesProps {
   color?: string;
 }
 
-export function GridLines({
+export const GridLines = memo(function GridLines({
   width,
   height,
   count = chartTokens.chart.gridLineCount,
@@ -28,4 +30,4 @@ export function GridLines({
       })}
     </svg>
   );
-}
+});

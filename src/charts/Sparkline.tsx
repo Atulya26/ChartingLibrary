@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { memo, useId, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -48,7 +48,7 @@ function getSparklineExtent(values: number[]) {
   return { min, max };
 }
 
-export function Sparkline({
+export const Sparkline = memo(function Sparkline({
   values,
   labels,
   width = 84,
@@ -185,4 +185,4 @@ export function Sparkline({
       ) : null}
     </div>
   );
-}
+});
