@@ -63,3 +63,5 @@ marks should use either `text.default` or `text.inverse` after checking the spec
   across pointer and keyboard users.
 - The Storybook axe job blocks serious and critical violations; moderate findings should be fixed
   when possible or documented here with rationale.
+- Dedicated Chromatic focus-state stories are still a follow-up. Until those baselines exist, any
+  focus or hover CSS changes should be manually checked with `enableKeyboardNavigation` enabled.

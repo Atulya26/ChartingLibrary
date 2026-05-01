@@ -168,7 +168,7 @@ Keyboard behavior:
 | `Tab`                        | Focus the chart, then leave naturally on the next tab stop                 |
 | `Arrow Left` / `Arrow Right` | Move to the previous or next data item                                     |
 | `Arrow Up` / `Arrow Down`    | Move across series in multi-series charts; otherwise previous or next item |
-| `Home` / `End`               | Jump to the first or last item                                             |
+| `Home` / `End`               | Jump to the first or last item in the current series                       |
 | `Enter` / `Space`            | Trigger the chart item click callback when one exists                      |
 | `Escape`                     | Clear keyboard focus state and dismiss the hover card                      |
 

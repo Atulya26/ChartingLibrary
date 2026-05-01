@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
-import { useThrottledValue } from './useThrottledValue';
+import { useDebouncedValue } from './useDebouncedValue';
 
 type NavigationKey =
   | 'ArrowRight'
@@ -31,7 +31,6 @@ interface KeyboardNavResult {
     onFocus: () => void;
     onBlur: () => void;
   };
-  setFocusedIndex: (index: number | null) => void;
 }
 
 function getDefaultNextIndex(currentIndex: number, key: NavigationKey, itemCount: number) {
@@ -74,7 +73,7 @@ export function useChartKeyboardNav<T>({
 
     return getAnnouncement(items[focusedIndex], focusedIndex);
   }, [enabled, focusedIndex, getAnnouncement, items]);
-  const announcement = useThrottledValue(rawAnnouncement, 150);
+  const announcement = useDebouncedValue(rawAnnouncement, 150);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<SVGSVGElement | HTMLDivElement>) => {
@@ -144,7 +143,6 @@ export function useChartKeyboardNav<T>({
       onKeyDown: handleKeyDown,
       onFocus: handleFocus,
       onBlur: handleBlur
-    },
-    setFocusedIndex
+    }
   };
 }

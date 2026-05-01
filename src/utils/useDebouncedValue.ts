@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 
-export function useThrottledValue<T>(value: T, delayMs: number): T {
-  const [throttledValue, setThrottledValue] = useState(value);
+export function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setThrottledValue(value);
+      setDebouncedValue(value);
     }, delayMs);
 
     return () => {
@@ -13,5 +13,5 @@ export function useThrottledValue<T>(value: T, delayMs: number): T {
     };
   }, [delayMs, value]);
 
-  return throttledValue;
+  return debouncedValue;
 }
