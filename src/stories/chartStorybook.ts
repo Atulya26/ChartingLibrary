@@ -154,6 +154,48 @@ export const hiddenEventArgTypes = {
   selectedValue: hiddenTableArg
 };
 
+export const accessibilityArgTypes = {
+  ariaLabel: {
+    control: {
+      type: 'text'
+    },
+    description: 'Accessible label for the chart. Defaults to the visible chart title.',
+    table: {
+      ...makeCategory('Accessibility'),
+      type: {
+        summary: 'string'
+      }
+    },
+    type: 'string'
+  },
+  ariaDescription: {
+    control: {
+      type: 'text'
+    },
+    description:
+      'Accessible chart summary. Leave blank to use the generated data-aware description.',
+    table: {
+      ...makeCategory('Accessibility'),
+      type: {
+        summary: 'string'
+      }
+    },
+    type: 'string'
+  },
+  enableKeyboardNavigation: booleanArg(
+    'Opt-in keyboard chart inspection. Tab into the chart once, then use arrow keys to move through data items.',
+    'Accessibility'
+  )
+} satisfies Record<string, InputType>;
+
+export const downsampleArgTypes = {
+  downsample: numberArg(
+    'Optional max rendered points per line series. Uses LTTB to preserve visual shape while reducing render cost. Leave blank to disable.',
+    'Performance',
+    { min: 3, max: 5000, step: 50 }
+  )
+} satisfies Record<string, InputType>;
+
 export const surfaceArgTypes = {
   width: numberArg(
     'Use a number for consistent Storybook sizing. String widths are supported in code, but number controls are clearer for day-to-day exploration.'

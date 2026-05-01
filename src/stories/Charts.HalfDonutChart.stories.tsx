@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HalfDonutChart } from '../charts/HalfDonutChart';
 import { halfDonutRanges } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -48,7 +49,8 @@ const meta = {
     thickness: rangeArg('Arc thickness in pixels.', 'Layout', { min: 8, max: 32, step: 1 }),
     startAngle: rangeArg('Start angle in degrees.', 'Layout', { min: 0, max: 360, step: 5 }),
     sweepAngle: rangeArg('Sweep angle in degrees.', 'Layout', { min: 90, max: 360, step: 5 }),
-    valueColor: colorArg('Optional override color for the active arc.', 'Style')
+    valueColor: colorArg('Optional override color for the active arc.', 'Style'),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof HalfDonutChart>;
 

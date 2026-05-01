@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { CSSProperties } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -17,7 +18,7 @@ export interface BarMarkProps {
   showLabel?: boolean;
 }
 
-export function BarMark({
+export const BarMark = memo(function BarMark({
   value,
   minValue = 0,
   maxValue = 100,
@@ -54,4 +55,4 @@ export function BarMark({
       {showLabel ? <p className="cl-bar-mark__label">{label}</p> : null}
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -16,6 +16,7 @@ import type {
   HistogramBin,
   LegendMarkerMode,
   LegendPosition,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -36,8 +37,16 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartLiveRegion,
+  ChartSvgA11y,
+  describeSegmentChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
-export interface HistogramChartProps extends ChartHeaderProps {
+export interface HistogramChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   bins: HistogramBin[];
@@ -61,7 +70,7 @@ export interface HistogramChartProps extends ChartHeaderProps {
   showHoverCard?: boolean;
 }
 
-export function HistogramChart({
+export const HistogramChart = memo(function HistogramChart({
   title = 'Histogram',
   description,
   bins,
@@ -83,131 +92,210 @@ export function HistogramChart({
   legendMarker = 'auto',
   overlayLegendLabel = 'Overlay line',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: HistogramChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const svgId = useId().replace(/:/g, '');
-  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
-  const resolvedBins = bins.map((bin, index) => resolveHistogramBin(bin, index, fillStyle));
-  const extent = getValueExtent(resolvedBins.map((bin) => bin.value));
-  const tickEntries = resolveTickEntries(
-    yAxis,
-    extent.min,
-    extent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
+  const resolvedPlotWidth = useMemo(
+    () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
+    [plotWidth, width]
+  );
+  const resolvedBins = useMemo(
+    () => bins.map((bin, index) => resolveHistogramBin(bin, index, fillStyle)),
+    [bins, fillStyle]
+  );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSegmentChart({
+          chartType: 'Histogram',
+          segments: bins
+        })
+      }),
+    [ariaDescription, ariaLabel, bins, description, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
+  const keyboardNav = useChartKeyboardNav({
+    items: resolvedBins,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (bin, index) =>
+      `${index + 1} of ${resolvedBins.length}: ${bin.label}, ${formatTooltipValue(bin.value)}.`,
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
+  });
+  const extent = useMemo(
+    () => getValueExtent(resolvedBins.map((bin) => bin.value)),
+    [resolvedBins]
+  );
+  const tickEntries = useMemo(
+    () =>
+      resolveTickEntries(
+        yAxis,
+        extent.min,
+        extent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [extent.max, extent.min, grid?.count, yAxis]
   );
   const barWidth = resolvedPlotWidth / Math.max(resolvedBins.length, 1);
   const scaleY = createInvertedScale(extent.min, extent.max, plotHeight);
   const zeroY = scaleY(0);
-  const defs: ReactNode[] = [];
-  const barLayers: ReactNode[] = [];
-  const labelLayers: ReactNode[] = [];
-  const legendEntries = new Map<
-    string,
-    {
-      label: string;
-      color: string;
-      strokeColor?: string;
-      marker: ReturnType<typeof resolveFillLegendMarker>;
-      active?: boolean;
-    }
-  >();
+  const legendItems = useMemo(() => {
+    if (!showLegend) return [];
+    const legendEntries = new Map<
+      string,
+      {
+        label: string;
+        color: string;
+        strokeColor?: string;
+        marker: ReturnType<typeof resolveFillLegendMarker>;
+        active?: boolean;
+      }
+    >();
 
-  resolvedBins.forEach((bin) => {
-    if (bin.showLegendItem === false) {
-      return;
-    }
+    resolvedBins.forEach((bin) => {
+      if (bin.showLegendItem === false) {
+        return;
+      }
 
-    const legendKey = bin.legendLabel ?? `${bin.fill}-${bin.stroke}-${bin.fillStyle}`;
+      const legendKey = bin.legendLabel ?? `${bin.fill}-${bin.stroke}-${bin.fillStyle}`;
 
-    if (!legendEntries.has(legendKey)) {
-      legendEntries.set(legendKey, {
-        label: bin.legendLabel ?? 'Distribution',
-        color: bin.fill,
-        strokeColor: bin.stroke,
-        marker: resolveFillLegendMarker(bin.fillStyle, legendMarker),
-        active: bin.active
+      if (!legendEntries.has(legendKey)) {
+        legendEntries.set(legendKey, {
+          label: bin.legendLabel ?? 'Distribution',
+          color: bin.fill,
+          strokeColor: bin.stroke,
+          marker: resolveFillLegendMarker(bin.fillStyle, legendMarker),
+          active: bin.active
+        });
+      }
+    });
+
+    if (overlayLine) {
+      legendEntries.set('overlay-line', {
+        label: overlayLegendLabel,
+        color: chartTokens.categorical.secondary,
+        strokeColor: chartTokens.categorical.secondary,
+        marker: overlayDots ? 'dot-line' : 'line',
+        active: true
       });
     }
-  });
 
-  if (overlayLine) {
-    legendEntries.set('overlay-line', {
-      label: overlayLegendLabel,
-      color: chartTokens.categorical.secondary,
-      strokeColor: chartTokens.categorical.secondary,
-      marker: overlayDots ? 'dot-line' : 'line',
-      active: true
+    return Array.from(legendEntries.values());
+  }, [legendMarker, overlayDots, overlayLegendLabel, overlayLine, resolvedBins, showLegend]);
+  const { defs, barLayers, labelLayers } = useMemo(() => {
+    const definitions: ReactNode[] = [];
+    const bars: ReactNode[] = [];
+    const labels: ReactNode[] = [];
+
+    resolvedBins.forEach((bin, index) => {
+      const valueY = scaleY(bin.value);
+      const height = Math.max(Math.abs(zeroY - valueY), 1);
+      const paintId = `histogram-${svgId}-${index}`;
+      const paint = getSvgFillDefinition(paintId, bin.fillStyle, bin.fill, bin.stroke);
+
+      if (paint.definition) {
+        definitions.push(paint.definition);
+      }
+
+      bars.push(
+        <path
+          key={bin.label}
+          d={describeBarPath(
+            index * barWidth,
+            bin.value >= 0 ? valueY : zeroY,
+            Math.max(barWidth, 1),
+            height,
+            chartTokens.radii.bar,
+            bin.value >= 0 ? 'positive' : 'negative'
+          )}
+          fill={paint.fill}
+          stroke={bin.stroke}
+          strokeWidth={1}
+        />
+      );
+
+      if (showTopLabels) {
+        labels.push(
+          <text
+            key={`label-${bin.label}`}
+            x={index * barWidth + barWidth / 2}
+            y={valueY - 6}
+            textAnchor="middle"
+            fontFamily={chartTokens.fontFamily}
+            fontSize="12"
+            fontWeight="600"
+            fill={chartTokens.text.chartLabel}
+          >
+            {formatNumberCompact(bin.value)}
+          </text>
+        );
+      }
     });
-  }
 
-  const legendItems = showLegend ? Array.from(legendEntries.values()) : [];
+    return { defs: definitions, barLayers: bars, labelLayers: labels };
+  }, [barWidth, resolvedBins, scaleY, showTopLabels, svgId, zeroY]);
 
-  resolvedBins.forEach((bin, index) => {
-    const valueY = scaleY(bin.value);
-    const height = Math.max(Math.abs(zeroY - valueY), 1);
-    const paintId = `histogram-${svgId}-${index}`;
-    const paint = getSvgFillDefinition(paintId, bin.fillStyle, bin.fill, bin.stroke);
-
-    if (paint.definition) {
-      defs.push(paint.definition);
+  const overlayPoints = useMemo(
+    () =>
+      buildLinePoints(
+        resolvedBins.map((bin) => bin.value),
+        resolvedPlotWidth - barWidth,
+        plotHeight,
+        extent.min,
+        extent.max
+      ).map((point) => ({
+        ...point,
+        x: point.x + barWidth / 2
+      })),
+    [barWidth, extent.max, extent.min, plotHeight, resolvedBins, resolvedPlotWidth]
+  );
+  const activeIndex = keyboardNav.focusedIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const hoverCardPosition = useMemo(() => {
+    if (activeIndex === null) {
+      return null;
     }
 
-    barLayers.push(
-      <path
-        key={bin.label}
-        d={describeBarPath(
-          index * barWidth,
-          bin.value >= 0 ? valueY : zeroY,
-          Math.max(barWidth, 1),
-          height,
-          chartTokens.radii.bar,
-          bin.value >= 0 ? 'positive' : 'negative'
-        )}
-        fill={paint.fill}
-        stroke={bin.stroke}
-        strokeWidth={1}
-      />
-    );
-
-    if (showTopLabels) {
-      labelLayers.push(
-        <text
-          key={`label-${bin.label}`}
-          x={index * barWidth + barWidth / 2}
-          y={valueY - 6}
-          textAnchor="middle"
-          fontFamily={chartTokens.fontFamily}
-          fontSize="12"
-          fontWeight="600"
-          fill={chartTokens.text.chartLabel}
-        >
-          {formatNumberCompact(bin.value)}
-        </text>
+    if (mousePos) {
+      return getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
       );
     }
-  });
 
-  const overlayPoints = buildLinePoints(
-    resolvedBins.map((bin) => bin.value),
-    resolvedPlotWidth - barWidth,
-    plotHeight,
-    extent.min,
-    extent.max
-  ).map((point) => ({
-    ...point,
-    x: point.x + barWidth / 2
-  }));
-  const hoverCardPosition =
-    hoveredIndex !== null && mousePos
-      ? getViewportHoverCardPosition(
-          mousePos.x,
-          mousePos.y,
-          196,
-          getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
-        )
-      : null;
+    if (keyboardNav.focusedIndex === null || !plotRef.current) {
+      return null;
+    }
+
+    const rect = plotRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + activeIndex * barWidth + barWidth / 2,
+      rect.top + plotHeight / 2,
+      196,
+      getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
+    );
+  }, [activeIndex, barWidth, keyboardNav.focusedIndex, mousePos, overlayLine, plotHeight]);
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
@@ -249,6 +337,7 @@ export function HistogramChart({
                 />
               ) : null}
               <div
+                ref={plotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
@@ -278,14 +367,22 @@ export function HistogramChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   <defs>{defs}</defs>
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <rect
-                      x={hoveredIndex * barWidth}
+                      x={activeIndex * barWidth}
                       y={0}
                       width={barWidth}
                       height={plotHeight}
@@ -328,18 +425,19 @@ export function HistogramChart({
                     </Fragment>
                   ) : null}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
-                    title={resolvedBins[hoveredIndex].label}
+                    title={resolvedBins[activeIndex].label}
                     rows={
                       [
                         {
-                          label: resolvedBins[hoveredIndex].legendLabel ?? 'Observed distribution',
-                          value: formatTooltipValue(resolvedBins[hoveredIndex].value),
-                          color: resolvedBins[hoveredIndex].fill,
-                          strokeColor: resolvedBins[hoveredIndex].stroke,
+                          label: resolvedBins[activeIndex].legendLabel ?? 'Observed distribution',
+                          value: formatTooltipValue(resolvedBins[activeIndex].value),
+                          color: resolvedBins[activeIndex].fill,
+                          strokeColor: resolvedBins[activeIndex].stroke,
                           marker: resolveFillLegendMarker(
-                            resolvedBins[hoveredIndex].fillStyle,
+                            resolvedBins[activeIndex].fillStyle,
                             legendMarker
                           ) as TooltipRow['marker']
                         },
@@ -348,8 +446,8 @@ export function HistogramChart({
                               {
                                 label: overlayLegendLabel,
                                 value: formatTooltipValue(
-                                  overlayPoints[hoveredIndex]?.value ??
-                                    resolvedBins[hoveredIndex].value
+                                  overlayPoints[activeIndex]?.value ??
+                                    resolvedBins[activeIndex].value
                                 ),
                                 color: chartTokens.categorical.secondary,
                                 strokeColor: chartTokens.categorical.secondary,
@@ -381,4 +479,4 @@ export function HistogramChart({
       </div>
     </ChartShell>
   );
-}
+});

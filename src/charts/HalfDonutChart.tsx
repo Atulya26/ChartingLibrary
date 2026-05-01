@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { memo, useId, useMemo, useRef, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
-import type { HalfDonutRange, LegendPosition, ChartHeaderProps } from '../types';
+import type {
+  ChartAccessibilityProps,
+  HalfDonutRange,
+  LegendPosition,
+  ChartHeaderProps
+} from '../types';
 import {
   clamp,
   formatTooltipValue,
@@ -12,8 +17,16 @@ import {
   mapValueToAngle,
   polarToCartesian
 } from '../chartUtils';
+import {
+  ChartLiveRegion,
+  ChartSvgA11y,
+  describeSingleValueChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
-export interface HalfDonutChartProps extends ChartHeaderProps {
+export interface HalfDonutChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   value: number;
@@ -121,7 +134,7 @@ function describeRoundedArcBand(
   ].join(' ');
 }
 
-export function HalfDonutChart({
+export const HalfDonutChart = memo(function HalfDonutChart({
   title = 'Half Donut',
   description,
   value,
@@ -145,10 +158,17 @@ export function HalfDonutChart({
   showLegend = false,
   legendPosition = 'bottom',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: HalfDonutChartProps) {
+  const a11yId = useId().replace(/:/g, '');
+  const a11yTitleId = `${a11yId}-title`;
+  const a11yDescriptionId = `${a11yId}-description`;
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const centerX = size / 2;
   const centerY = size * 0.55;
   const radius = size * 0.4;
@@ -156,78 +176,165 @@ export function HalfDonutChart({
   const innerRadius = radius - thickness / 2;
   const endAngle = startAngle + sweepAngle;
   const clampedValue = clamp(value, min, max);
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSingleValueChart({
+          chartType: 'Half donut gauge',
+          value: clampedValue,
+          min,
+          max
+        })
+      }),
+    [ariaDescription, ariaLabel, clampedValue, description, max, min, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
+  const keyboardNav = useChartKeyboardNav({
+    items: ranges,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (range, index) =>
+      `${index + 1} of ${ranges.length}: ${range.label ?? `${range.from} to ${range.to}`}. Current value ${formatTooltipValue(clampedValue)}.`,
+    onDismiss: () => {
+      setHovered(false);
+      setMousePos(null);
+    }
+  });
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const valueAngle = mapValueToAngle(clampedValue, min, max, startAngle, endAngle);
   const segmentCornerRadius = roundedCaps ? Math.min(4, thickness / 3) : 0;
   const joinGapAngle =
     clampedValue > min && clampedValue < max ? (1 / radius) * (180 / Math.PI) : 0;
   const progressEndAngle = Math.max(startAngle + 0.01, valueAngle - joinGapAngle / 2);
-  const activeRange =
-    ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
-    ranges[ranges.length - 1];
-  const progressPath =
-    clampedValue <= min
-      ? null
-      : describeRoundedArcBand(
-          centerX,
-          centerY,
-          outerRadius,
-          innerRadius,
-          startAngle,
-          progressEndAngle,
-          segmentCornerRadius
-        );
-  const trackPath = describeRoundedArcBand(
-    centerX,
-    centerY,
-    outerRadius,
-    innerRadius,
-    startAngle,
-    endAngle,
-    segmentCornerRadius
+  const activeRange = useMemo(
+    () =>
+      ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
+      ranges[ranges.length - 1],
+    [clampedValue, ranges]
   );
-  const hoverRows = [
-    {
-      label: 'Current',
-      value: centerLabel ?? formatTooltipValue(clampedValue),
-      color: valueColor ?? activeRange.color,
-      marker: 'solid' as const
-    },
-    ...(centerSubLabel
-      ? [
-          {
-            label: 'Context',
-            value: centerSubLabel
-          }
-        ]
-      : []),
-    {
-      label: 'Band',
-      value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
-      color: activeRange.color,
-      marker: 'solid' as const
-    },
-    {
-      label: 'Scale',
-      value: `${leftLabel ?? min} - ${rightLabel ?? max}`
-    }
-  ];
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(
+  const progressPath = useMemo(
+    () =>
+      clampedValue <= min
+        ? null
+        : describeRoundedArcBand(
+            centerX,
+            centerY,
+            outerRadius,
+            innerRadius,
+            startAngle,
+            progressEndAngle,
+            segmentCornerRadius
+          ),
+    [
+      centerX,
+      centerY,
+      clampedValue,
+      innerRadius,
+      min,
+      outerRadius,
+      progressEndAngle,
+      segmentCornerRadius,
+      startAngle
+    ]
+  );
+  const trackPath = useMemo(
+    () =>
+      describeRoundedArcBand(
+        centerX,
+        centerY,
+        outerRadius,
+        innerRadius,
+        startAngle,
+        endAngle,
+        segmentCornerRadius
+      ),
+    [centerX, centerY, endAngle, innerRadius, outerRadius, segmentCornerRadius, startAngle]
+  );
+  const hoverRows = useMemo(
+    () => [
+      {
+        label: 'Current',
+        value: centerLabel ?? formatTooltipValue(clampedValue),
+        color: valueColor ?? activeRange.color,
+        marker: 'solid' as const
+      },
+      ...(centerSubLabel
+        ? [
+            {
+              label: 'Context',
+              value: centerSubLabel
+            }
+          ]
+        : []),
+      {
+        label: 'Band',
+        value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
+        color: activeRange.color,
+        marker: 'solid' as const
+      },
+      {
+        label: 'Scale',
+        value: `${leftLabel ?? min} - ${rightLabel ?? max}`
+      }
+    ],
+    [
+      activeRange.color,
+      activeRange.from,
+      activeRange.label,
+      activeRange.to,
+      centerLabel,
+      centerSubLabel,
+      clampedValue,
+      leftLabel,
+      max,
+      min,
+      rightLabel,
+      valueColor
+    ]
+  );
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(
         mousePos.x,
         mousePos.y,
         196,
         getEstimatedHoverCardHeight(hoverRows.length)
-      )
-    : null;
+      );
+    }
 
-  const legendItems = showLegend
-    ? ranges.map((range) => ({
-        label: range.label ?? `${range.from}-${range.to}`,
-        marker: 'solid' as const,
-        color: range.color,
-        active: true
-      }))
-    : [];
+    if (keyboardNav.focusedIndex === null || !containerRef.current) {
+      return null;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+      196,
+      getEstimatedHoverCardHeight(hoverRows.length)
+    );
+  }, [hoverRows.length, keyboardNav.focusedIndex, mousePos]);
+
+  const legendItems = useMemo(
+    () =>
+      showLegend
+        ? ranges.map((range) => ({
+            label: range.label ?? `${range.from}-${range.to}`,
+            marker: 'solid' as const,
+            color: range.color,
+            active: true
+          }))
+        : [],
+    [ranges, showLegend]
+  );
 
   return (
     <ChartShell
@@ -242,6 +349,7 @@ export function HalfDonutChart({
       {...headerProps}
     >
       <div
+        ref={containerRef}
         className="cl-chart-half-donut"
         style={{ position: 'relative', width: size, margin: '0 auto' }}
         onMouseMove={
@@ -265,10 +373,18 @@ export function HalfDonutChart({
           width={size}
           height={size * 0.68}
           viewBox={`0 0 ${size} ${size * 0.68}`}
-          role="img"
-          aria-label={title}
+          {...chartA11yProps}
+          onKeyDown={keyboardNav.handlers.onKeyDown}
+          onFocus={keyboardNav.handlers.onFocus}
+          onBlur={keyboardNav.handlers.onBlur}
           style={{ overflow: 'visible' }}
         >
+          <ChartSvgA11y
+            titleId={a11yTitleId}
+            descriptionId={a11yDescriptionId}
+            label={a11yContent.label}
+            description={a11yContent.description}
+          />
           <path d={trackPath} fill={chartTokens.neutral.surfaceTint} />
           {progressPath ? <path d={progressPath} fill={valueColor ?? activeRange.color} /> : null}
           <text
@@ -316,7 +432,8 @@ export function HalfDonutChart({
             {rightLabel ?? `${max}`}
           </text>
         </svg>
-        {showHoverCard && hovered ? (
+        <ChartLiveRegion announcement={keyboardNav.announcement} />
+        {showInteractionFeedback && (hovered || showKeyboardFeedback) ? (
           <ChartHoverCard
             title={title}
             rows={hoverRows}
@@ -327,4 +444,4 @@ export function HalfDonutChart({
       </div>
     </ChartShell>
   );
-}
+});

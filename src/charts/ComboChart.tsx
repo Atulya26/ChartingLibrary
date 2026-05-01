@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
 import { chartTokens } from '../theme/tokens';
 import { formatNumberCompact } from '../utils/chart';
-import { withAlpha } from '../utils/color';
+import { getAccessibleSeriesTextColor, withAlpha } from '../utils/color';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import type {
@@ -16,12 +16,14 @@ import type {
   LegendPosition,
   LegendMarkerMode,
   LineSeriesConfig,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
   buildLegendItemsFromBarSeriesWithOverrides,
   buildLegendItemsFromLineSeries,
-  buildLinePoints,
+  buildLinePointAtIndex,
+  buildLinePointsAtIndices,
   createInvertedScale,
   describeAreaPath,
   describeBarPath,
@@ -39,8 +41,21 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartLiveRegion,
+  ChartSvgA11y,
+  describeCategoricalChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import {
+  downsampleLttb,
+  getDownsampleLimit,
+  warnForLargeUndownsampledDataset
+} from '../utils/downsample';
 
-export interface ComboChartProps extends ChartHeaderProps {
+export interface ComboChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   categories: string[];
@@ -66,6 +81,8 @@ export interface ComboChartProps extends ChartHeaderProps {
   barFillStyle?: FillStyleMode;
   barLegendMarker?: LegendMarkerMode;
   showHoverCard?: boolean;
+  /** Max points to render per line series. Uses LTTB to preserve visual shape. Off by default. */
+  downsample?: number;
 }
 
 function getLineExtent(series: LineSeriesConfig[]) {
@@ -101,7 +118,7 @@ function describeRoundedRectPath(
   ].join(' ');
 }
 
-export function ComboChart({
+export const ComboChart = memo(function ComboChart({
   title = 'Title',
   description,
   categories,
@@ -127,43 +144,168 @@ export function ComboChart({
   barFillStyle = 'inherit',
   barLegendMarker = 'auto',
   showHoverCard = false,
+  downsample,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: ComboChartProps) {
+  const a11yId = useId().replace(/:/g, '');
+  const a11yTitleId = `${a11yId}-title`;
+  const a11yDescriptionId = `${a11yId}-description`;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
-  const barLegendItems = buildLegendItemsFromBarSeriesWithOverrides(
-    barSeries,
-    barFillStyle,
-    barLegendMarker
+  const plotRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    warnForLargeUndownsampledDataset(
+      'ComboChart',
+      lineSeries.reduce((sum, item) => sum + item.data.length, 0),
+      downsample
+    );
+  }, [downsample, lineSeries]);
+  const resolvedPlotWidth = useMemo(
+    () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
+    [plotWidth, width]
   );
-  const lineLegendItems = buildLegendItemsFromLineSeries(lineSeries);
-  const legendItems = showLegend
-    ? [
-        ...barLegendItems,
-        ...lineLegendItems.map((item) => ({
-          ...item,
-          active: showOverlayLine ? item.active : false
-        }))
-      ]
-    : [];
-  const leftExtent =
-    barLayout === 'stacked'
-      ? getStackedExtent(barSeries, categories.length)
-      : getGroupedExtent(barSeries);
-  const rightLines = lineSeries.filter((item) => item.axis === 'right');
-  const rightExtent = rightLines.length ? getLineExtent(rightLines) : getLineExtent(lineSeries);
-  const leftTicks = resolveTickEntries(
-    yAxis,
-    leftExtent.min,
-    leftExtent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
+  const barLegendItems = useMemo(
+    () => buildLegendItemsFromBarSeriesWithOverrides(barSeries, barFillStyle, barLegendMarker),
+    [barFillStyle, barLegendMarker, barSeries]
   );
-  const rightTicks = resolveTickEntries(
-    secondaryYAxis,
-    rightExtent.min,
-    rightExtent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
+  const lineLegendItems = useMemo(() => buildLegendItemsFromLineSeries(lineSeries), [lineSeries]);
+  const legendItems = useMemo(
+    () =>
+      showLegend
+        ? [
+            ...barLegendItems,
+            ...lineLegendItems.map((item) => ({
+              ...item,
+              active: showOverlayLine ? item.active : false
+            }))
+          ]
+        : [],
+    [barLegendItems, lineLegendItems, showLegend, showOverlayLine]
+  );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeCategoricalChart({
+          chartType: barLayout === 'stacked' ? 'Stacked combination chart' : 'Combination chart',
+          categories,
+          series: [
+            ...barSeries.map((item) => ({
+              label: item.label,
+              values: item.data.map((datum) => (typeof datum === 'number' ? datum : datum.value))
+            })),
+            ...lineSeries.map((item) => ({
+              label: item.label,
+              values: item.data
+            }))
+          ]
+        })
+      }),
+    [ariaDescription, ariaLabel, barLayout, barSeries, categories, description, lineSeries, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
+  const keyboardItems = useMemo(() => {
+    const barItems = barSeries.map((item) => ({
+      label: item.label,
+      type: 'bar' as const,
+      values: item.data.map((datum) => (typeof datum === 'number' ? datum : datum.value))
+    }));
+    const lineItems = lineSeries.map((item) => ({
+      label: item.label,
+      type: 'line' as const,
+      values: item.data
+    }));
+
+    return [...barItems, ...lineItems].flatMap((item, seriesIndex) =>
+      categories.map((category, categoryIndex) => ({
+        category,
+        categoryIndex,
+        seriesIndex,
+        seriesLabel: item.label,
+        type: item.type,
+        value: item.values[categoryIndex] ?? 0
+      }))
+    );
+  }, [barSeries, categories, lineSeries]);
+  const keyboardNav = useChartKeyboardNav({
+    items: keyboardItems,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (item, index) =>
+      `${index + 1} of ${keyboardItems.length}: ${item.seriesLabel}, ${item.category}, ${formatTooltipValue(item.value)}.`,
+    getNextIndex: (currentIndex, key, itemCount) => {
+      const categoryCount = Math.max(categories.length, 1);
+      const seriesCount = Math.max(Math.ceil(itemCount / categoryCount), 1);
+      const currentSeries = Math.floor(currentIndex / categoryCount);
+      const currentCategory = currentIndex % categoryCount;
+
+      if (key === 'Home') return currentSeries * categoryCount;
+      if (key === 'End') return currentSeries * categoryCount + categoryCount - 1;
+      if (key === 'ArrowLeft') {
+        return (
+          currentSeries * categoryCount + ((currentCategory - 1 + categoryCount) % categoryCount)
+        );
+      }
+      if (key === 'ArrowRight') {
+        return currentSeries * categoryCount + ((currentCategory + 1) % categoryCount);
+      }
+      if (key === 'ArrowUp') {
+        return ((currentSeries - 1 + seriesCount) % seriesCount) * categoryCount + currentCategory;
+      }
+      if (key === 'ArrowDown') {
+        return ((currentSeries + 1) % seriesCount) * categoryCount + currentCategory;
+      }
+
+      return Math.min(currentIndex, itemCount - 1);
+    },
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
+  });
+  const leftExtent = useMemo(
+    () =>
+      barLayout === 'stacked'
+        ? getStackedExtent(barSeries, categories.length)
+        : getGroupedExtent(barSeries),
+    [barLayout, barSeries, categories.length]
+  );
+  const rightLines = useMemo(
+    () => lineSeries.filter((item) => item.axis === 'right'),
+    [lineSeries]
+  );
+  const rightExtent = useMemo(
+    () => (rightLines.length ? getLineExtent(rightLines) : getLineExtent(lineSeries)),
+    [lineSeries, rightLines]
+  );
+  const leftTicks = useMemo(
+    () =>
+      resolveTickEntries(
+        yAxis,
+        leftExtent.min,
+        leftExtent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [grid?.count, leftExtent.max, leftExtent.min, yAxis]
+  );
+  const rightTicks = useMemo(
+    () =>
+      resolveTickEntries(
+        secondaryYAxis,
+        rightExtent.min,
+        rightExtent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [grid?.count, rightExtent.max, rightExtent.min, secondaryYAxis]
   );
   const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
   const usableCategoryWidth = categoryWidth * (1 - categoryGapRatio);
@@ -177,6 +319,55 @@ export function ComboChart({
         );
   const scaleLeft = createInvertedScale(leftExtent.min, leftExtent.max, plotHeight);
   const zeroY = scaleLeft(0);
+  const lineRenderData = useMemo(
+    () =>
+      showOverlayLine
+        ? lineSeries.map((item) => {
+            const extent = item.axis === 'right' ? rightExtent : leftExtent;
+            const limit = getDownsampleLimit(downsample, 'ComboChart');
+            const indexedData = item.data.map((value, index) => ({ x: index, y: value }));
+            const renderedData =
+              limit && item.data.length > limit ? downsampleLttb(indexedData, limit) : indexedData;
+            const points = buildLinePointsAtIndices(
+              renderedData.map((point) => point.y),
+              renderedData.map((point) => point.x),
+              categories.length,
+              resolvedPlotWidth,
+              plotHeight,
+              extent.min,
+              extent.max,
+              chartTokens.chart.lineXInset
+            );
+            const stroke = item.stroke ?? chartTokens.categorical.secondary;
+            const baseline =
+              chartTokens.chart.lineXInset +
+              createInvertedScale(
+                extent.min,
+                extent.max,
+                plotHeight - chartTokens.chart.lineXInset * 2
+              )(Math.max(extent.min, 0));
+
+            return {
+              item,
+              points,
+              extent,
+              stroke,
+              areaPath: describeAreaPath(points, baseline),
+              linePath: describeLinePath(points)
+            };
+          })
+        : [],
+    [
+      categories.length,
+      downsample,
+      leftExtent,
+      lineSeries,
+      plotHeight,
+      resolvedPlotWidth,
+      rightExtent,
+      showOverlayLine
+    ]
+  );
   const stackedSegmentGap = barLayout === 'stacked' ? 3 : 0;
   const defs: ReactNode[] = [];
   const barLayers: ReactNode[] = [];
@@ -334,30 +525,12 @@ export function ComboChart({
   });
 
   if (showOverlayLine) {
-    lineSeries.forEach((item) => {
-      const extent = item.axis === 'right' ? rightExtent : leftExtent;
-      const points = buildLinePoints(
-        item.data,
-        resolvedPlotWidth,
-        plotHeight,
-        extent.min,
-        extent.max,
-        chartTokens.chart.lineXInset
-      );
-      const stroke = item.stroke ?? chartTokens.categorical.secondary;
-      const baseline =
-        chartTokens.chart.lineXInset +
-        createInvertedScale(
-          extent.min,
-          extent.max,
-          plotHeight - chartTokens.chart.lineXInset * 2
-        )(Math.max(extent.min, 0));
-
+    lineRenderData.forEach(({ item, points, stroke, areaPath, linePath }) => {
       if (item.showAreaFill) {
         lineLayers.push(
           <path
             key={`area-${item.key}`}
-            d={describeAreaPath(points, baseline)}
+            d={areaPath}
             fill={withAlpha(stroke, 0.14)}
             stroke="none"
           />
@@ -367,7 +540,7 @@ export function ComboChart({
       lineLayers.push(
         <path
           key={`line-${item.key}`}
-          d={describeLinePath(points)}
+          d={linePath}
           fill="none"
           stroke={stroke}
           strokeWidth={item.strokeWidth ?? 2}
@@ -402,7 +575,7 @@ export function ComboChart({
               fontFamily={chartTokens.fontFamily}
               fontSize="12"
               fontWeight="600"
-              fill={chartTokens.text.inverse}
+              fill={getAccessibleSeriesTextColor(item.stroke ?? chartTokens.text.default)}
             >
               {formatNumberCompact(point.value)}
             </text>
@@ -412,10 +585,15 @@ export function ComboChart({
     });
   }
 
+  const activeKeyboardItem =
+    keyboardNav.focusedIndex !== null ? keyboardItems[keyboardNav.focusedIndex] : null;
+  const activeIndex = activeKeyboardItem?.categoryIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
   const hoveredBarRows =
-    hoveredIndex !== null
+    activeIndex !== null
       ? barSeries.map((item, index) => {
-          const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, barFillStyle);
+          const resolved = resolveBarDatum(item.data[activeIndex] ?? 0, item, index, barFillStyle);
 
           return {
             label: item.label,
@@ -427,34 +605,48 @@ export function ComboChart({
         })
       : [];
   const hoveredLineRows =
-    hoveredIndex !== null && showOverlayLine
+    activeIndex !== null && showOverlayLine
       ? lineSeries.map((item, index) => ({
           label: item.label,
-          value: formatTooltipValue(item.data[hoveredIndex] ?? 0),
+          value: formatTooltipValue(item.data[activeIndex] ?? 0),
           color: item.stroke ?? chartTokens.categorical.secondary,
           strokeColor: item.stroke ?? chartTokens.categorical.secondary,
           marker: lineLegendItems[index]?.marker
         }))
       : [];
   const hoveredStackTotal =
-    hoveredIndex !== null && barLayout === 'stacked'
+    activeIndex !== null && barLayout === 'stacked'
       ? barSeries.reduce(
           (sum, item, index) =>
-            sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, barFillStyle).value,
+            sum + resolveBarDatum(item.data[activeIndex] ?? 0, item, index, barFillStyle).value,
           0
         )
       : undefined;
   const hoverCardPosition =
-    hoveredIndex !== null && mousePos
-      ? getViewportHoverCardPosition(
-          mousePos.x,
-          mousePos.y,
-          196,
-          getEstimatedHoverCardHeight(
-            hoveredBarRows.length + hoveredLineRows.length,
-            typeof hoveredStackTotal === 'number'
+    activeIndex !== null
+      ? mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(
+              hoveredBarRows.length + hoveredLineRows.length,
+              typeof hoveredStackTotal === 'number'
+            )
           )
-        )
+        : activeKeyboardItem && plotRef.current
+          ? getViewportHoverCardPosition(
+              plotRef.current.getBoundingClientRect().left +
+                activeIndex * categoryWidth +
+                categoryWidth / 2,
+              plotRef.current.getBoundingClientRect().top + plotHeight / 2,
+              196,
+              getEstimatedHoverCardHeight(
+                hoveredBarRows.length + hoveredLineRows.length,
+                typeof hoveredStackTotal === 'number'
+              )
+            )
+          : null
       : null;
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
@@ -497,6 +689,7 @@ export function ComboChart({
                 />
               ) : null}
               <div
+                ref={plotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
@@ -526,15 +719,23 @@ export function ComboChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   <defs>{defs}</defs>
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <>
                       <rect
-                        x={hoveredIndex * categoryWidth}
+                        x={activeIndex * categoryWidth}
                         y={0}
                         width={categoryWidth}
                         height={plotHeight}
@@ -542,9 +743,9 @@ export function ComboChart({
                         opacity={0.38}
                       />
                       <line
-                        x1={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x1={activeIndex * categoryWidth + categoryWidth / 2}
                         y1={0}
-                        x2={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x2={activeIndex * categoryWidth + categoryWidth / 2}
                         y2={plotHeight}
                         stroke={chartTokens.neutral.stoneLight}
                         strokeWidth={1}
@@ -562,40 +763,43 @@ export function ComboChart({
                   />
                   {barLayers}
                   {lineLayers}
-                  {showHoverCard && hoveredIndex !== null && showOverlayLine
-                    ? lineSeries.map((item) => {
-                        const extent = item.axis === 'right' ? rightExtent : leftExtent;
-                        const points = buildLinePoints(
-                          item.data,
+                  {showInteractionFeedback && activeIndex !== null && showOverlayLine
+                    ? lineRenderData.map(({ item, extent, stroke }) => {
+                        const value = item.data[activeIndex];
+
+                        if (!Number.isFinite(value)) {
+                          return null;
+                        }
+
+                        const point = buildLinePointAtIndex(
+                          value,
+                          activeIndex,
+                          categories.length,
                           resolvedPlotWidth,
                           plotHeight,
                           extent.min,
                           extent.max,
                           chartTokens.chart.lineXInset
                         );
-                        const point = points[hoveredIndex];
-
-                        if (!point) {
-                          return null;
-                        }
 
                         return (
                           <circle
-                            key={`hover-point-${item.key}-${hoveredIndex}`}
+                            key={`hover-point-${item.key}-${activeIndex}`}
                             cx={point.x}
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
                             fill={chartTokens.neutral.white}
-                            stroke={item.stroke ?? chartTokens.categorical.secondary}
+                            stroke={stroke}
                             strokeWidth={2}
                           />
                         );
                       })
                     : null}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
-                    title={categories[hoveredIndex]}
+                    title={categories[activeIndex]}
                     rows={[...hoveredBarRows, ...hoveredLineRows]}
                     totalLabel={barLayout === 'stacked' ? 'Bar total' : undefined}
                     totalValue={
@@ -634,4 +838,4 @@ export function ComboChart({
       </div>
     </ChartShell>
   );
-}
+});

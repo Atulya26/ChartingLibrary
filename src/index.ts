@@ -10,6 +10,7 @@ export type {
   BubbleStyle,
   ChartAction,
   ChartActionId,
+  ChartAccessibilityProps,
   ChartHeaderProps,
   ChartLoadingSkeletonProps,
   ChartLoadingType,
@@ -42,6 +43,8 @@ export type {
 } from './types';
 
 export { formatNumberCompact } from './utils/chart';
+export { downsampleLttb } from './utils/downsample';
+export type { DownsamplePoint } from './utils/downsample';
 export { ChartCard } from './components/ChartCard';
 export { ChartHeader } from './components/ChartHeader';
 export { ChartHoverCard } from './components/ChartHoverCard';

@@ -12,9 +12,11 @@ import {
   stackedBarSeries
 } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
+  downsampleArgTypes,
   fillLegendMarkerLabels,
   fillLegendMarkerOptions,
   fillStyleLabels,
@@ -113,7 +115,9 @@ const meta = {
     secondaryYAxis: advancedDataArg(
       'Advanced right-axis config. Hidden from controls for a cleaner UX.'
     ),
-    grid: advancedDataArg('Advanced grid config for code-level tuning.')
+    grid: advancedDataArg('Advanced grid config for code-level tuning.'),
+    ...downsampleArgTypes,
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof ComboChart>;
 

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { memo, useId } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import type { DonutSegment } from '../types';
@@ -13,7 +13,7 @@ export interface DonutRingProps {
   showOutsideLabels?: boolean;
 }
 
-export function DonutRing({
+export const DonutRing = memo(function DonutRing({
   segments,
   size = 150,
   thickness = 16,
@@ -126,4 +126,4 @@ export function DonutRing({
       ) : null}
     </svg>
   );
-}
+});

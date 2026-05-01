@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
-import type { LegendPosition, PointerScaleRange, ChartHeaderProps } from '../types';
+import type {
+  ChartAccessibilityProps,
+  LegendPosition,
+  PointerScaleRange,
+  ChartHeaderProps
+} from '../types';
 import {
   clamp,
   formatTooltipValue,
@@ -11,8 +16,15 @@ import {
   getViewportHoverCardPosition,
   getPointerScaleStops
 } from '../chartUtils';
+import {
+  ChartLiveRegion,
+  ChartRoleA11yContent,
+  describeSingleValueChart,
+  getChartA11yContent
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
-export interface PointerScaleProps extends ChartHeaderProps {
+export interface PointerScaleProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   value: number;
@@ -36,7 +48,7 @@ const defaultScaleRanges: PointerScaleRange[] = [
   { from: 70, to: 100, color: chartTokens.sequential.default.darker, label: 'High' }
 ];
 
-export function PointerScale({
+export const PointerScale = memo(function PointerScale({
   title = 'Pointer Scale',
   description,
   value,
@@ -52,59 +64,128 @@ export function PointerScale({
   ranges = defaultScaleRanges,
   centerLabel,
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: PointerScaleProps) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const stops = getPointerScaleStops(ranges);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const a11yId = useMemo(() => title.replace(/\W+/g, '-').toLowerCase(), [title]);
+  const a11yTitleId = `${a11yId || 'pointer-scale'}-title`;
+  const a11yDescriptionId = `${a11yId || 'pointer-scale'}-description`;
+  const stops = useMemo(() => getPointerScaleStops(ranges), [ranges]);
   const clampedValue = clamp(value, min, max);
   const clampedTarget = typeof target === 'number' ? clamp(target, min, max) : undefined;
-  const activeRange =
-    ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
-    ranges[ranges.length - 1];
-  const hoverRows = [
-    {
-      label: 'Current',
-      value: centerLabel ?? formatTooltipValue(clampedValue),
-      color: activeRange.color,
-      marker: 'solid' as const
-    },
-    {
-      label: 'Band',
-      value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
-      color: activeRange.color,
-      marker: 'solid' as const
-    },
-    ...(typeof clampedTarget === 'number'
-      ? [
-          {
-            label: 'Target',
-            value: formatTooltipValue(clampedTarget)
-          }
-        ]
-      : []),
-    {
-      label: 'Scale',
-      value: `${min} - ${max}`
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeSingleValueChart({
+          chartType: 'Pointer scale',
+          value: clampedValue,
+          min,
+          max
+        })
+      }),
+    [ariaDescription, ariaLabel, clampedValue, description, max, min, title]
+  );
+  const keyboardNav = useChartKeyboardNav({
+    items: ranges,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (range, index) =>
+      `${index + 1} of ${ranges.length}: ${range.label ?? `${range.from} to ${range.to}`}. Current value ${formatTooltipValue(clampedValue)}.`,
+    onDismiss: () => {
+      setHovered(false);
+      setMousePos(null);
     }
-  ];
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(
+  });
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const activeRange = useMemo(
+    () =>
+      ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
+      ranges[ranges.length - 1],
+    [clampedValue, ranges]
+  );
+  const hoverRows = useMemo(
+    () => [
+      {
+        label: 'Current',
+        value: centerLabel ?? formatTooltipValue(clampedValue),
+        color: activeRange.color,
+        marker: 'solid' as const
+      },
+      {
+        label: 'Band',
+        value: activeRange.label ?? `${activeRange.from}-${activeRange.to}`,
+        color: activeRange.color,
+        marker: 'solid' as const
+      },
+      ...(typeof clampedTarget === 'number'
+        ? [
+            {
+              label: 'Target',
+              value: formatTooltipValue(clampedTarget)
+            }
+          ]
+        : []),
+      {
+        label: 'Scale',
+        value: `${min} - ${max}`
+      }
+    ],
+    [
+      activeRange.color,
+      activeRange.from,
+      activeRange.label,
+      activeRange.to,
+      centerLabel,
+      clampedTarget,
+      clampedValue,
+      max,
+      min
+    ]
+  );
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(
         mousePos.x,
         mousePos.y,
         196,
         getEstimatedHoverCardHeight(hoverRows.length)
-      )
-    : null;
+      );
+    }
 
-  const legendItems = showLegend
-    ? ranges.map((range) => ({
-        label: range.label ?? `${range.from}-${range.to}`,
-        marker: 'solid' as const,
-        color: range.color,
-        active: true
-      }))
-    : [];
+    if (keyboardNav.focusedIndex === null || !containerRef.current) {
+      return null;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + rect.width / 2,
+      rect.top + 36,
+      196,
+      getEstimatedHoverCardHeight(hoverRows.length)
+    );
+  }, [hoverRows.length, keyboardNav.focusedIndex, mousePos]);
+
+  const legendItems = useMemo(
+    () =>
+      showLegend
+        ? ranges.map((range) => ({
+            label: range.label ?? `${range.from}-${range.to}`,
+            marker: 'solid' as const,
+            color: range.color,
+            active: true
+          }))
+        : [],
+    [ranges, showLegend]
+  );
 
   return (
     <ChartShell
@@ -118,8 +199,18 @@ export function PointerScale({
       legendPosition={legendPosition}
       {...headerProps}
     >
+      {/* Chart inspection uses one focus target with role=img; arrow-key behavior is opt-in. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
+        ref={containerRef}
         className="cl-chart-pointer"
+        role="img"
+        aria-labelledby={a11yTitleId}
+        aria-describedby={a11yDescriptionId}
+        {...(enableKeyboardNavigation ? { tabIndex: 0 } : {})}
+        onKeyDown={keyboardNav.handlers.onKeyDown}
+        onFocus={keyboardNav.handlers.onFocus}
+        onBlur={keyboardNav.handlers.onBlur}
         style={{ position: 'relative' }}
         onMouseMove={
           showHoverCard
@@ -138,6 +229,13 @@ export function PointerScale({
             : undefined
         }
       >
+        <ChartRoleA11yContent
+          labelId={a11yTitleId}
+          descriptionId={a11yDescriptionId}
+          label={a11yContent.label}
+          description={a11yContent.description}
+        />
+        <ChartLiveRegion announcement={keyboardNav.announcement} />
         <div className="cl-chart-pointer__value">
           {centerLabel ?? `${Math.round(clampedValue)}`}
         </div>
@@ -190,7 +288,7 @@ export function PointerScale({
           <span>{min}</span>
           <span>{max}</span>
         </div>
-        {showHoverCard && hovered ? (
+        {showInteractionFeedback && (hovered || showKeyboardFeedback) ? (
           <ChartHoverCard
             title={title}
             rows={hoverRows}
@@ -201,4 +299,4 @@ export function PointerScale({
       </div>
     </ChartShell>
   );
-}
+});

@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - milestone/performance-a11y
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

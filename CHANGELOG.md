@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chromatic workflow scaffolding for visual regression review.
 - Manual release workflow scaffold for validated npm publishes.
 - Contribution guide, pull request template, Dependabot config, and branch-protection checklist.
+- Shared accessibility props for chart graphics: `ariaLabel`, `ariaDescription`, and opt-in
+  `enableKeyboardNavigation`.
+- Keyboard data-item navigation, live screen-reader announcements, and focus-driven hover cards for
+  charts with `enableKeyboardNavigation`.
+- Axe accessibility checks in CI through the Storybook test runner.
+- WCAG AA color contrast audit documentation for the default chart tokens.
+- Optional `downsample` prop on `LineChart`, `Sparkline`, and `ComboChart` line
+  series. Uses LTTB to preserve visual shape, stays off by default, and keeps
+  hover and keyboard interactions on the original dataset.
+- Public `downsampleLttb` utility for upstream line-data preprocessing.
+- Large-data Storybook stress stories for raw and downsampled line-like charts.
+
+### Changed
+
+- Memoized chart and primitive exports for re-render avoidance. Pass stable data and config
+  references for the optimization to take effect.
+- Memoized derived line, sparkline, and Sankey calculations so stable chart props avoid
+  rebuilding paths, ticks, legends, gradients, and hover geometry.
+- Memoized remaining chart-derived work across bar, combo, donut, half-donut,
+  histogram, and pointer scale internals where it can be done without visual changes.
+- Optimized MapBubbleChart projection, geography paths, bubble render data, and rAF-coalesced
+  drag and hover updates for smoother map interaction.
+- Honored `prefers-reduced-motion` across loading skeleton animation and inline chart hover
+  transitions.
 
 ## 2026-04-30
 

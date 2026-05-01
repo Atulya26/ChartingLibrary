@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { CSSProperties } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -19,7 +20,7 @@ interface LegendMarkerProps {
   active?: boolean;
 }
 
-export function LegendMarker({
+export const LegendMarker = memo(function LegendMarker({
   color,
   strokeColor,
   marker = 'solid',
@@ -84,9 +85,14 @@ export function LegendMarker({
       )}
     </svg>
   );
-}
+});
 
-export function Legend({ items, title, orientation = 'horizontal', className }: LegendProps) {
+export const Legend = memo(function Legend({
+  items,
+  title,
+  orientation = 'horizontal',
+  className
+}: LegendProps) {
   return (
     <div className={cx('cl-legend', orientation === 'stacked' && 'cl-legend--stacked', className)}>
       {title ? <p className="cl-legend__title">{title}</p> : null}
@@ -108,4 +114,4 @@ export function Legend({ items, title, orientation = 'horizontal', className }: 
       </div>
     </div>
   );
-}
+});

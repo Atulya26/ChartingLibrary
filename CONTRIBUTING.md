@@ -27,6 +27,7 @@ npm run lint
 npm run format:check
 npm run build
 npm run build-storybook
+npm run test-storybook
 npm run size
 ```
 
@@ -73,3 +74,54 @@ After the Stability Foundation milestone lands, configure GitHub branch protecti
 - [ ] Pull request visual diffs are blocking after baseline approval
 - [ ] `0.1.5` published through the `Manual Release` workflow
 - [ ] `CONTRIBUTING.md` reviewed by someone other than the author
+
+## Performance & A11y Patterns
+
+Milestone 2 work should preserve existing chart visuals by default. Accessibility
+interaction states are opt-in until the team explicitly changes that contract.
+
+Performance patterns:
+
+- Measure before optimizing. Update `docs/perf-baseline.md` with the exact machine,
+  browser, throttling setting, run count, and averaged result.
+- Use deterministic Storybook data. Stress stories should import from
+  `src/stories/seededData.ts`; do not use `Math.random()` in stories.
+- Memoize bottom-up: primitives first, then derived props and layout values, then chart
+  containers.
+- Keep consumer data references stable. Prefer data stored in state, loaded from a query
+  cache, or wrapped in `useMemo` in the consuming app.
+- Do not memoize tooltip position wrappers, mousemove-only hover layers, or tiny wrappers
+  that render once per parent render.
+- Use an rAF coalescing helper for high-frequency handlers: latest event wins, the work
+  runs on the next animation frame.
+
+Accessibility patterns:
+
+- Keyboard chart inspection must be enabled by the explicit `enableKeyboardNavigation`
+  prop. The default remains `false` so existing chart behavior and visuals do not change
+  unexpectedly.
+- `ariaLabel` and `ariaDescription` can be available without enabling keyboard
+  interaction because screen readers still need chart context.
+- Use one focus target per chart when keyboard navigation is enabled. Arrow keys cycle
+  through data points; `Tab` leaves the chart; `Escape` dismisses the tooltip.
+- Keep live regions persistent at the chart root. Do not mount `aria-live` inside a tooltip
+  that appears and disappears.
+- Generate ARIA IDs with React `useId()`. Do not hand-roll counters or reuse chart titles
+  as IDs.
+- Focus styling should use existing tokens and `:focus-visible` so pointer users do not see
+  unexpected rings.
+
+Accessibility validation:
+
+- `npm run test-storybook` runs axe through Storybook and fails CI on serious or critical
+  WCAG 2.1 A/AA violations.
+- Moderate or minor axe findings may be documented in `docs/a11y-audit.md` when fixing them
+  would require visual redesign.
+- Before merging an accessibility-affecting pull request, manually verify on macOS Safari +
+  VoiceOver at minimum:
+  - [ ] Tab into BarChart, arrow through bars, and hear value announcements.
+  - [ ] Tab into LineChart, use ArrowUp/ArrowDown to switch series, and hear the active point.
+  - [ ] Tab into DonutChart, arrow through segments, and hear segment/share information.
+  - [ ] Tab into MapBubbleChart, arrow through bubbles, and see the hover card follow focus.
+  - [ ] `Escape` dismisses any visible tooltip.
+  - [ ] No chart creates a keyboard trap.

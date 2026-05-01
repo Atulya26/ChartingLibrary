@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { PointerScale } from '../charts/PointerScale';
 import { pointerRanges } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   hiddenEventArgTypes,
@@ -37,7 +38,8 @@ const meta = {
     target: rangeArg('Optional target marker value.', 'Data', { min: 0, max: 100, step: 1 }),
     min: numberArg('Minimum scale value.', 'Data', { min: -100, max: 100, step: 1 }),
     max: numberArg('Maximum scale value.', 'Data', { min: 1, max: 200, step: 1 }),
-    showHoverCard: hoverCardArg()
+    showHoverCard: hoverCardArg(),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof PointerScale>;
 

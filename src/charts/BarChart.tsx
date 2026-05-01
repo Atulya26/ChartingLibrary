@@ -1,11 +1,11 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, memo, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
 import { chartTokens } from '../theme/tokens';
 import { formatNumberCompact } from '../utils/chart';
-import { withAlpha } from '../utils/color';
+import { getAccessibleTextColor, withAlpha } from '../utils/color';
 import { ChartHoverCard } from '../components/ChartHoverCard';
 import { ChartShell } from '../components/ChartShell';
 import type {
@@ -16,6 +16,7 @@ import type {
   GridConfig,
   LegendPosition,
   LegendMarkerMode,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
@@ -36,8 +37,18 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartLiveRegion,
+  ChartSvgA11y,
+  ChartRoleA11yContent,
+  describeCategoricalChart,
+  describeSegmentChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
 
-export interface BarChartProps extends ChartHeaderProps {
+export interface BarChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   categories?: string[];
@@ -117,7 +128,7 @@ function describeRoundedRectPath(
   ].join(' ');
 }
 
-export function BarChart({
+export const BarChart = memo(function BarChart({
   title = 'Bar Chart',
   description,
   categories = [],
@@ -145,30 +156,144 @@ export function BarChart({
   fillStyle = 'inherit',
   legendMarker = 'auto',
   showHoverCard = false,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: BarChartProps) {
   const svgId = useId().replace(/:/g, '');
+  const a11yTitleId = `${svgId}-title`;
+  const a11yDescriptionId = `${svgId}-description`;
   const stackedSegmentGap = layout === 'stacked' ? 3 : 0;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredDistributionIndex, setHoveredDistributionIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const resolvedPlotWidth = resolveResponsivePlotWidth(
-    width,
-    plotWidth,
-    mode === 'vertical' ? 414 : 454,
-    mode === 'vertical' ? 88 : 48
+  const distributionRef = useRef<HTMLDivElement>(null);
+  const horizontalFrameRef = useRef<HTMLDivElement>(null);
+  const verticalPlotRef = useRef<HTMLDivElement>(null);
+  const resolvedPlotWidth = useMemo(
+    () =>
+      resolveResponsivePlotWidth(
+        width,
+        plotWidth,
+        mode === 'vertical' ? 414 : 454,
+        mode === 'vertical' ? 88 : 48
+      ),
+    [mode, plotWidth, width]
   );
-  const resolvedDistributionSegments = distributionSegments?.length
-    ? distributionSegments
-    : (series[0]?.data.map((datum, index) => {
-        const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
+  const resolvedDistributionSegments = useMemo(
+    () =>
+      distributionSegments?.length
+        ? distributionSegments
+        : (series[0]?.data.map((datum, index) => {
+            const resolved = resolveBarDatum(datum, series[0], index, fillStyle);
 
-        return {
-          label: categories[index] ?? series[0].label,
-          value: resolved.value,
-          fill: resolved.fill
-        };
-      }) ?? []);
+            return {
+              label: categories[index] ?? series[0].label,
+              value: resolved.value,
+              fill: resolved.fill
+            };
+          }) ?? []),
+    [categories, distributionSegments, fillStyle, series]
+  );
+  const legendItems = useMemo(
+    () =>
+      showLegend ? buildLegendItemsFromBarSeriesWithOverrides(series, fillStyle, legendMarker) : [],
+    [fillStyle, legendMarker, series, showLegend]
+  );
+  const extent = useMemo(
+    () =>
+      layout === 'stacked' ? getStackedExtent(series, categories.length) : getGroupedExtent(series),
+    [categories.length, layout, series]
+  );
+  const tickEntries = useMemo(
+    () =>
+      resolveTickEntries(
+        yAxis,
+        extent.min,
+        extent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [extent.max, extent.min, grid?.count, yAxis]
+  );
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription:
+          mode === 'distribution'
+            ? describeSegmentChart({
+                chartType: 'Distribution bar chart',
+                segments: resolvedDistributionSegments
+              })
+            : describeCategoricalChart({
+                chartType: layout === 'stacked' ? 'Stacked bar chart' : 'Grouped bar chart',
+                categories,
+                series: series.map((item) => ({
+                  label: item.label,
+                  values: item.data.map((datum) =>
+                    typeof datum === 'number' ? datum : datum.value
+                  )
+                }))
+              })
+      }),
+    [
+      ariaDescription,
+      ariaLabel,
+      categories,
+      description,
+      layout,
+      mode,
+      resolvedDistributionSegments,
+      series,
+      title
+    ]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
+  });
+  const keyboardItems = useMemo(
+    () =>
+      mode === 'distribution'
+        ? resolvedDistributionSegments.map((segment) => ({
+            label: segment.label,
+            value: segment.value
+          }))
+        : categories.map((category, categoryIndex) => ({
+            label: category,
+            value: series.reduce(
+              (sum, item, seriesIndex) =>
+                sum +
+                resolveBarDatum(item.data[categoryIndex] ?? 0, item, seriesIndex, fillStyle).value,
+              0
+            )
+          })),
+    [categories, fillStyle, mode, resolvedDistributionSegments, series]
+  );
+  const keyboardNav = useChartKeyboardNav({
+    items: keyboardItems,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (item, index) =>
+      `${index + 1} of ${keyboardItems.length}: ${item.label}, ${formatTooltipValue(item.value)}.`,
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setHoveredDistributionIndex(null);
+      setMousePos(null);
+    }
+  });
+  const activeDistributionIndex =
+    mode === 'distribution'
+      ? (keyboardNav.focusedIndex ?? hoveredDistributionIndex)
+      : hoveredDistributionIndex;
+  const activeBarIndex =
+    mode !== 'distribution' ? (keyboardNav.focusedIndex ?? hoveredIndex) : hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
 
   /* ---------- Distribution band mode ---------- */
   if (mode === 'distribution' && resolvedDistributionSegments.length) {
@@ -182,13 +307,22 @@ export function BarChart({
       active: true
     }));
     const hoveredSegment =
-      hoveredDistributionIndex !== null
-        ? resolvedDistributionSegments[hoveredDistributionIndex]
+      activeDistributionIndex !== null
+        ? resolvedDistributionSegments[activeDistributionIndex]
         : null;
     const hoveredDistributionCardHeight = getEstimatedHoverCardHeight(1, true);
     const hoveredDistributionPosition = mousePos
       ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoveredDistributionCardHeight)
-      : null;
+      : activeDistributionIndex !== null && distributionRef.current
+        ? getViewportHoverCardPosition(
+            distributionRef.current.getBoundingClientRect().left +
+              (activeDistributionIndex + 0.5) *
+                (resolvedPlotWidth / Math.max(resolvedDistributionSegments.length, 1)),
+            distributionRef.current.getBoundingClientRect().top + barHeight / 2,
+            196,
+            hoveredDistributionCardHeight
+          )
+        : null;
 
     return (
       <ChartShell
@@ -202,7 +336,25 @@ export function BarChart({
         legendPosition={legendPosition}
         {...headerProps}
       >
-        <div style={{ padding: '4px 0', position: 'relative', width: resolvedPlotWidth }}>
+        {/* Chart inspection uses one focus target with role=img; arrow-key behavior is opt-in. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+        <div
+          ref={distributionRef}
+          role="img"
+          aria-labelledby={a11yTitleId}
+          aria-describedby={a11yDescriptionId}
+          {...(enableKeyboardNavigation ? { tabIndex: 0 } : {})}
+          onKeyDown={keyboardNav.handlers.onKeyDown}
+          onFocus={keyboardNav.handlers.onFocus}
+          onBlur={keyboardNav.handlers.onBlur}
+          style={{ padding: '4px 0', position: 'relative', width: resolvedPlotWidth }}
+        >
+          <ChartRoleA11yContent
+            labelId={a11yTitleId}
+            descriptionId={a11yDescriptionId}
+            label={a11yContent.label}
+            description={a11yContent.description}
+          />
           <div
             style={{
               display: 'flex',
@@ -249,7 +401,7 @@ export function BarChart({
                     borderRadius: chartTokens.radii.bar,
                     boxShadow: `inset 0 0 0 1px ${stroke ?? withAlpha(chartTokens.neutral.white, 0.35)}`,
                     opacity:
-                      hoveredDistributionIndex === null || hoveredDistributionIndex === i ? 1 : 0.78
+                      activeDistributionIndex === null || activeDistributionIndex === i ? 1 : 0.78
                   }}
                 >
                   {percent > 0.08 && (
@@ -257,7 +409,7 @@ export function BarChart({
                       style={{
                         fontSize: '12px',
                         fontWeight: 600,
-                        color: chartTokens.text.inverse,
+                        color: getAccessibleTextColor(color),
                         fontFamily: chartTokens.fontFamily
                       }}
                     >
@@ -315,7 +467,8 @@ export function BarChart({
               ))}
             </div>
           )}
-          {showHoverCard && hoveredSegment ? (
+          <ChartLiveRegion announcement={keyboardNav.announcement} />
+          {showInteractionFeedback && hoveredSegment ? (
             <ChartHoverCard
               title={hoveredSegment.label}
               rows={[
@@ -324,7 +477,7 @@ export function BarChart({
                   value: `${Math.round((hoveredSegment.value / Math.max(total, 1)) * 100)}%`,
                   color:
                     hoveredSegment.fill ??
-                    chartTokens.categorical.axisPalette[hoveredDistributionIndex ?? 0].fill,
+                    chartTokens.categorical.axisPalette[activeDistributionIndex ?? 0].fill,
                   marker: 'solid'
                 }
               ]}
@@ -338,18 +491,6 @@ export function BarChart({
       </ChartShell>
     );
   }
-
-  const legendItems = showLegend
-    ? buildLegendItemsFromBarSeriesWithOverrides(series, fillStyle, legendMarker)
-    : [];
-  const extent =
-    layout === 'stacked' ? getStackedExtent(series, categories.length) : getGroupedExtent(series);
-  const tickEntries = resolveTickEntries(
-    yAxis,
-    extent.min,
-    extent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
-  );
 
   if (mode === 'horizontal') {
     const labelWidth = Math.min(
@@ -494,7 +635,7 @@ export function BarChart({
                 fill={
                   resolved.fill === chartTokens.neutral.surfaceTint
                     ? chartTokens.text.default
-                    : chartTokens.text.inverse
+                    : getAccessibleTextColor(resolved.fill)
                 }
               >
                 {formatNumberCompact(resolved.value)}
@@ -587,9 +728,14 @@ export function BarChart({
     });
 
     const hoveredRows =
-      hoveredIndex !== null
+      activeBarIndex !== null
         ? series.map((item, index) => {
-            const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle);
+            const resolved = resolveBarDatum(
+              item.data[activeBarIndex] ?? 0,
+              item,
+              index,
+              fillStyle
+            );
 
             return {
               label: item.label,
@@ -601,21 +747,37 @@ export function BarChart({
           })
         : [];
     const hoveredStackTotal =
-      hoveredIndex !== null && layout === 'stacked'
+      activeBarIndex !== null && layout === 'stacked'
         ? series.reduce(
             (sum, item, index) =>
-              sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle).value,
+              sum + resolveBarDatum(item.data[activeBarIndex] ?? 0, item, index, fillStyle).value,
             0
           )
         : undefined;
     const hoverCardPosition =
-      hoveredIndex !== null && mousePos
-        ? getViewportHoverCardPosition(
-            mousePos.x,
-            mousePos.y,
-            196,
-            getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
-          )
+      activeBarIndex !== null
+        ? mousePos
+          ? getViewportHoverCardPosition(
+              mousePos.x,
+              mousePos.y,
+              196,
+              getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
+            )
+          : keyboardNav.focusedIndex !== null && horizontalFrameRef.current
+            ? getViewportHoverCardPosition(
+                horizontalFrameRef.current.getBoundingClientRect().left +
+                  labelWidth +
+                  horizontalPlotWidth / 2,
+                horizontalFrameRef.current.getBoundingClientRect().top +
+                  activeBarIndex * categoryHeight +
+                  categoryHeight / 2,
+                196,
+                getEstimatedHoverCardHeight(
+                  hoveredRows.length,
+                  typeof hoveredStackTotal === 'number'
+                )
+              )
+            : null
         : null;
 
     return (
@@ -632,6 +794,7 @@ export function BarChart({
       >
         <div className="cl-horizontal-bar-chart" style={{ width: resolvedPlotWidth }}>
           <div
+            ref={horizontalFrameRef}
             className="cl-horizontal-bar-chart__frame"
             style={{ width: resolvedPlotWidth, height: horizontalFrameHeight }}
             onMouseMove={
@@ -673,10 +836,18 @@ export function BarChart({
               width={resolvedPlotWidth}
               height={horizontalFrameHeight}
               viewBox={`0 0 ${resolvedPlotWidth} ${horizontalFrameHeight}`}
-              role="img"
-              aria-label={title}
+              {...chartA11yProps}
+              onKeyDown={keyboardNav.handlers.onKeyDown}
+              onFocus={keyboardNav.handlers.onFocus}
+              onBlur={keyboardNav.handlers.onBlur}
               style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
             >
+              <ChartSvgA11y
+                titleId={a11yTitleId}
+                descriptionId={a11yDescriptionId}
+                label={a11yContent.label}
+                description={a11yContent.description}
+              />
               <defs>{defs}</defs>
               <g transform={`translate(${labelWidth} 0)`}>
                 {(grid?.show ?? true)
@@ -695,10 +866,10 @@ export function BarChart({
                       );
                     })
                   : null}
-                {showHoverCard && hoveredIndex !== null ? (
+                {showInteractionFeedback && activeBarIndex !== null ? (
                   <rect
                     x={0}
-                    y={hoveredIndex * categoryHeight}
+                    y={activeBarIndex * categoryHeight}
                     width={horizontalPlotWidth}
                     height={categoryHeight}
                     fill={chartTokens.neutral.surfaceTint}
@@ -747,9 +918,10 @@ export function BarChart({
                 );
               })}
             </div>
-            {showHoverCard && hoveredIndex !== null ? (
+            <ChartLiveRegion announcement={keyboardNav.announcement} />
+            {showInteractionFeedback && activeBarIndex !== null ? (
               <ChartHoverCard
-                title={categories[hoveredIndex]}
+                title={categories[activeBarIndex]}
                 rows={hoveredRows}
                 totalLabel={layout === 'stacked' ? 'Bar total' : undefined}
                 totalValue={
@@ -893,7 +1065,7 @@ export function BarChart({
                 resolved.value,
                 resolved.fill === chartTokens.neutral.surfaceTint
                   ? chartTokens.text.default
-                  : chartTokens.text.inverse
+                  : getAccessibleTextColor(resolved.fill)
               )}
             </Fragment>
           );
@@ -963,9 +1135,9 @@ export function BarChart({
   });
 
   const hoveredRows =
-    hoveredIndex !== null
+    activeBarIndex !== null
       ? series.map((item, index) => {
-          const resolved = resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle);
+          const resolved = resolveBarDatum(item.data[activeBarIndex] ?? 0, item, index, fillStyle);
 
           return {
             label: item.label,
@@ -977,21 +1149,32 @@ export function BarChart({
         })
       : [];
   const hoveredStackTotal =
-    hoveredIndex !== null && layout === 'stacked'
+    activeBarIndex !== null && layout === 'stacked'
       ? series.reduce(
           (sum, item, index) =>
-            sum + resolveBarDatum(item.data[hoveredIndex] ?? 0, item, index, fillStyle).value,
+            sum + resolveBarDatum(item.data[activeBarIndex] ?? 0, item, index, fillStyle).value,
           0
         )
       : undefined;
   const hoverCardPosition =
-    hoveredIndex !== null && mousePos
-      ? getViewportHoverCardPosition(
-          mousePos.x,
-          mousePos.y,
-          196,
-          getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
-        )
+    activeBarIndex !== null
+      ? mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            196,
+            getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
+          )
+        : keyboardNav.focusedIndex !== null && verticalPlotRef.current
+          ? getViewportHoverCardPosition(
+              verticalPlotRef.current.getBoundingClientRect().left +
+                activeBarIndex * categoryWidth +
+                categoryWidth / 2,
+              verticalPlotRef.current.getBoundingClientRect().top + plotHeight / 2,
+              196,
+              getEstimatedHoverCardHeight(hoveredRows.length, typeof hoveredStackTotal === 'number')
+            )
+          : null
       : null;
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
@@ -1034,6 +1217,7 @@ export function BarChart({
                 />
               ) : null}
               <div
+                ref={verticalPlotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
                 onMouseMove={
                   showHoverCard
@@ -1063,14 +1247,22 @@ export function BarChart({
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   <defs>{defs}</defs>
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showInteractionFeedback && activeBarIndex !== null ? (
                     <rect
-                      x={hoveredIndex * categoryWidth}
+                      x={activeBarIndex * categoryWidth}
                       y={0}
                       width={categoryWidth}
                       height={plotHeight}
@@ -1089,9 +1281,10 @@ export function BarChart({
                   {marks}
                   {labels}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showInteractionFeedback && activeBarIndex !== null ? (
                   <ChartHoverCard
-                    title={categories[hoveredIndex]}
+                    title={categories[activeBarIndex]}
                     rows={hoveredRows}
                     totalLabel={layout === 'stacked' ? 'Total' : undefined}
                     totalValue={
@@ -1121,4 +1314,4 @@ export function BarChart({
       </div>
     </ChartShell>
   );
-}
+});

@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { SankeyChart } from '../charts/SankeyChart';
 import { edFlowLinks, edFlowNodes, revenueFlowLinks, revenueFlowNodes } from './storyData';
 import {
+  accessibilityArgTypes,
   advancedDataArg,
   baseDocNote,
   booleanArg,
@@ -124,7 +125,8 @@ const meta = {
       min: 160,
       max: 520,
       step: 10
-    })
+    }),
+    ...accessibilityArgTypes
   }
 } satisfies Meta<typeof SankeyChart>;
 

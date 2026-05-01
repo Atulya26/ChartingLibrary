@@ -133,6 +133,89 @@ const series = [
 
 This adapter-style approach keeps CSV parsing outside the chart renderer and makes the same chart usable with backend API responses.
 
+## Accessibility
+
+Every chart graphic includes a generated accessible title and description. You can override them
+when product language needs to be more specific:
+
+```tsx
+<LineChart
+  title="Average PMPM Trend"
+  ariaLabel="Average PMPM trend over four quarters"
+  ariaDescription="Line chart showing current PMPM, projected PMPM, and target values."
+  categories={['Q1', 'Q2', 'Q3', 'Q4']}
+  series={series}
+/>
+```
+
+Keyboard inspection is intentionally opt-in so existing chart visuals and tab order do not change by
+default. Enable it per chart when you want keyboard users to inspect marks, segments, bubbles, and
+nodes:
+
+```tsx
+<BarChart
+  enableKeyboardNavigation
+  title="Revenue by payer"
+  categories={categories}
+  series={series}
+/>
+```
+
+Keyboard behavior:
+
+| Key                          | Action                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `Tab`                        | Focus the chart, then leave naturally on the next tab stop                 |
+| `Arrow Left` / `Arrow Right` | Move to the previous or next data item                                     |
+| `Arrow Up` / `Arrow Down`    | Move across series in multi-series charts; otherwise previous or next item |
+| `Home` / `End`               | Jump to the first or last item in the current series                       |
+| `Enter` / `Space`            | Trigger the chart item click callback when one exists                      |
+| `Escape`                     | Clear keyboard focus state and dismiss the hover card                      |
+
+Focused chart items reuse the same hover-card behavior and visual treatment as pointer hover. The
+library also honors `prefers-reduced-motion` for chart loading and hover transitions.
+
+The default palette and text tokens have been audited for the current chart backgrounds. If you pass
+custom colors, keep text at WCAG AA `4.5:1` contrast and graphical marks at `3:1` contrast against
+the chart background. See [`docs/a11y-audit.md`](./docs/a11y-audit.md) for the current audit notes.
+
+## Performance
+
+Most dashboard-sized charts render smoothly with typical product datasets. For larger line-like
+datasets, `LineChart`, `ComboChart`, and `Sparkline` accept an opt-in `downsample` prop that uses
+LTTB to preserve the visual shape while rendering fewer points.
+
+```tsx
+<LineChart
+  title="Daily PMPM Trend"
+  categories={categories} // 10,000 labels
+  series={series} // one or more 10,000-point series
+  downsample={1000} // render at most 1,000 points per line series
+/>
+```
+
+Recommended values are usually `2x` to `4x` the chart's pixel width. For example, an `800px`-wide
+chart generally looks good with `downsample={1500}` to `downsample={3000}`. Lower values can be
+useful for dense dashboards, but may remove subtle local movement.
+
+Downsampling is off by default. When `downsample` is omitted, charts render the original data. When
+the data already has fewer points than the requested limit, the original array is passed through
+unchanged. Hover cards and keyboard navigation continue to use the original full dataset;
+downsampling only affects rendered line geometry.
+
+LTTB expects data sorted by x ascending. The built-in chart integrations use the array index as x, so
+the current chart API is already sorted. If you use the utility directly with custom `{ x, y }`
+points, sort first. LTTB preserves visual shape; it is not a statistical aggregation method for
+means, medians, or percentiles.
+
+You can also use the utility upstream:
+
+```tsx
+import { downsampleLttb } from '@atulya_26/charting-library';
+
+const compact = downsampleLttb(rawPoints, 1000);
+```
+
 ## Chart States
 
 Use chart states when data is loading, unavailable, or failed:

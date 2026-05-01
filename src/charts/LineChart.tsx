@@ -1,5 +1,5 @@
-import { Fragment, useId, useState } from 'react';
-import type { ReactNode } from 'react';
+import { Fragment, memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
 import { GridLines } from '../primitives/GridLines';
@@ -13,11 +13,13 @@ import type {
   LegendPosition,
   LineSeriesConfig,
   ReferenceLine,
+  ChartAccessibilityProps,
   ChartHeaderProps
 } from '../types';
 import {
   buildLegendItemsFromLineSeries,
-  buildLinePoints,
+  buildLinePointAtIndex,
+  buildLinePointsAtIndices,
   buildReferenceLegend,
   createInvertedScale,
   describeAreaPath,
@@ -31,8 +33,21 @@ import {
   resolveResponsivePlotWidth,
   resolveTickEntries
 } from '../chartUtils';
+import {
+  ChartLiveRegion,
+  ChartSvgA11y,
+  describeCategoricalChart,
+  getChartA11yContent,
+  getChartA11yProps
+} from '../utils/a11y';
+import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import {
+  downsampleLttb,
+  getDownsampleLimit,
+  warnForLargeUndownsampledDataset
+} from '../utils/downsample';
 
-export interface LineChartProps extends ChartHeaderProps {
+export interface LineChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
   description?: string;
   categories: string[];
@@ -51,6 +66,8 @@ export interface LineChartProps extends ChartHeaderProps {
   grid?: GridConfig;
   referenceLines?: ReferenceLine[];
   showHoverCard?: boolean;
+  /** Max points to render per series. Uses LTTB to preserve visual shape. Off by default. */
+  downsample?: number;
 }
 
 function getSeriesExtent(series: LineSeriesConfig[], extraValues: number[] = []) {
@@ -76,7 +93,7 @@ function getSeriesExtent(series: LineSeriesConfig[], extraValues: number[] = [])
   return { min, max };
 }
 
-export function LineChart({
+export const LineChart = memo(function LineChart({
   title = 'Line Chart',
   description,
   categories,
@@ -95,170 +112,383 @@ export function LineChart({
   grid,
   referenceLines = [],
   showHoverCard = false,
+  downsample,
+  ariaLabel,
+  ariaDescription,
+  enableKeyboardNavigation = false,
   ...headerProps
 }: LineChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const gradientBaseId = useId().replace(/:/g, '');
-  const leftSeries = series.filter((item) => item.axis !== 'right');
-  const rightSeries = series.filter((item) => item.axis === 'right');
-  const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
-  const rawLeftExtent = getSeriesExtent(
-    leftSeries,
-    referenceLines.map((item) => item.value)
-  );
-  const leftExtent = {
-    min: typeof yAxis?.min === 'number' ? yAxis.min : rawLeftExtent.min,
-    max: typeof yAxis?.max === 'number' ? yAxis.max : rawLeftExtent.max
-  };
-  const rawRightExtent = getSeriesExtent(rightSeries.length ? rightSeries : leftSeries);
-  const rightExtent = {
-    min: typeof secondaryYAxis?.min === 'number' ? secondaryYAxis.min : rawRightExtent.min,
-    max: typeof secondaryYAxis?.max === 'number' ? secondaryYAxis.max : rawRightExtent.max
-  };
-  const leftTicks = resolveTickEntries(
-    yAxis,
-    leftExtent.min,
-    leftExtent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
-  );
-  const rightTicks = resolveTickEntries(
-    secondaryYAxis,
-    rightExtent.min,
-    rightExtent.max,
-    grid?.count ?? chartTokens.chart.gridLineCount
-  );
-  const lineLegendItems = buildLegendItemsFromLineSeries(series);
-  const legendItems = showLegend
-    ? [...lineLegendItems, ...buildReferenceLegend(referenceLines)]
-    : [];
-  const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
-  const referenceLayers: ReactNode[] = [];
-  const gradientLayers: ReactNode[] = [];
-  const lineLayers: ReactNode[] = [];
-
-  referenceLines.forEach((line, index) => {
-    const y = createInvertedScale(leftExtent.min, leftExtent.max, plotHeight)(line.value);
-    referenceLayers.push(
-      <Fragment key={`reference-${index}`}>
-        <line
-          x1="0"
-          y1={y}
-          x2={resolvedPlotWidth}
-          y2={y}
-          stroke={line.color ?? chartTokens.text.subtle}
-          strokeWidth="1.5"
-          strokeDasharray={line.lineStyle === 'dashed' ? '5 4' : undefined}
-        />
-        {line.label ? (
-          <text
-            x={resolvedPlotWidth - 4}
-            y={y - 4}
-            textAnchor="end"
-            fontFamily={chartTokens.fontFamily}
-            fontSize="12"
-            fontWeight="600"
-            fill={line.color ?? chartTokens.text.subtle}
-          >
-            {line.label}
-          </text>
-        ) : null}
-      </Fragment>
+  const a11yTitleId = `${gradientBaseId}-title`;
+  const a11yDescriptionId = `${gradientBaseId}-description`;
+  useEffect(() => {
+    warnForLargeUndownsampledDataset(
+      'LineChart',
+      series.reduce((sum, item) => sum + item.data.length, 0),
+      downsample
     );
+  }, [downsample, series]);
+  const leftSeries = useMemo(() => series.filter((item) => item.axis !== 'right'), [series]);
+  const rightSeries = useMemo(() => series.filter((item) => item.axis === 'right'), [series]);
+  const resolvedPlotWidth = useMemo(
+    () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
+    [plotWidth, width]
+  );
+  const referenceValues = useMemo(() => referenceLines.map((item) => item.value), [referenceLines]);
+  const a11yContent = useMemo(
+    () =>
+      getChartA11yContent({
+        title,
+        description,
+        ariaLabel,
+        ariaDescription,
+        fallbackDescription: describeCategoricalChart({
+          chartType: showSecondaryYAxis ? 'Dual-axis line chart' : 'Line chart',
+          categories,
+          series: series.map((item) => ({
+            label: item.label,
+            values: item.data
+          }))
+        })
+      }),
+    [ariaDescription, ariaLabel, categories, description, series, showSecondaryYAxis, title]
+  );
+  const chartA11yProps = getChartA11yProps({
+    titleId: a11yTitleId,
+    descriptionId: a11yDescriptionId,
+    enableKeyboardNavigation
   });
+  const keyboardItems = useMemo(
+    () =>
+      series.flatMap((item, seriesIndex) =>
+        categories.map((category, categoryIndex) => ({
+          category,
+          categoryIndex,
+          seriesLabel: item.label,
+          seriesIndex,
+          value: item.data[categoryIndex] ?? 0
+        }))
+      ),
+    [categories, series]
+  );
+  const keyboardNav = useChartKeyboardNav({
+    items: keyboardItems,
+    enabled: enableKeyboardNavigation,
+    getAnnouncement: (item, index) =>
+      `${index + 1} of ${keyboardItems.length}: ${item.seriesLabel}, ${item.category}, ${formatTooltipValue(item.value)}.`,
+    getNextIndex: (currentIndex, key, itemCount) => {
+      const categoryCount = Math.max(categories.length, 1);
+      const seriesCount = Math.max(series.length, 1);
+      const currentSeries = Math.floor(currentIndex / categoryCount);
+      const currentCategory = currentIndex % categoryCount;
 
-  series.forEach((item) => {
-    const extent = item.axis === 'right' ? rightExtent : leftExtent;
-    const points = buildLinePoints(
-      item.data,
-      resolvedPlotWidth,
+      if (key === 'Home') {
+        return currentSeries * categoryCount;
+      }
+
+      if (key === 'End') {
+        return currentSeries * categoryCount + categoryCount - 1;
+      }
+
+      if (key === 'ArrowLeft') {
+        return (
+          currentSeries * categoryCount + ((currentCategory - 1 + categoryCount) % categoryCount)
+        );
+      }
+
+      if (key === 'ArrowRight') {
+        return currentSeries * categoryCount + ((currentCategory + 1) % categoryCount);
+      }
+
+      if (key === 'ArrowUp') {
+        return ((currentSeries - 1 + seriesCount) % seriesCount) * categoryCount + currentCategory;
+      }
+
+      if (key === 'ArrowDown') {
+        return ((currentSeries + 1) % seriesCount) * categoryCount + currentCategory;
+      }
+
+      return Math.min(currentIndex, itemCount - 1);
+    },
+    onDismiss: () => {
+      setHoveredIndex(null);
+      setMousePos(null);
+    }
+  });
+  const rawLeftExtent = useMemo(
+    () => getSeriesExtent(leftSeries, referenceValues),
+    [leftSeries, referenceValues]
+  );
+  const leftExtent = useMemo(
+    () => ({
+      min: typeof yAxis?.min === 'number' ? yAxis.min : rawLeftExtent.min,
+      max: typeof yAxis?.max === 'number' ? yAxis.max : rawLeftExtent.max
+    }),
+    [rawLeftExtent.max, rawLeftExtent.min, yAxis?.max, yAxis?.min]
+  );
+  const rawRightExtent = useMemo(
+    () => getSeriesExtent(rightSeries.length ? rightSeries : leftSeries),
+    [leftSeries, rightSeries]
+  );
+  const rightExtent = useMemo(
+    () => ({
+      min: typeof secondaryYAxis?.min === 'number' ? secondaryYAxis.min : rawRightExtent.min,
+      max: typeof secondaryYAxis?.max === 'number' ? secondaryYAxis.max : rawRightExtent.max
+    }),
+    [rawRightExtent.max, rawRightExtent.min, secondaryYAxis?.max, secondaryYAxis?.min]
+  );
+  const leftTicks = useMemo(
+    () =>
+      resolveTickEntries(
+        yAxis,
+        leftExtent.min,
+        leftExtent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [grid?.count, leftExtent.max, leftExtent.min, yAxis]
+  );
+  const rightTicks = useMemo(
+    () =>
+      resolveTickEntries(
+        secondaryYAxis,
+        rightExtent.min,
+        rightExtent.max,
+        grid?.count ?? chartTokens.chart.gridLineCount
+      ),
+    [grid?.count, rightExtent.max, rightExtent.min, secondaryYAxis]
+  );
+  const lineLegendItems = useMemo(() => buildLegendItemsFromLineSeries(series), [series]);
+  const legendItems = useMemo(
+    () => (showLegend ? [...lineLegendItems, ...buildReferenceLegend(referenceLines)] : []),
+    [lineLegendItems, referenceLines, showLegend]
+  );
+  const categoryWidth = resolvedPlotWidth / Math.max(categories.length, 1);
+  const referenceLayers = useMemo<ReactNode[]>(
+    () =>
+      referenceLines.map((line, index) => {
+        const y = createInvertedScale(leftExtent.min, leftExtent.max, plotHeight)(line.value);
+        return (
+          <Fragment key={`reference-${index}`}>
+            <line
+              x1="0"
+              y1={y}
+              x2={resolvedPlotWidth}
+              y2={y}
+              stroke={line.color ?? chartTokens.text.subtle}
+              strokeWidth="1.5"
+              strokeDasharray={line.lineStyle === 'dashed' ? '5 4' : undefined}
+            />
+            {line.label ? (
+              <text
+                x={resolvedPlotWidth - 4}
+                y={y - 4}
+                textAnchor="end"
+                fontFamily={chartTokens.fontFamily}
+                fontSize="12"
+                fontWeight="600"
+                fill={line.color ?? chartTokens.text.subtle}
+              >
+                {line.label}
+              </text>
+            ) : null}
+          </Fragment>
+        );
+      }),
+    [leftExtent.max, leftExtent.min, plotHeight, referenceLines, resolvedPlotWidth]
+  );
+  const lineRenderData = useMemo(
+    () =>
+      series.map((item) => {
+        const extent = item.axis === 'right' ? rightExtent : leftExtent;
+        const limit = getDownsampleLimit(downsample, 'LineChart');
+        const indexedData = item.data.map((value, index) => ({ x: index, y: value }));
+        const renderedData =
+          limit && item.data.length > limit ? downsampleLttb(indexedData, limit) : indexedData;
+        const points = buildLinePointsAtIndices(
+          renderedData.map((point) => point.y),
+          renderedData.map((point) => point.x),
+          categories.length,
+          resolvedPlotWidth,
+          plotHeight,
+          extent.min,
+          extent.max,
+          chartTokens.chart.lineXInset
+        );
+        const stroke = item.stroke ?? chartTokens.categorical.secondary;
+        const baseline =
+          chartTokens.chart.lineXInset +
+          createInvertedScale(
+            extent.min,
+            extent.max,
+            plotHeight - chartTokens.chart.lineXInset * 2
+          )(Math.max(extent.min, 0));
+        const gradientId = `${gradientBaseId}-line-area-${item.key}`;
+
+        return {
+          item,
+          points,
+          extent,
+          stroke,
+          gradientId,
+          linePath: describeLinePath(points),
+          areaPath: describeAreaPath(points, baseline)
+        };
+      }),
+    [
+      categories.length,
+      downsample,
+      gradientBaseId,
+      leftExtent,
       plotHeight,
-      extent.min,
-      extent.max,
-      chartTokens.chart.lineXInset
-    );
-    const path = describeLinePath(points);
-    const stroke = item.stroke ?? chartTokens.categorical.secondary;
-    const baseline =
-      chartTokens.chart.lineXInset +
-      createInvertedScale(
-        extent.min,
-        extent.max,
-        plotHeight - chartTokens.chart.lineXInset * 2
-      )(Math.max(extent.min, 0));
+      resolvedPlotWidth,
+      rightExtent,
+      series
+    ]
+  );
+  const gradientLayers = useMemo<ReactNode[]>(
+    () =>
+      lineRenderData
+        .filter(({ item }) => item.showAreaFill)
+        .map(({ item, stroke, gradientId }) => (
+          <linearGradient key={`gradient-${item.key}`} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity="0.18" />
+            <stop offset="52%" stopColor={stroke} stopOpacity="0.08" />
+            <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+          </linearGradient>
+        )),
+    [lineRenderData]
+  );
+  const lineLayers = useMemo<ReactNode[]>(() => {
+    const layers: ReactNode[] = [];
 
-    if (item.showAreaFill) {
-      const gradientId = `${gradientBaseId}-line-area-${item.key}`;
-      gradientLayers.push(
-        <linearGradient key={`gradient-${item.key}`} id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={stroke} stopOpacity="0.18" />
-          <stop offset="52%" stopColor={stroke} stopOpacity="0.08" />
-          <stop offset="100%" stopColor={stroke} stopOpacity="0" />
-        </linearGradient>
-      );
-      lineLayers.push(
+    lineRenderData.forEach(({ item, points, stroke, gradientId, linePath, areaPath }) => {
+      if (item.showAreaFill) {
+        layers.push(
+          <path key={`area-${item.key}`} d={areaPath} fill={`url(#${gradientId})`} stroke="none" />
+        );
+      }
+
+      layers.push(
         <path
-          key={`area-${item.key}`}
-          d={describeAreaPath(points, baseline)}
-          fill={`url(#${gradientId})`}
-          stroke="none"
+          key={`path-${item.key}`}
+          d={linePath}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={item.strokeWidth ?? 2}
+          strokeDasharray={item.lineStyle === 'dashed' ? '5 4' : undefined}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={item.active === false ? 0.45 : 1}
         />
       );
+
+      points.forEach((point, pointIndex) => {
+        if (item.showDots !== false) {
+          layers.push(
+            <circle
+              key={`dot-${item.key}-${pointIndex}`}
+              cx={point.x}
+              cy={point.y}
+              r={getDotRadius(item.dotSize)}
+              fill={item.dotOutline ? chartTokens.neutral.white : stroke}
+              stroke={stroke}
+              strokeWidth={item.dotOutline ? 2 : 0}
+            />
+          );
+        }
+
+        if (item.showLabels) {
+          const isBottomLeftLabel = item.labelPosition === 'bottom-left';
+          layers.push(
+            <text
+              key={`label-${item.key}-${pointIndex}`}
+              x={point.x + (isBottomLeftLabel ? -8 : 0)}
+              y={point.y + (isBottomLeftLabel ? 18 : -10)}
+              textAnchor={isBottomLeftLabel ? 'end' : 'middle'}
+              fontFamily={chartTokens.fontFamily}
+              fontSize="12"
+              fontWeight="600"
+              fill={stroke}
+            >
+              {formatNumberCompact(point.value)}
+            </text>
+          );
+        }
+      });
+    });
+
+    return layers;
+  }, [lineRenderData]);
+
+  const hoverCardHeight = useMemo(
+    () => getEstimatedHoverCardHeight(series.length),
+    [series.length]
+  );
+  const activeKeyboardItem =
+    keyboardNav.focusedIndex !== null ? keyboardItems[keyboardNav.focusedIndex] : null;
+  const activeIndex = activeKeyboardItem?.categoryIndex ?? hoveredIndex;
+  const showKeyboardFeedback = keyboardNav.focusedIndex !== null;
+  const showInteractionFeedback = showHoverCard || showKeyboardFeedback;
+  const hoverCardPosition = useMemo(() => {
+    if (mousePos) {
+      return getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight);
     }
 
-    lineLayers.push(
-      <path
-        key={`path-${item.key}`}
-        d={path}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={item.strokeWidth ?? 2}
-        strokeDasharray={item.lineStyle === 'dashed' ? '5 4' : undefined}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={item.active === false ? 0.45 : 1}
-      />
+    if (!activeKeyboardItem || !plotRef.current) {
+      return null;
+    }
+
+    const renderItem = lineRenderData[activeKeyboardItem.seriesIndex];
+    const value = series[activeKeyboardItem.seriesIndex]?.data[activeKeyboardItem.categoryIndex];
+
+    if (!renderItem || !Number.isFinite(value)) {
+      return null;
+    }
+
+    const point = buildLinePointAtIndex(
+      value,
+      activeKeyboardItem.categoryIndex,
+      categories.length,
+      resolvedPlotWidth,
+      plotHeight,
+      renderItem.extent.min,
+      renderItem.extent.max,
+      chartTokens.chart.lineXInset
     );
-
-    points.forEach((point, pointIndex) => {
-      if (item.showDots !== false) {
-        lineLayers.push(
-          <circle
-            key={`dot-${item.key}-${pointIndex}`}
-            cx={point.x}
-            cy={point.y}
-            r={getDotRadius(item.dotSize)}
-            fill={item.dotOutline ? chartTokens.neutral.white : stroke}
-            stroke={stroke}
-            strokeWidth={item.dotOutline ? 2 : 0}
-          />
-        );
-      }
-
-      if (item.showLabels) {
-        const isBottomLeftLabel = item.labelPosition === 'bottom-left';
-        lineLayers.push(
-          <text
-            key={`label-${item.key}-${pointIndex}`}
-            x={point.x + (isBottomLeftLabel ? -8 : 0)}
-            y={point.y + (isBottomLeftLabel ? 18 : -10)}
-            textAnchor={isBottomLeftLabel ? 'end' : 'middle'}
-            fontFamily={chartTokens.fontFamily}
-            fontSize="12"
-            fontWeight="600"
-            fill={stroke}
-          >
-            {formatNumberCompact(point.value)}
-          </text>
-        );
-      }
-    });
-  });
-
-  const hoverCardHeight = getEstimatedHoverCardHeight(series.length);
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight)
-    : null;
+    const rect = plotRef.current.getBoundingClientRect();
+    return getViewportHoverCardPosition(
+      rect.left + point.x,
+      rect.top + point.y,
+      196,
+      hoverCardHeight
+    );
+  }, [
+    activeKeyboardItem,
+    categories.length,
+    hoverCardHeight,
+    lineRenderData,
+    mousePos,
+    plotHeight,
+    resolvedPlotWidth,
+    series
+  ]);
+  const handleMouseMove = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHoveredIndex(
+        getHoverIndex(event.clientX - rect.left, resolvedPlotWidth, categories.length)
+      );
+      setMousePos({ x: event.clientX, y: event.clientY });
+    },
+    [categories.length, resolvedPlotWidth]
+  );
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+    setMousePos(null);
+  }, []);
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
   return (
@@ -300,44 +530,32 @@ export function LineChart({
                 />
               ) : null}
               <div
+                ref={plotRef}
                 style={{ position: 'relative', width: resolvedPlotWidth, height: plotHeight }}
-                onMouseMove={
-                  showHoverCard
-                    ? (event) => {
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setHoveredIndex(
-                          getHoverIndex(
-                            event.clientX - rect.left,
-                            resolvedPlotWidth,
-                            categories.length
-                          )
-                        );
-                        setMousePos({ x: event.clientX, y: event.clientY });
-                      }
-                    : undefined
-                }
-                onMouseLeave={
-                  showHoverCard
-                    ? () => {
-                        setHoveredIndex(null);
-                        setMousePos(null);
-                      }
-                    : undefined
-                }
+                onMouseMove={showHoverCard ? handleMouseMove : undefined}
+                onMouseLeave={showHoverCard ? handleMouseLeave : undefined}
               >
                 <svg
                   width={resolvedPlotWidth}
                   height={plotHeight}
                   viewBox={`0 0 ${resolvedPlotWidth} ${plotHeight}`}
-                  role="img"
-                  aria-label={title}
+                  {...chartA11yProps}
+                  onKeyDown={keyboardNav.handlers.onKeyDown}
+                  onFocus={keyboardNav.handlers.onFocus}
+                  onBlur={keyboardNav.handlers.onBlur}
                   style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
                 >
+                  <ChartSvgA11y
+                    titleId={a11yTitleId}
+                    descriptionId={a11yDescriptionId}
+                    label={a11yContent.label}
+                    description={a11yContent.description}
+                  />
                   {gradientLayers.length ? <defs>{gradientLayers}</defs> : null}
-                  {showHoverCard && hoveredIndex !== null ? (
+                  {showInteractionFeedback && activeIndex !== null ? (
                     <>
                       <rect
-                        x={hoveredIndex * categoryWidth}
+                        x={activeIndex * categoryWidth}
                         y={0}
                         width={categoryWidth}
                         height={plotHeight}
@@ -345,9 +563,9 @@ export function LineChart({
                         opacity={0.45}
                       />
                       <line
-                        x1={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x1={activeIndex * categoryWidth + categoryWidth / 2}
                         y1={0}
-                        x2={hoveredIndex * categoryWidth + categoryWidth / 2}
+                        x2={activeIndex * categoryWidth + categoryWidth / 2}
                         y2={plotHeight}
                         stroke={chartTokens.neutral.stoneLight}
                         strokeWidth={1}
@@ -357,43 +575,46 @@ export function LineChart({
                   ) : null}
                   {referenceLayers}
                   {lineLayers}
-                  {showHoverCard && hoveredIndex !== null
-                    ? series.map((item) => {
-                        const extent = item.axis === 'right' ? rightExtent : leftExtent;
-                        const points = buildLinePoints(
-                          item.data,
+                  {showInteractionFeedback && activeIndex !== null
+                    ? lineRenderData.map(({ item, extent, stroke }) => {
+                        const value = item.data[activeIndex];
+
+                        if (!Number.isFinite(value)) {
+                          return null;
+                        }
+
+                        const point = buildLinePointAtIndex(
+                          value,
+                          activeIndex,
+                          categories.length,
                           resolvedPlotWidth,
                           plotHeight,
                           extent.min,
                           extent.max,
                           chartTokens.chart.lineXInset
                         );
-                        const point = points[hoveredIndex];
-
-                        if (!point) {
-                          return null;
-                        }
 
                         return (
                           <circle
-                            key={`hover-point-${item.key}-${hoveredIndex}`}
+                            key={`hover-point-${item.key}-${activeIndex}`}
                             cx={point.x}
                             cy={point.y}
                             r={getDotRadius(item.dotSize) + 2}
                             fill={chartTokens.neutral.white}
-                            stroke={item.stroke ?? chartTokens.categorical.secondary}
+                            stroke={stroke}
                             strokeWidth={2}
                           />
                         );
                       })
                     : null}
                 </svg>
-                {showHoverCard && hoveredIndex !== null ? (
+                <ChartLiveRegion announcement={keyboardNav.announcement} />
+                {showInteractionFeedback && activeIndex !== null ? (
                   <ChartHoverCard
-                    title={categories[hoveredIndex]}
+                    title={categories[activeIndex]}
                     rows={series.map((item, index) => ({
                       label: item.label,
-                      value: formatTooltipValue(item.data[hoveredIndex] ?? 0),
+                      value: formatTooltipValue(item.data[activeIndex] ?? 0),
                       color: item.stroke ?? chartTokens.categorical.secondary,
                       strokeColor: item.stroke ?? chartTokens.categorical.secondary,
                       marker: lineLegendItems[index]?.marker
@@ -429,4 +650,4 @@ export function LineChart({
       </div>
     </ChartShell>
   );
-}
+});
