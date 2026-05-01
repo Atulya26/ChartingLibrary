@@ -28,10 +28,7 @@ import {
   resolveFillStyle
 } from '../chartUtils';
 
-const statesCollection = feature(
-  statesAtlas as any,
-  (statesAtlas as any).objects.states
-) as any;
+const statesCollection = feature(statesAtlas as any, (statesAtlas as any).objects.states) as any;
 const countiesCollection = feature(
   countiesAtlas as any,
   (countiesAtlas as any).objects.counties
@@ -148,20 +145,29 @@ export function MapBubbleChart({
     marker: 'solid' | 'solid-texture';
   } | null>(null);
 
-  const handleZoomIn = useCallback(() => setZoomLevel(z => Math.min(z + 0.5, 4)), []);
-  const handleZoomOut = useCallback(() => setZoomLevel(z => Math.max(z - 0.5, 1)), []);
-  const handleResetView = useCallback(() => { setZoomLevel(1); setPanOffset({ x: 0, y: 0 }); }, []);
+  const handleZoomIn = useCallback(() => setZoomLevel((z) => Math.min(z + 0.5, 4)), []);
+  const handleZoomOut = useCallback(() => setZoomLevel((z) => Math.max(z - 0.5, 1)), []);
+  const handleResetView = useCallback(() => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
 
-  const handleMouseDown = useCallback((e: MouseEvent<SVGSVGElement>) => {
-    if (zoomLevel <= 1) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  }, [zoomLevel, panOffset]);
+  const handleMouseDown = useCallback(
+    (e: MouseEvent<SVGSVGElement>) => {
+      if (zoomLevel <= 1) return;
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    },
+    [zoomLevel, panOffset]
+  );
 
-  const handleMouseMove = useCallback((e: MouseEvent<SVGSVGElement>) => {
-    if (!isDragging) return;
-    setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [isDragging, dragStart]);
+  const handleMouseMove = useCallback(
+    (e: MouseEvent<SVGSVGElement>) => {
+      if (!isDragging) return;
+      setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    },
+    [isDragging, dragStart]
+  );
 
   const handleMouseUp = useCallback(() => setIsDragging(false), []);
 
@@ -176,8 +182,7 @@ export function MapBubbleChart({
   const selectedStateFeature =
     regionScope === 'state' && selectedStateFips
       ? statesCollection.features.find(
-          (featureItem: any) =>
-            String(featureItem.id).padStart(2, '0') === selectedStateFips
+          (featureItem: any) => String(featureItem.id).padStart(2, '0') === selectedStateFips
         )
       : null;
   const visibleCounties =
@@ -205,9 +210,7 @@ export function MapBubbleChart({
   const pathGenerator = geoPath(projection as any);
   const scopedPoints =
     regionScope === 'state' && stateCode
-      ? points.filter(
-          (point) => point.stateCode?.toUpperCase() === stateCode.toUpperCase()
-        )
+      ? points.filter((point) => point.stateCode?.toUpperCase() === stateCode.toUpperCase())
       : points;
   const renderPoints = getSortedPoints(scopedPoints, bubbleSort);
   const pointValues = renderPoints.map((point) => point.value);
@@ -240,40 +243,41 @@ export function MapBubbleChart({
       point.legendLabel ?? 'Dataset',
       point.value
     ]);
-  const hoveredRows =
-    hoveredBubble?.point.details?.length
-      ? hoveredBubble.point.details.map((detail, index) => ({
-          label: detail.label,
-          value:
-            typeof detail.value === 'number'
-              ? formatTooltipValue(detail.value)
-              : detail.value,
-          ...(index === 0
-            ? {
-                color: hoveredBubble.color,
-                strokeColor: hoveredBubble.stroke,
-                marker: hoveredBubble.marker
-              }
-            : {})
-        }))
-      : hoveredBubble
-        ? [
-            {
-              label: hoveredBubble.point.legendLabel ?? 'Dataset',
-              value: hoveredBubble.point.stateCode ?? 'US',
+  const hoveredRows = hoveredBubble?.point.details?.length
+    ? hoveredBubble.point.details.map((detail, index) => ({
+        label: detail.label,
+        value: typeof detail.value === 'number' ? formatTooltipValue(detail.value) : detail.value,
+        ...(index === 0
+          ? {
               color: hoveredBubble.color,
               strokeColor: hoveredBubble.stroke,
               marker: hoveredBubble.marker
-            },
-            {
-              label: 'Value',
-              value: formatTooltipValue(hoveredBubble.point.value)
             }
-          ]
-        : [];
+          : {})
+      }))
+    : hoveredBubble
+      ? [
+          {
+            label: hoveredBubble.point.legendLabel ?? 'Dataset',
+            value: hoveredBubble.point.stateCode ?? 'US',
+            color: hoveredBubble.color,
+            strokeColor: hoveredBubble.stroke,
+            marker: hoveredBubble.marker
+          },
+          {
+            label: 'Value',
+            value: formatTooltipValue(hoveredBubble.point.value)
+          }
+        ]
+      : [];
   const hoverCardPosition =
     hoveredBubble && mousePos
-      ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(hoveredRows.length))
+      ? getViewportHoverCardPosition(
+          mousePos.x,
+          mousePos.y,
+          196,
+          getEstimatedHoverCardHeight(hoveredRows.length)
+        )
       : null;
 
   return (
@@ -300,7 +304,12 @@ export function MapBubbleChart({
           </thead>
           <tbody>
             {tableRows.map((row, index) => (
-              <tr key={index} style={index % 2 === 1 ? { backgroundColor: chartTokens.neutral.surfaceTint } : undefined}>
+              <tr
+                key={index}
+                style={
+                  index % 2 === 1 ? { backgroundColor: chartTokens.neutral.surfaceTint } : undefined
+                }
+              >
                 {row.map((cell, cellIndex) => (
                   <td key={`${index}-${cellIndex}`}>{cell}</td>
                 ))}
@@ -327,55 +336,66 @@ export function MapBubbleChart({
             }}
             style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
           >
-          <defs>
-            <filter id={`${mapIdBase}-map-bubble-shadow`} x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow
-                dx="0"
-                dy="1"
-                stdDeviation="1.5"
-                floodColor={chartTokens.text.default}
-                floodOpacity="0.16"
+            <defs>
+              <filter
+                id={`${mapIdBase}-map-bubble-shadow`}
+                x="-50%"
+                y="-50%"
+                width="200%"
+                height="200%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="1"
+                  stdDeviation="1.5"
+                  floodColor={chartTokens.text.default}
+                  floodOpacity="0.16"
+                />
+              </filter>
+              <filter
+                id={`${mapIdBase}-map-bubble-hover-shadow`}
+                x="-70%"
+                y="-70%"
+                width="240%"
+                height="240%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="2"
+                  stdDeviation="3"
+                  floodColor={chartTokens.text.default}
+                  floodOpacity="0.22"
+                />
+              </filter>
+              {renderPoints.map((point, index) => {
+                const palette =
+                  chartTokens.categorical.axisPalette[
+                    index % chartTokens.categorical.axisPalette.length
+                  ];
+                const resolvedFillStyle = resolveFillStyle(point.fillStyle ?? 'solid', fillStyle);
+                return getSvgFillDefinition(
+                  `map-bubble-fill-${point.key}`,
+                  resolvedFillStyle,
+                  point.fill ?? palette.fill,
+                  point.stroke ?? palette.stroke
+                ).definition;
+              })}
+            </defs>
+            <g
+              transform={`translate(${plotWidth / 2 + panOffset.x}, ${plotHeight / 2 + panOffset.y}) scale(${zoomLevel}) translate(${-plotWidth / 2}, ${-plotHeight / 2})`}
+            >
+              <rect
+                x="0"
+                y="0"
+                width={plotWidth}
+                height={plotHeight}
+                rx="4"
+                fill={backgroundFill}
               />
-            </filter>
-            <filter id={`${mapIdBase}-map-bubble-hover-shadow`} x="-70%" y="-70%" width="240%" height="240%">
-              <feDropShadow
-                dx="0"
-                dy="2"
-                stdDeviation="3"
-                floodColor={chartTokens.text.default}
-                floodOpacity="0.22"
-              />
-            </filter>
-            {renderPoints.map((point, index) => {
-              const palette =
-                chartTokens.categorical.axisPalette[
-                  index % chartTokens.categorical.axisPalette.length
-                ];
-              const resolvedFillStyle = resolveFillStyle(
-                point.fillStyle ?? 'solid',
-                fillStyle
-              );
-              return getSvgFillDefinition(
-                `map-bubble-fill-${point.key}`,
-                resolvedFillStyle,
-                point.fill ?? palette.fill,
-                point.stroke ?? palette.stroke
-              ).definition;
-            })}
-          </defs>
-          <g transform={`translate(${plotWidth / 2 + panOffset.x}, ${plotHeight / 2 + panOffset.y}) scale(${zoomLevel}) translate(${-plotWidth / 2}, ${-plotHeight / 2})`}>
-            <rect
-              x="0"
-              y="0"
-              width={plotWidth}
-              height={plotHeight}
-              rx="4"
-              fill={backgroundFill}
-            />
-            {regionScope === 'state' && selectedStateFeature ? (
-              <>
-                {showCountyLines
-                  ? visibleCounties.map((featureItem: any) => (
+              {regionScope === 'state' && selectedStateFeature ? (
+                <>
+                  {showCountyLines ? (
+                    visibleCounties.map((featureItem: any) => (
                       <path
                         key={String(featureItem.id)}
                         d={pathGenerator(featureItem) ?? ''}
@@ -384,7 +404,7 @@ export function MapBubbleChart({
                         strokeWidth="0.6"
                       />
                     ))
-                  : (
+                  ) : (
                     <path
                       d={pathGenerator(selectedStateFeature) ?? ''}
                       fill={landFill}
@@ -392,133 +412,116 @@ export function MapBubbleChart({
                       strokeWidth="0.8"
                     />
                   )}
-                <path
-                  d={pathGenerator(selectedStateFeature) ?? ''}
-                  fill="none"
-                  stroke={chartTokens.text.subtle}
-                  strokeWidth="1"
-                />
-              </>
-            ) : (
-              statesCollection.features.map((featureItem: any) => (
-                <path
-                  key={String(featureItem.id)}
-                  d={pathGenerator(featureItem) ?? ''}
-                  fill={landFill}
-                  stroke={borderColor}
-                  strokeWidth="0.8"
-                />
-              ))
-            )}
-            {renderPoints.map((point, index) => {
-              const palette =
-                chartTokens.categorical.axisPalette[
-                  index % chartTokens.categorical.axisPalette.length
-                ];
-              const resolvedFillStyle = resolveFillStyle(
-                point.fillStyle ?? 'solid',
-                fillStyle
-              );
-              const resolvedBubbleStyle = point.bubbleStyle ?? bubbleStyle;
-              const resolvedFill = point.fill ?? palette.fill;
-              const resolvedStroke = point.stroke ?? palette.stroke;
-              const paint = getSvgFillDefinition(
-                `map-bubble-fill-${point.key}`,
-                resolvedFillStyle,
-                resolvedFill,
-                resolvedStroke
-              );
-              const projectedPoint =
-                typeof point.longitude === 'number' && typeof point.latitude === 'number'
-                  ? projection([point.longitude, point.latitude] as [number, number])
-                  : typeof point.x === 'number' && typeof point.y === 'number'
-                    ? [
-                        (point.x / 100) * plotWidth,
-                        (point.y / 100) * plotHeight
-                      ]
-                    : null;
+                  <path
+                    d={pathGenerator(selectedStateFeature) ?? ''}
+                    fill="none"
+                    stroke={chartTokens.text.subtle}
+                    strokeWidth="1"
+                  />
+                </>
+              ) : (
+                statesCollection.features.map((featureItem: any) => (
+                  <path
+                    key={String(featureItem.id)}
+                    d={pathGenerator(featureItem) ?? ''}
+                    fill={landFill}
+                    stroke={borderColor}
+                    strokeWidth="0.8"
+                  />
+                ))
+              )}
+              {renderPoints.map((point, index) => {
+                const palette =
+                  chartTokens.categorical.axisPalette[
+                    index % chartTokens.categorical.axisPalette.length
+                  ];
+                const resolvedFillStyle = resolveFillStyle(point.fillStyle ?? 'solid', fillStyle);
+                const resolvedBubbleStyle = point.bubbleStyle ?? bubbleStyle;
+                const resolvedFill = point.fill ?? palette.fill;
+                const resolvedStroke = point.stroke ?? palette.stroke;
+                const paint = getSvgFillDefinition(
+                  `map-bubble-fill-${point.key}`,
+                  resolvedFillStyle,
+                  resolvedFill,
+                  resolvedStroke
+                );
+                const projectedPoint =
+                  typeof point.longitude === 'number' && typeof point.latitude === 'number'
+                    ? projection([point.longitude, point.latitude] as [number, number])
+                    : typeof point.x === 'number' && typeof point.y === 'number'
+                      ? [(point.x / 100) * plotWidth, (point.y / 100) * plotHeight]
+                      : null;
 
-              if (!projectedPoint) {
-                return null;
-              }
+                if (!projectedPoint) {
+                  return null;
+                }
 
-              const [x, y] = projectedPoint;
-              const isHovered = showHoverCard && hoveredBubble?.point.key === point.key;
-              const shadowId = isHovered
-                ? `${mapIdBase}-map-bubble-hover-shadow`
-                : `${mapIdBase}-map-bubble-shadow`;
-              const radius = getBubbleRadius(
-                point.value,
-                minValue,
-                maxValue,
-                minBubbleRadius,
-                maxBubbleRadius,
-                sizeScale
-              );
+                const [x, y] = projectedPoint;
+                const isHovered = showHoverCard && hoveredBubble?.point.key === point.key;
+                const shadowId = isHovered
+                  ? `${mapIdBase}-map-bubble-hover-shadow`
+                  : `${mapIdBase}-map-bubble-shadow`;
+                const radius = getBubbleRadius(
+                  point.value,
+                  minValue,
+                  maxValue,
+                  minBubbleRadius,
+                  maxBubbleRadius,
+                  sizeScale
+                );
 
-              return (
-                <g
-                  key={point.key}
-                  style={{
-                    cursor: showHoverCard ? 'pointer' : undefined,
-                    transform: `translate(${x}px, ${y}px) scale(${isHovered ? 1.18 : 1})`,
-                    transformBox: 'fill-box',
-                    transformOrigin: 'center',
-                    transition: 'transform 140ms ease-out',
-                  }}
-                  onMouseMove={
-                    showHoverCard
-                      ? (event) => {
-                          const svgRect =
-                            event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                return (
+                  <g
+                    key={point.key}
+                    style={{
+                      cursor: showHoverCard ? 'pointer' : undefined,
+                      transform: `translate(${x}px, ${y}px) scale(${isHovered ? 1.18 : 1})`,
+                      transformBox: 'fill-box',
+                      transformOrigin: 'center',
+                      transition: 'transform 140ms ease-out'
+                    }}
+                    onMouseMove={
+                      showHoverCard
+                        ? (event) => {
+                            const svgRect =
+                              event.currentTarget.ownerSVGElement?.getBoundingClientRect();
 
-                          if (!svgRect) {
-                            return;
+                            if (!svgRect) {
+                              return;
+                            }
+
+                            setMousePos({ x: event.clientX, y: event.clientY });
+                            setHoveredBubble({
+                              point,
+                              x: event.clientX - svgRect.left,
+                              y: event.clientY - svgRect.top,
+                              color: resolvedFill,
+                              stroke: resolvedStroke,
+                              marker: resolveFillLegendMarker(resolvedFillStyle, legendMarker) as
+                                | 'solid'
+                                | 'solid-texture'
+                            });
                           }
-
-                          setMousePos({ x: event.clientX, y: event.clientY });
-                          setHoveredBubble({
-                            point,
-                            x: event.clientX - svgRect.left,
-                            y: event.clientY - svgRect.top,
-                            color: resolvedFill,
-                            stroke: resolvedStroke,
-                            marker: resolveFillLegendMarker(
-                              resolvedFillStyle,
-                              legendMarker
-                            ) as 'solid' | 'solid-texture'
-                          });
-                        }
-                      : undefined
-                  }
-                >
-                  <circle
-                    cx="0"
-                    cy="0"
-                    r={radius}
-                    fill={
-                      resolvedBubbleStyle === 'outlined'
-                        ? chartTokens.neutral.white
-                        : paint.fill
-                    }
-                    stroke={
-                      resolvedBubbleStyle === 'filled'
-                        ? 'none'
-                        : resolvedStroke
-                    }
-                    strokeWidth={resolvedBubbleStyle === 'filled' ? 0 : 2}
-                    opacity={point.active === false ? 0.4 : 1.0}
-                    filter={
-                      showBubbleShadow
-                        ? `url(#${shadowId})`
                         : undefined
                     }
-                  />
-                </g>
-              );
-            })}
-          </g>
-        </svg>
+                  >
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r={radius}
+                      fill={
+                        resolvedBubbleStyle === 'outlined' ? chartTokens.neutral.white : paint.fill
+                      }
+                      stroke={resolvedBubbleStyle === 'filled' ? 'none' : resolvedStroke}
+                      strokeWidth={resolvedBubbleStyle === 'filled' ? 0 : 2}
+                      opacity={point.active === false ? 0.4 : 1.0}
+                      filter={showBubbleShadow ? `url(#${shadowId})` : undefined}
+                    />
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
           {showHoverCard && hoveredBubble ? (
             <ChartHoverCard
               title={hoveredBubble.point.label}

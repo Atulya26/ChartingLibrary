@@ -1,0 +1,49 @@
+name: Chromatic
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    name: Visual Regression
+    runs-on: ubuntu-latest
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    steps:
+      - name: Skip when token is unavailable
+        if: env.CHROMATIC_PROJECT_TOKEN == ''
+        run: echo "CHROMATIC_PROJECT_TOKEN is not configured; skipping visual regression."
+
+      - name: Checkout
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        run: npm ci
+
+      - name: Publish baseline from main
+        if: env.CHROMATIC_PROJECT_TOKEN != '' && github.event_name == 'push'
+        run: npm run chromatic:ci -- --project-token="$CHROMATIC_PROJECT_TOKEN" --auto-accept-changes
+
+      - name: Check pull request changes
+        if: env.CHROMATIC_PROJECT_TOKEN != '' && github.event_name == 'pull_request'
+        run: npm run chromatic:ci -- --project-token="$CHROMATIC_PROJECT_TOKEN"

@@ -33,13 +33,7 @@ const defaultsByVariant: Record<
   }
 };
 
-function StateIllustration({
-  src,
-  width
-}: {
-  src: string;
-  width: number;
-}) {
+function StateIllustration({ src, width }: { src: string; width: number }) {
   return (
     <EmptyState.Image
       src={src}
@@ -108,10 +102,7 @@ export function ChartStateCard({
       surface={showCardBackground ? 'card' : 'plain'}
       className={cx('cl-chart-card', 'cl-chart-state', `cl-chart-state--${variant}`)}
     >
-      <figure
-        className="cl-chart-shell"
-        aria-label={`${resolvedTitle} — ${resolvedHeadline}`}
-      >
+      <figure className="cl-chart-shell" aria-label={`${resolvedTitle} — ${resolvedHeadline}`}>
         <h3 className="cl-header__title">{resolvedTitle}</h3>
         <div
           className="cl-chart-state__body"

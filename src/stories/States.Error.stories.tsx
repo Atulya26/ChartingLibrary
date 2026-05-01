@@ -19,11 +19,7 @@ const meta = {
   argTypes: {
     variant: { table: { disable: true } },
     width: numberArg('Card width.', 'Layout', { min: 280, max: 800, step: 10 }),
-    bodyHeight: numberArg(
-      'Plot-area min-height.',
-      'Layout',
-      { min: 120, max: 360, step: 10 }
-    ),
+    bodyHeight: numberArg('Plot-area min-height.', 'Layout', { min: 120, max: 360, step: 10 }),
     showCardBackground: booleanArg('Toggle the card surface.', 'Display'),
     title: { control: { type: 'text' }, table: { category: 'Content' } },
     headline: { control: { type: 'text' }, table: { category: 'Content' } },
@@ -57,7 +53,8 @@ export const WithRetry: Story = {
     variant: 'error',
     title: 'Active sessions',
     headline: 'Couldn’t load this chart',
-    description: 'A network timeout interrupted the request. Retry, or report the issue if it keeps happening.',
+    description:
+      'A network timeout interrupted the request. Retry, or report the issue if it keeps happening.',
     primaryActionLabel: 'Retry',
     secondaryActionLabel: 'Report issue'
   }

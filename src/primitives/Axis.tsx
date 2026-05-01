@@ -33,8 +33,7 @@ export function YAxis({
       <div
         className="cl-axis__ticks"
         style={{
-          minWidth:
-            chartTokens.chart.axisValueWidth + chartTokens.chart.axisTitleWidth
+          minWidth: chartTokens.chart.axisValueWidth + chartTokens.chart.axisTitleWidth
         }}
       >
         {hideMarkers

@@ -32,47 +32,22 @@ const meta = {
   argTypes: {
     ...surfaceArgTypes,
     ...hiddenEventArgTypes,
-    ranges: advancedDataArg('Advanced half-donut ranges. Hidden from controls because array editing is not a good layman workflow.'),
-    value: rangeArg(
-      'Main half-donut value.',
-      'Data',
-      { min: 0, max: 100, step: 1 }
+    ranges: advancedDataArg(
+      'Advanced half-donut ranges. Hidden from controls because array editing is not a good layman workflow.'
     ),
-    min: numberArg(
-      'Minimum scale value.',
-      'Data',
-      { min: -100, max: 100, step: 1 }
-    ),
-    max: numberArg(
-      'Maximum scale value.',
-      'Data',
-      { min: 1, max: 200, step: 1 }
-    ),
-    roundedCaps: booleanArg(
-      'Boolean toggle for rounded arc ends.',
-      'Style'
-    ),
+    value: rangeArg('Main half-donut value.', 'Data', { min: 0, max: 100, step: 1 }),
+    min: numberArg('Minimum scale value.', 'Data', { min: -100, max: 100, step: 1 }),
+    max: numberArg('Maximum scale value.', 'Data', { min: 1, max: 200, step: 1 }),
+    roundedCaps: booleanArg('Boolean toggle for rounded arc ends.', 'Style'),
     showHoverCard: hoverCardArg(),
-    size: rangeArg(
-      'Overall half-donut size in pixels.',
-      'Layout',
-      { min: 160, max: 340, step: 10 }
-    ),
-    thickness: rangeArg(
-      'Arc thickness in pixels.',
-      'Layout',
-      { min: 8, max: 32, step: 1 }
-    ),
-    startAngle: rangeArg(
-      'Start angle in degrees.',
-      'Layout',
-      { min: 0, max: 360, step: 5 }
-    ),
-    sweepAngle: rangeArg(
-      'Sweep angle in degrees.',
-      'Layout',
-      { min: 90, max: 360, step: 5 }
-    ),
+    size: rangeArg('Overall half-donut size in pixels.', 'Layout', {
+      min: 160,
+      max: 340,
+      step: 10
+    }),
+    thickness: rangeArg('Arc thickness in pixels.', 'Layout', { min: 8, max: 32, step: 1 }),
+    startAngle: rangeArg('Start angle in degrees.', 'Layout', { min: 0, max: 360, step: 5 }),
+    sweepAngle: rangeArg('Sweep angle in degrees.', 'Layout', { min: 90, max: 360, step: 5 }),
     valueColor: colorArg('Optional override color for the active arc.', 'Style')
   }
 } satisfies Meta<typeof HalfDonutChart>;

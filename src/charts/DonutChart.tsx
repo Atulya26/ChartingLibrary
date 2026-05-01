@@ -222,8 +222,7 @@ export function DonutChart({
 
     return getOrder(a) - getOrder(b);
   });
-  const hoveredSegment =
-    hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null;
+  const hoveredSegment = hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null;
   const hoverCardPosition = mousePos
     ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(2))
     : null;
@@ -244,7 +243,12 @@ export function DonutChart({
         className="cl-chart-donut"
         style={{ position: 'relative' }}
         onMouseLeave={
-          showHoverCard ? () => { setHoveredSegmentIndex(null); setMousePos(null); } : undefined
+          showHoverCard
+            ? () => {
+                setHoveredSegmentIndex(null);
+                setMousePos(null);
+              }
+            : undefined
         }
       >
         <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
@@ -279,7 +283,10 @@ export function DonutChart({
                 }
                 onMouseMove={
                   showHoverCard
-                    ? (event) => { setHoveredSegmentIndex(index); setMousePos({ x: event.clientX, y: event.clientY }); }
+                    ? (event) => {
+                        setHoveredSegmentIndex(index);
+                        setMousePos({ x: event.clientX, y: event.clientY });
+                      }
                     : undefined
                 }
               />

@@ -25,7 +25,6 @@ import {
   formatTooltipValue,
   getDotRadius,
   getEstimatedHoverCardHeight,
-  getHoverCardPosition,
   getHoverIndex,
   getViewportHoverCardPosition,
   getValueExtent,
@@ -182,21 +181,16 @@ export function LineChart({
     const stroke = item.stroke ?? chartTokens.categorical.secondary;
     const baseline =
       chartTokens.chart.lineXInset +
-      createInvertedScale(extent.min, extent.max, plotHeight - chartTokens.chart.lineXInset * 2)(
-        Math.max(extent.min, 0)
-      );
+      createInvertedScale(
+        extent.min,
+        extent.max,
+        plotHeight - chartTokens.chart.lineXInset * 2
+      )(Math.max(extent.min, 0));
 
     if (item.showAreaFill) {
       const gradientId = `${gradientBaseId}-line-area-${item.key}`;
       gradientLayers.push(
-        <linearGradient
-          key={`gradient-${item.key}`}
-          id={gradientId}
-          x1="0"
-          y1="0"
-          x2="0"
-          y2="1"
-        >
+        <linearGradient key={`gradient-${item.key}`} id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={stroke} stopOpacity="0.18" />
           <stop offset="52%" stopColor={stroke} stopOpacity="0.08" />
           <stop offset="100%" stopColor={stroke} stopOpacity="0" />
@@ -261,25 +255,6 @@ export function LineChart({
     });
   });
 
-  const hoveredPoints =
-    hoveredIndex !== null
-      ? series
-          .map((item) => {
-            const extent = item.axis === 'right' ? rightExtent : leftExtent;
-            return buildLinePoints(
-              item.data,
-              resolvedPlotWidth,
-              plotHeight,
-              extent.min,
-              extent.max,
-              chartTokens.chart.lineXInset
-            )[hoveredIndex];
-          })
-          .filter(
-            (point): point is { x: number; y: number; value: number; index: number } =>
-              Boolean(point)
-          )
-      : [];
   const hoverCardHeight = getEstimatedHoverCardHeight(series.length);
   const hoverCardPosition = mousePos
     ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, hoverCardHeight)
@@ -342,7 +317,12 @@ export function LineChart({
                     : undefined
                 }
                 onMouseLeave={
-                  showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined
+                  showHoverCard
+                    ? () => {
+                        setHoveredIndex(null);
+                        setMousePos(null);
+                      }
+                    : undefined
                 }
               >
                 <svg
@@ -379,8 +359,7 @@ export function LineChart({
                   {lineLayers}
                   {showHoverCard && hoveredIndex !== null
                     ? series.map((item) => {
-                        const extent =
-                          item.axis === 'right' ? rightExtent : leftExtent;
+                        const extent = item.axis === 'right' ? rightExtent : leftExtent;
                         const points = buildLinePoints(
                           item.data,
                           resolvedPlotWidth,
@@ -415,10 +394,8 @@ export function LineChart({
                     rows={series.map((item, index) => ({
                       label: item.label,
                       value: formatTooltipValue(item.data[hoveredIndex] ?? 0),
-                      color:
-                        item.stroke ?? chartTokens.categorical.secondary,
-                      strokeColor:
-                        item.stroke ?? chartTokens.categorical.secondary,
+                      color: item.stroke ?? chartTokens.categorical.secondary,
+                      strokeColor: item.stroke ?? chartTokens.categorical.secondary,
                       marker: lineLegendItems[index]?.marker
                     }))}
                     left={hoverCardPosition?.left ?? 12}

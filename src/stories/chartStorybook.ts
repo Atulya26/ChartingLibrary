@@ -29,7 +29,7 @@ export function booleanArg(
   category = 'Display',
   conditional?: ConditionalArg,
   name?: string
-) : InputType {
+): InputType {
   return {
     control: {
       type: 'boolean'
@@ -47,14 +47,8 @@ export function booleanArg(
   };
 }
 
-export function hoverCardArg(
-  conditional?: ConditionalArg
-): InputType {
-  return booleanArg(
-    'Boolean toggle for the hover helper card.',
-    'Interaction',
-    conditional
-  );
+export function hoverCardArg(conditional?: ConditionalArg): InputType {
+  return booleanArg('Boolean toggle for the hover helper card.', 'Interaction', conditional);
 }
 
 export function numberArg(
@@ -136,10 +130,7 @@ export function colorArg(
   };
 }
 
-export function advancedDataArg(
-  description: string,
-  conditional?: ConditionalArg
-): InputType {
+export function advancedDataArg(description: string, conditional?: ConditionalArg): InputType {
   return {
     control: false,
     description,
@@ -173,12 +164,8 @@ export const surfaceArgTypes = {
   showHeader: booleanArg(
     'Boolean toggle for the header row. Best modeled as on/off because it only changes visibility.'
   ),
-  showTitle: booleanArg(
-    'Boolean toggle for title visibility.'
-  ),
-  showLegend: booleanArg(
-    'Boolean toggle for legend visibility.'
-  ),
+  showTitle: booleanArg('Boolean toggle for title visibility.'),
+  showLegend: booleanArg('Boolean toggle for legend visibility.'),
   legendPosition: selectArg(
     ['top', 'right', 'bottom'],
     'Finite legend placement choice. A select works better than free text here.',
@@ -191,9 +178,7 @@ export const surfaceArgTypes = {
       bottom: 'Bottom'
     }
   ),
-  showMenu: booleanArg(
-    'Boolean toggle for the overflow menu affordance.'
-  )
+  showMenu: booleanArg('Boolean toggle for the overflow menu affordance.')
 };
 
 export const fillStyleOptions = ['inherit', 'solid', 'texture', 'gradient'] as const;

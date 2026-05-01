@@ -46,14 +46,7 @@ export function DonutRing({
               patternTransform="rotate(45)"
             >
               <rect width="8" height="8" fill={chartTokens.neutral.white} fillOpacity="0" />
-              <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="8"
-                stroke={segment.color}
-                strokeWidth="4"
-              />
+              <line x1="0" y1="0" x2="0" y2="8" stroke={segment.color} strokeWidth="4" />
             </pattern>
           ) : null
         )}
@@ -70,9 +63,7 @@ export function DonutRing({
         const labelX = center + Math.cos(angle) * labelRadius;
         const labelY = center + Math.sin(angle) * labelRadius;
         const stroke =
-          segment.fillStyle === 'texture'
-            ? `url(#texture-${id}-${index})`
-            : segment.color;
+          segment.fillStyle === 'texture' ? `url(#texture-${id}-${index})` : segment.color;
 
         return (
           <g key={`${segment.label}-${index}`}>

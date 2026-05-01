@@ -7,13 +7,7 @@ export type SequentialPaletteName =
   | 'neel'
   | 'pink';
 
-export type SequentialTone =
-  | 'lightest'
-  | 'lighter'
-  | 'light'
-  | 'default'
-  | 'dark'
-  | 'darker';
+export type SequentialTone = 'lightest' | 'lighter' | 'light' | 'default' | 'dark' | 'darker';
 
 export const chartTokens = {
   fontFamily: "'Nunito Sans', 'Segoe UI', system-ui, sans-serif",
@@ -213,9 +207,6 @@ export function getSequentialScale(name: SequentialPaletteName) {
   ];
 }
 
-export function getSequentialTone(
-  name: SequentialPaletteName,
-  tone: SequentialTone
-) {
+export function getSequentialTone(name: SequentialPaletteName, tone: SequentialTone) {
   return chartTokens.sequential[name][tone];
 }

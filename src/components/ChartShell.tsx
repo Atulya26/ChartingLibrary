@@ -48,19 +48,12 @@ export function ChartShell({
           <h3 className="cl-header__title">{title}</h3>
         ) : null}
         <div
-          className={cx(
-            'cl-chart-shell__body',
-            showSideLegend && 'cl-chart-shell__body--split'
-          )}
+          className={cx('cl-chart-shell__body', showSideLegend && 'cl-chart-shell__body--split')}
         >
           <div className="cl-chart-shell__main">{children}</div>
-          {showSideLegend ? (
-            <aside className="cl-chart-shell__aside">{sideLegend}</aside>
-          ) : null}
+          {showSideLegend ? <aside className="cl-chart-shell__aside">{sideLegend}</aside> : null}
         </div>
-        {showBottomLegend ? (
-          <div className="cl-chart-shell__legend">{bottomLegend}</div>
-        ) : null}
+        {showBottomLegend ? <div className="cl-chart-shell__legend">{bottomLegend}</div> : null}
         {footer ? <div className="cl-chart-shell__footer">{footer}</div> : null}
       </figure>
     </ChartCard>

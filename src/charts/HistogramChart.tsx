@@ -89,9 +89,7 @@ export function HistogramChart({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const svgId = useId().replace(/:/g, '');
   const resolvedPlotWidth = resolveResponsivePlotWidth(width, plotWidth, 414, 88);
-  const resolvedBins = bins.map((bin, index) =>
-    resolveHistogramBin(bin, index, fillStyle)
-  );
+  const resolvedBins = bins.map((bin, index) => resolveHistogramBin(bin, index, fillStyle));
   const extent = getValueExtent(resolvedBins.map((bin) => bin.value));
   const tickEntries = resolveTickEntries(
     yAxis,
@@ -105,22 +103,23 @@ export function HistogramChart({
   const defs: ReactNode[] = [];
   const barLayers: ReactNode[] = [];
   const labelLayers: ReactNode[] = [];
-  const legendEntries = new Map<string, {
-    label: string;
-    color: string;
-    strokeColor?: string;
-    marker: ReturnType<typeof resolveFillLegendMarker>;
-    active?: boolean;
-  }>();
+  const legendEntries = new Map<
+    string,
+    {
+      label: string;
+      color: string;
+      strokeColor?: string;
+      marker: ReturnType<typeof resolveFillLegendMarker>;
+      active?: boolean;
+    }
+  >();
 
   resolvedBins.forEach((bin) => {
     if (bin.showLegendItem === false) {
       return;
     }
 
-    const legendKey =
-      bin.legendLabel ??
-      `${bin.fill}-${bin.stroke}-${bin.fillStyle}`;
+    const legendKey = bin.legendLabel ?? `${bin.fill}-${bin.stroke}-${bin.fillStyle}`;
 
     if (!legendEntries.has(legendKey)) {
       legendEntries.set(legendKey, {
@@ -149,12 +148,7 @@ export function HistogramChart({
     const valueY = scaleY(bin.value);
     const height = Math.max(Math.abs(zeroY - valueY), 1);
     const paintId = `histogram-${svgId}-${index}`;
-    const paint = getSvgFillDefinition(
-      paintId,
-      bin.fillStyle,
-      bin.fill,
-      bin.stroke
-    );
+    const paint = getSvgFillDefinition(paintId, bin.fillStyle, bin.fill, bin.stroke);
 
     if (paint.definition) {
       defs.push(paint.definition);
@@ -205,10 +199,14 @@ export function HistogramChart({
     ...point,
     x: point.x + barWidth / 2
   }));
-  const hoveredBin = hoveredIndex !== null ? resolvedBins[hoveredIndex] : null;
   const hoverCardPosition =
     hoveredIndex !== null && mousePos
-      ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(overlayLine ? 2 : 1))
+      ? getViewportHoverCardPosition(
+          mousePos.x,
+          mousePos.y,
+          196,
+          getEstimatedHoverCardHeight(overlayLine ? 2 : 1)
+        )
       : null;
   const plotFrameHeight = plotHeight + chartTokens.chart.xAxisHeight;
 
@@ -268,7 +266,12 @@ export function HistogramChart({
                     : undefined
                 }
                 onMouseLeave={
-                  showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined
+                  showHoverCard
+                    ? () => {
+                        setHoveredIndex(null);
+                        setMousePos(null);
+                      }
+                    : undefined
                 }
               >
                 <svg
@@ -328,36 +331,34 @@ export function HistogramChart({
                 {showHoverCard && hoveredIndex !== null ? (
                   <ChartHoverCard
                     title={resolvedBins[hoveredIndex].label}
-                    rows={[
-                      {
-                        label:
-                          resolvedBins[hoveredIndex].legendLabel ??
-                          'Observed distribution',
-                        value: formatTooltipValue(
-                          resolvedBins[hoveredIndex].value
-                        ),
-                        color: resolvedBins[hoveredIndex].fill,
-                        strokeColor: resolvedBins[hoveredIndex].stroke,
-                        marker: resolveFillLegendMarker(
-                          resolvedBins[hoveredIndex].fillStyle,
-                          legendMarker
-                        ) as TooltipRow['marker']
-                      },
-                      ...(overlayLine
-                        ? ([
-                            {
-                              label: overlayLegendLabel,
-                              value: formatTooltipValue(
-                                overlayPoints[hoveredIndex]?.value ??
-                                  resolvedBins[hoveredIndex].value
-                              ),
-                              color: chartTokens.categorical.secondary,
-                              strokeColor: chartTokens.categorical.secondary,
-                              marker: (overlayDots ? 'dot-line' : 'line') as TooltipRow['marker']
-                            }
-                          ] satisfies TooltipRow[])
-                        : [])
-                    ] satisfies TooltipRow[]}
+                    rows={
+                      [
+                        {
+                          label: resolvedBins[hoveredIndex].legendLabel ?? 'Observed distribution',
+                          value: formatTooltipValue(resolvedBins[hoveredIndex].value),
+                          color: resolvedBins[hoveredIndex].fill,
+                          strokeColor: resolvedBins[hoveredIndex].stroke,
+                          marker: resolveFillLegendMarker(
+                            resolvedBins[hoveredIndex].fillStyle,
+                            legendMarker
+                          ) as TooltipRow['marker']
+                        },
+                        ...(overlayLine
+                          ? ([
+                              {
+                                label: overlayLegendLabel,
+                                value: formatTooltipValue(
+                                  overlayPoints[hoveredIndex]?.value ??
+                                    resolvedBins[hoveredIndex].value
+                                ),
+                                color: chartTokens.categorical.secondary,
+                                strokeColor: chartTokens.categorical.secondary,
+                                marker: (overlayDots ? 'dot-line' : 'line') as TooltipRow['marker']
+                              }
+                            ] satisfies TooltipRow[])
+                          : [])
+                      ] satisfies TooltipRow[]
+                    }
                     left={hoverCardPosition?.left ?? 12}
                     top={hoverCardPosition?.top ?? 12}
                   />

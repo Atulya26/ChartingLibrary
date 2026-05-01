@@ -837,15 +837,19 @@ body {
   animation: cl-loading-line-draw 1000ms ease-out both;
 }
 
-.cl-loading-skeleton--animated.cl-loading-skeleton--pointer-scale .cl-loading-skeleton__pointer-needle {
+.cl-loading-skeleton--animated.cl-loading-skeleton--pointer-scale
+  .cl-loading-skeleton__pointer-needle {
   animation: cl-loading-pointer-scan 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.cl-loading-skeleton--animated.cl-loading-skeleton--pointer-scale .cl-loading-skeleton__pointer-segment {
+.cl-loading-skeleton--animated.cl-loading-skeleton--pointer-scale
+  .cl-loading-skeleton__pointer-segment {
   animation: cl-loading-block-fade 700ms ease-out both;
 }
 
-.cl-loading-skeleton--animated.cl-loading-skeleton--map-bubble .cl-loading-skeleton__map-bubbles circle {
+.cl-loading-skeleton--animated.cl-loading-skeleton--map-bubble
+  .cl-loading-skeleton__map-bubbles
+  circle {
   animation: cl-loading-bubble-rise 700ms ease-out both;
   transform-origin: center;
   transform-box: fill-box;
@@ -855,7 +859,9 @@ body {
   animation: cl-loading-sankey-wipe 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.cl-loading-skeleton--animated.cl-loading-skeleton--sankey .cl-loading-skeleton__sankey-ribbons path,
+.cl-loading-skeleton--animated.cl-loading-skeleton--sankey
+  .cl-loading-skeleton__sankey-ribbons
+  path,
 .cl-loading-skeleton--animated.cl-loading-skeleton--sankey .cl-loading-skeleton__sankey-nodes rect {
   animation: none;
 }

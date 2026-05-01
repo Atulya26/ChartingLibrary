@@ -35,7 +35,9 @@ const meta = {
   argTypes: {
     ...surfaceArgTypes,
     ...hiddenEventArgTypes,
-    bins: advancedDataArg('Advanced histogram bins. Hidden because raw object editing is not suitable for basic control exploration.'),
+    bins: advancedDataArg(
+      'Advanced histogram bins. Hidden because raw object editing is not suitable for basic control exploration.'
+    ),
     yAxis: advancedDataArg('Advanced y-axis config. Hidden from controls for cleaner UX.'),
     grid: advancedDataArg('Advanced grid config for code-level tuning.'),
     fillStyle: selectArg(
@@ -55,36 +57,30 @@ const meta = {
       fillLegendMarkerLabels
     ),
     showHoverCard: hoverCardArg(),
-    showTopLabels: booleanArg(
-      'Boolean toggle for values above each bin.'
-    ),
-    overlayLine: booleanArg(
-      'Boolean toggle for the overlay line.'
-    ),
-    overlayDots: booleanArg(
-      'Boolean toggle for dots on the overlay line.',
-      'Display',
-      { arg: 'overlayLine', truthy: true }
-    ),
-    overlayAreaFill: booleanArg(
-      'Boolean toggle for area fill under the overlay line.',
-      'Display',
-      { arg: 'overlayLine', truthy: true }
-    ),
-    overlayLegendLabel: advancedDataArg(
-      'Advanced legend label for the overlay line.',
-      { arg: 'overlayLine', truthy: true }
-    ),
-    plotWidth: numberArg(
-      'Numeric plot width in pixels.',
-      'Layout',
-      { min: 240, max: 700, step: 10 }
-    ),
-    plotHeight: numberArg(
-      'Numeric plot height in pixels.',
-      'Layout',
-      { min: 120, max: 360, step: 10 }
-    )
+    showTopLabels: booleanArg('Boolean toggle for values above each bin.'),
+    overlayLine: booleanArg('Boolean toggle for the overlay line.'),
+    overlayDots: booleanArg('Boolean toggle for dots on the overlay line.', 'Display', {
+      arg: 'overlayLine',
+      truthy: true
+    }),
+    overlayAreaFill: booleanArg('Boolean toggle for area fill under the overlay line.', 'Display', {
+      arg: 'overlayLine',
+      truthy: true
+    }),
+    overlayLegendLabel: advancedDataArg('Advanced legend label for the overlay line.', {
+      arg: 'overlayLine',
+      truthy: true
+    }),
+    plotWidth: numberArg('Numeric plot width in pixels.', 'Layout', {
+      min: 240,
+      max: 700,
+      step: 10
+    }),
+    plotHeight: numberArg('Numeric plot height in pixels.', 'Layout', {
+      min: 120,
+      max: 360,
+      step: 10
+    })
   }
 } satisfies Meta<typeof HistogramChart>;
 

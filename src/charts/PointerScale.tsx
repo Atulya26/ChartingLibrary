@@ -58,12 +58,10 @@ export function PointerScale({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const stops = getPointerScaleStops(ranges);
   const clampedValue = clamp(value, min, max);
-  const clampedTarget =
-    typeof target === 'number' ? clamp(target, min, max) : undefined;
+  const clampedTarget = typeof target === 'number' ? clamp(target, min, max) : undefined;
   const activeRange =
     ranges.find((range) => clampedValue >= range.from && clampedValue <= range.to) ??
     ranges[ranges.length - 1];
-  const valueRatio = (clampedValue - min) / (max - min || 1);
   const hoverRows = [
     {
       label: 'Current',
@@ -91,15 +89,22 @@ export function PointerScale({
     }
   ];
   const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(hoverRows.length))
+    ? getViewportHoverCardPosition(
+        mousePos.x,
+        mousePos.y,
+        196,
+        getEstimatedHoverCardHeight(hoverRows.length)
+      )
     : null;
 
-  const legendItems = showLegend ? ranges.map(range => ({
-    label: range.label ?? `${range.from}-${range.to}`,
-    marker: 'solid' as const,
-    color: range.color,
-    active: true
-  })) : [];
+  const legendItems = showLegend
+    ? ranges.map((range) => ({
+        label: range.label ?? `${range.from}-${range.to}`,
+        marker: 'solid' as const,
+        color: range.color,
+        active: true
+      }))
+    : [];
 
   return (
     <ChartShell
@@ -116,10 +121,26 @@ export function PointerScale({
       <div
         className="cl-chart-pointer"
         style={{ position: 'relative' }}
-        onMouseMove={showHoverCard ? (event) => { setHovered(true); setMousePos({ x: event.clientX, y: event.clientY }); } : undefined}
-        onMouseLeave={showHoverCard ? () => { setHovered(false); setMousePos(null); } : undefined}
+        onMouseMove={
+          showHoverCard
+            ? (event) => {
+                setHovered(true);
+                setMousePos({ x: event.clientX, y: event.clientY });
+              }
+            : undefined
+        }
+        onMouseLeave={
+          showHoverCard
+            ? () => {
+                setHovered(false);
+                setMousePos(null);
+              }
+            : undefined
+        }
       >
-        <div className="cl-chart-pointer__value">{centerLabel ?? `${Math.round(clampedValue)}`}</div>
+        <div className="cl-chart-pointer__value">
+          {centerLabel ?? `${Math.round(clampedValue)}`}
+        </div>
         <div className="cl-chart-pointer__track">
           {stops.map((stop) => (
             <span
@@ -146,7 +167,10 @@ export function PointerScale({
             />
           ) : null}
         </div>
-        <div className="cl-chart-pointer__range-labels" style={{ display: 'flex', marginTop: '4px' }}>
+        <div
+          className="cl-chart-pointer__range-labels"
+          style={{ display: 'flex', marginTop: '4px' }}
+        >
           {stops.map((stop) => (
             <span
               key={`label-${stop.from}-${stop.to}`}

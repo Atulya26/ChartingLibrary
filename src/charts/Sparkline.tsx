@@ -65,8 +65,7 @@ export function Sparkline({
   const svgId = useId().replace(/:/g, '');
   const extent = getSparklineExtent(values);
   const points = buildLinePoints(values, width, height, extent.min, extent.max, 2);
-  const hoveredPoint =
-    hoveredIndex !== null ? points[hoveredIndex] : null;
+  const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
   const lastPoint = points.length ? points[points.length - 1] : null;
   const hoverCardPosition = mousePos
     ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(1))
@@ -80,14 +79,19 @@ export function Sparkline({
         showHoverCard
           ? (event) => {
               const rect = event.currentTarget.getBoundingClientRect();
-              setHoveredIndex(
-                getHoverIndex(event.clientX - rect.left, width, values.length)
-              );
+              setHoveredIndex(getHoverIndex(event.clientX - rect.left, width, values.length));
               setMousePos({ x: event.clientX, y: event.clientY });
             }
           : undefined
       }
-      onMouseLeave={showHoverCard ? () => { setHoveredIndex(null); setMousePos(null); } : undefined}
+      onMouseLeave={
+        showHoverCard
+          ? () => {
+              setHoveredIndex(null);
+              setMousePos(null);
+            }
+          : undefined
+      }
     >
       <svg
         width={width}
@@ -141,12 +145,7 @@ export function Sparkline({
               stroke={color}
               strokeWidth={1.5}
             />
-            <circle
-              cx={lastPoint.x}
-              cy={lastPoint.y}
-              r={getDotRadius('small')}
-              fill={color}
-            />
+            <circle cx={lastPoint.x} cy={lastPoint.y} r={getDotRadius('small')} fill={color} />
           </>
         ) : null}
         {showHoverCard && hoveredPoint ? (

@@ -200,12 +200,48 @@ export const lineSeries: LineSeriesConfig[] = [
 ];
 
 export const histogramBins: HistogramBin[] = [
-  { label: '0', value: 8, fill: chartTokens.sequential.default.lightest, stroke: chartTokens.sequential.default.dark, legendLabel: 'Observed distribution' },
-  { label: '1-5', value: 24, fill: chartTokens.sequential.default.lighter, stroke: chartTokens.sequential.default.dark, legendLabel: 'Observed distribution' },
-  { label: '6-10', value: 37, fill: chartTokens.sequential.default.light, stroke: chartTokens.sequential.default.dark, legendLabel: 'Observed distribution' },
-  { label: '11-20', value: 18, fill: chartTokens.sequential.default.default, stroke: chartTokens.sequential.default.dark, legendLabel: 'Observed distribution' },
-  { label: '21-30', value: 12, fill: chartTokens.sequential.default.dark, stroke: chartTokens.sequential.default.darker, legendLabel: 'Observed distribution' },
-  { label: '31+', value: 9, fill: chartTokens.sequential.default.darker, stroke: chartTokens.sequential.default.darker, legendLabel: 'Observed distribution' }
+  {
+    label: '0',
+    value: 8,
+    fill: chartTokens.sequential.default.lightest,
+    stroke: chartTokens.sequential.default.dark,
+    legendLabel: 'Observed distribution'
+  },
+  {
+    label: '1-5',
+    value: 24,
+    fill: chartTokens.sequential.default.lighter,
+    stroke: chartTokens.sequential.default.dark,
+    legendLabel: 'Observed distribution'
+  },
+  {
+    label: '6-10',
+    value: 37,
+    fill: chartTokens.sequential.default.light,
+    stroke: chartTokens.sequential.default.dark,
+    legendLabel: 'Observed distribution'
+  },
+  {
+    label: '11-20',
+    value: 18,
+    fill: chartTokens.sequential.default.default,
+    stroke: chartTokens.sequential.default.dark,
+    legendLabel: 'Observed distribution'
+  },
+  {
+    label: '21-30',
+    value: 12,
+    fill: chartTokens.sequential.default.dark,
+    stroke: chartTokens.sequential.default.darker,
+    legendLabel: 'Observed distribution'
+  },
+  {
+    label: '31+',
+    value: 9,
+    fill: chartTokens.sequential.default.darker,
+    stroke: chartTokens.sequential.default.darker,
+    legendLabel: 'Observed distribution'
+  }
 ];
 
 export const sparklineValues = [1028, 1036, 1041, 1033, 1047, 1052, 1048];
@@ -442,31 +478,28 @@ const bubbleDetailByLegendLabel: Record<string, { costBase: number; avoidableBas
   'Non-affiliated ASC': { costBase: 9400000, avoidableBase: 25.1 }
 };
 
-export const mapBubblePoints: MapBubblePoint[] = baseMapBubblePoints.map(
-  (point, index) => {
-    const legendLabel = point.legendLabel ?? 'Hospital';
-    const detailBase =
-      bubbleDetailByLegendLabel[legendLabel] ?? bubbleDetailByLegendLabel.Hospital;
-    const surgeryCost = Math.round(detailBase.costBase + point.value * 312000 + index * 87000);
-    const avoidablePercent = (detailBase.avoidableBase + index * 0.7).toFixed(1);
+export const mapBubblePoints: MapBubblePoint[] = baseMapBubblePoints.map((point, index) => {
+  const legendLabel = point.legendLabel ?? 'Hospital';
+  const detailBase = bubbleDetailByLegendLabel[legendLabel] ?? bubbleDetailByLegendLabel.Hospital;
+  const surgeryCost = Math.round(detailBase.costBase + point.value * 312000 + index * 87000);
+  const avoidablePercent = (detailBase.avoidableBase + index * 0.7).toFixed(1);
 
-    return {
-      ...point,
-      details: [
-        { label: 'Network', value: legendLabel },
-        { label: 'State', value: point.stateCode ?? 'US' },
-        {
-          label: 'Surgery cost',
-          value: `$${surgeryCost.toLocaleString('en-US')}`
-        },
-        {
-          label: 'Potential avoidable %',
-          value: `${avoidablePercent}%`
-        }
-      ]
-    };
-  }
-);
+  return {
+    ...point,
+    details: [
+      { label: 'Network', value: legendLabel },
+      { label: 'State', value: point.stateCode ?? 'US' },
+      {
+        label: 'Surgery cost',
+        value: `$${surgeryCost.toLocaleString('en-US')}`
+      },
+      {
+        label: 'Potential avoidable %',
+        value: `${avoidablePercent}%`
+      }
+    ]
+  };
+});
 
 export const mapBubbleTableConfig = {
   headers: ['Facility', 'State', 'Network', 'Potential avoidable %'],
@@ -494,24 +527,72 @@ const ax = chartTokens.categorical.axisPalette;
 
 export const edFlowNodes: SankeyNode[] = [
   // Column 0 — Arrival
-  { id: 'ambulance', label: 'Ambulance', category: 'Arrival', fill: ax[0].fill, stroke: ax[0].stroke },
+  {
+    id: 'ambulance',
+    label: 'Ambulance',
+    category: 'Arrival',
+    fill: ax[0].fill,
+    stroke: ax[0].stroke
+  },
   { id: 'walk-in', label: 'Walk-in', category: 'Arrival', fill: ax[0].fill, stroke: ax[0].stroke },
-  { id: 'transfer', label: 'Transfer', category: 'Arrival', fill: ax[0].fill, stroke: ax[0].stroke },
+  {
+    id: 'transfer',
+    label: 'Transfer',
+    category: 'Arrival',
+    fill: ax[0].fill,
+    stroke: ax[0].stroke
+  },
 
   // Column 1 — Triage
   { id: 'critical', label: 'Critical', category: 'Triage', fill: ax[5].fill, stroke: ax[5].stroke },
   { id: 'urgent', label: 'Urgent', category: 'Triage', fill: ax[4].fill, stroke: ax[4].stroke },
-  { id: 'non-urgent', label: 'Non-urgent', category: 'Triage', fill: ax[2].fill, stroke: ax[2].stroke },
+  {
+    id: 'non-urgent',
+    label: 'Non-urgent',
+    category: 'Triage',
+    fill: ax[2].fill,
+    stroke: ax[2].stroke
+  },
 
   // Column 2 — Disposition
-  { id: 'admitted', label: 'Admitted', category: 'Disposition', fill: ax[3].fill, stroke: ax[3].stroke },
-  { id: 'discharged', label: 'Discharged', category: 'Disposition', fill: ax[2].fill, stroke: ax[2].stroke },
-  { id: 'observation', label: 'Observation', category: 'Disposition', fill: ax[1].fill, stroke: ax[1].stroke },
+  {
+    id: 'admitted',
+    label: 'Admitted',
+    category: 'Disposition',
+    fill: ax[3].fill,
+    stroke: ax[3].stroke
+  },
+  {
+    id: 'discharged',
+    label: 'Discharged',
+    category: 'Disposition',
+    fill: ax[2].fill,
+    stroke: ax[2].stroke
+  },
+  {
+    id: 'observation',
+    label: 'Observation',
+    category: 'Disposition',
+    fill: ax[1].fill,
+    stroke: ax[1].stroke
+  },
 
   // Column 3 — Outcome
   { id: 'home', label: 'Home', category: 'Outcome', fill: ax[2].fill, stroke: ax[2].stroke },
-  { id: 'inpatient', label: 'Inpatient', category: 'Outcome', fill: ax[3].fill, stroke: ax[3].stroke },
-  { id: 'readmitted', label: 'Readmitted', category: 'Outcome', fill: ax[5].fill, stroke: ax[5].stroke }
+  {
+    id: 'inpatient',
+    label: 'Inpatient',
+    category: 'Outcome',
+    fill: ax[3].fill,
+    stroke: ax[3].stroke
+  },
+  {
+    id: 'readmitted',
+    label: 'Readmitted',
+    category: 'Outcome',
+    fill: ax[5].fill,
+    stroke: ax[5].stroke
+  }
 ];
 
 export const edFlowLinks: SankeyLink[] = [
@@ -546,17 +627,47 @@ export const edFlowLinks: SankeyLink[] = [
 /* ------------------------------------------------------------------ */
 
 export const revenueFlowNodes: SankeyNode[] = [
-  { id: 'commercial', label: 'Commercial', category: 'Payer', fill: ax[0].fill, stroke: ax[0].stroke },
+  {
+    id: 'commercial',
+    label: 'Commercial',
+    category: 'Payer',
+    fill: ax[0].fill,
+    stroke: ax[0].stroke
+  },
   { id: 'medicare', label: 'Medicare', category: 'Payer', fill: ax[3].fill, stroke: ax[3].stroke },
   { id: 'medicaid', label: 'Medicaid', category: 'Payer', fill: ax[2].fill, stroke: ax[2].stroke },
 
-  { id: 'gross', label: 'Gross charges', category: 'Gross', fill: ax[1].fill, stroke: ax[1].stroke },
+  {
+    id: 'gross',
+    label: 'Gross charges',
+    category: 'Gross',
+    fill: ax[1].fill,
+    stroke: ax[1].stroke
+  },
 
-  { id: 'contractual', label: 'Contractual adj.', category: 'Adjustments', fill: ax[5].fill, stroke: ax[5].stroke },
-  { id: 'bad-debt', label: 'Bad debt', category: 'Adjustments', fill: ax[4].fill, stroke: ax[4].stroke },
+  {
+    id: 'contractual',
+    label: 'Contractual adj.',
+    category: 'Adjustments',
+    fill: ax[5].fill,
+    stroke: ax[5].stroke
+  },
+  {
+    id: 'bad-debt',
+    label: 'Bad debt',
+    category: 'Adjustments',
+    fill: ax[4].fill,
+    stroke: ax[4].stroke
+  },
   { id: 'net', label: 'Net revenue', category: 'Net', fill: ax[2].fill, stroke: ax[2].stroke },
 
-  { id: 'collected', label: 'Collected', category: 'Collected', fill: ax[2].fill, stroke: ax[2].stroke },
+  {
+    id: 'collected',
+    label: 'Collected',
+    category: 'Collected',
+    fill: ax[2].fill,
+    stroke: ax[2].stroke
+  },
   { id: 'ar', label: 'In A/R', category: 'Collected', fill: ax[5].fill, stroke: ax[5].stroke }
 ];
 

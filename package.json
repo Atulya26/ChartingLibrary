@@ -29,6 +29,9 @@
     "map-chart",
     "healthcare"
   ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -51,13 +54,34 @@
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
     "dev": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev --port 6006 --host 0.0.0.0",
     "storybook": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev --port 6006 --host 0.0.0.0",
-    "build-storybook": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build"
+    "build-storybook": "HOME=$(pwd)/.storybook-home CI=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "size": "npm run build && size-limit",
+    "chromatic": "chromatic --exit-zero-on-changes",
+    "chromatic:ci": "chromatic"
   },
+  "size-limit": [
+    {
+      "name": "ESM bundle",
+      "path": "dist/index.js",
+      "limit": "50 KB"
+    },
+    {
+      "name": "CSS bundle",
+      "path": "dist/index.css",
+      "limit": "5 KB"
+    }
+  ],
   "peerDependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@size-limit/file": "^12.1.0",
     "@storybook/addon-essentials": "8.6.18",
     "@storybook/addon-interactions": "8.6.18",
     "@storybook/react-vite": "8.6.18",
@@ -66,11 +90,20 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/topojson-client": "^3.1.5",
+    "chromatic": "^16.6.3",
+    "eslint": "^9.39.4",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "eslint-plugin-storybook": "^0.12.0",
+    "prettier": "^3.8.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "size-limit": "^12.1.0",
     "storybook": "8.6.18",
     "tsup": "^8.4.0",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.59.1",
     "vite": "^5.4.14"
   },
   "dependencies": {

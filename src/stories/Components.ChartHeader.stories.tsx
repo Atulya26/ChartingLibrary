@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { ChartHeader } from '../components/ChartHeader';
-import {
-  chartActions,
-  compactChartActions,
-  legendMarkers,
-  selectOptions
-} from './storyData';
+import { chartActions, compactChartActions, legendMarkers, selectOptions } from './storyData';
 
 const meta = {
   title: 'Components/Chart Header',

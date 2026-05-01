@@ -31,12 +31,7 @@ export const Overview: Story = {
             borderRadius: 8
           }}
         >
-          <BarMark
-            value={78}
-            maxValue={100}
-            label="Solid"
-            fill={chartTokens.categorical.primary}
-          />
+          <BarMark value={78} maxValue={100} label="Solid" fill={chartTokens.categorical.primary} />
           <BarMark
             value={61}
             maxValue={100}

@@ -30,12 +30,7 @@ export function ChartHoverCard({
 
   return (
     <div className="cl-chart-hover-card" style={style}>
-      <TooltipPopover
-        title={title}
-        rows={rows}
-        totalLabel={totalLabel}
-        totalValue={totalValue}
-      />
+      <TooltipPopover title={title} rows={rows} totalLabel={totalLabel} totalValue={totalValue} />
     </div>
   );
 }

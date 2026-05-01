@@ -24,11 +24,7 @@ export function getValueExtent(valueGroups: number[][]) {
   return { min, max };
 }
 
-export function createYScale(
-  minValue: number,
-  maxValue: number,
-  height: number
-) {
+export function createYScale(minValue: number, maxValue: number, height: number) {
   const range = maxValue - minValue || 1;
 
   return (value: number) => ((maxValue - value) / range) * height;
@@ -61,9 +57,7 @@ export function describeLinePath(points: Point[]) {
   }
 
   return points
-    .map((point, index) =>
-      `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
-    )
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
     .join(' ');
 }
 

@@ -16,13 +16,7 @@ export function ActionIcon({ action, ...props }: ActionIconProps) {
   };
 
   return (
-    <svg
-      viewBox="0 0 16 16"
-      width="16"
-      height="16"
-      aria-hidden="true"
-      {...props}
-    >
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" {...props}>
       {action === 'restore' && (
         <>
           <path d="M4 4V1.75" {...common} />
@@ -31,9 +25,7 @@ export function ActionIcon({ action, ...props }: ActionIconProps) {
           <path d="M4 8a4.5 4.5 0 1 0 1.43-3.26" {...common} />
         </>
       )}
-      {action === 'line-view' && (
-        <path d="M2 11l3-3 2 1 4-5 3 2" {...common} />
-      )}
+      {action === 'line-view' && <path d="M2 11l3-3 2 1 4-5 3 2" {...common} />}
       {action === 'bar-view' && (
         <>
           <path d="M3 13V7" {...common} />

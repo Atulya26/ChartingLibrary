@@ -28,14 +28,23 @@ const meta = {
     }
   },
   argTypes: {
-    values: advancedDataArg('Advanced sparkline values. Hidden from controls because raw array editing is not a good default experience.'),
+    values: advancedDataArg(
+      'Advanced sparkline values. Hidden from controls because raw array editing is not a good default experience.'
+    ),
     labels: advancedDataArg('Advanced sparkline labels used by the hover helper card.'),
     showHoverCard: hoverCardArg(),
     showAreaFill: booleanArg('Boolean toggle for a soft gradient fill under the curve.', 'Style'),
-    showEndDot: booleanArg('Boolean toggle for the latest-value dot at the end of the line.', 'Style'),
+    showEndDot: booleanArg(
+      'Boolean toggle for the latest-value dot at the end of the line.',
+      'Style'
+    ),
     showDots: booleanArg('Boolean toggle for dots at every data point.', 'Style'),
     width: rangeArg('Numeric sparkline width in pixels.', 'Layout', { min: 40, max: 240, step: 4 }),
-    height: rangeArg('Numeric sparkline height in pixels.', 'Layout', { min: 16, max: 80, step: 2 }),
+    height: rangeArg('Numeric sparkline height in pixels.', 'Layout', {
+      min: 16,
+      max: 80,
+      step: 2
+    }),
     strokeWidth: rangeArg('Numeric line width in pixels.', 'Style', { min: 1, max: 6, step: 0.5 }),
     color: colorArg('Line color for the sparkline.')
   }
