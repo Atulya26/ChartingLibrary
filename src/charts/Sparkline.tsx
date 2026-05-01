@@ -1,4 +1,5 @@
-import { memo, useId, useState } from 'react';
+import { memo, useCallback, useId, useMemo, useState } from 'react';
+import type { MouseEvent } from 'react';
 
 import { chartTokens } from '../theme/tokens';
 import { ChartHoverCard } from '../components/ChartHoverCard';
@@ -63,35 +64,44 @@ export const Sparkline = memo(function Sparkline({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const svgId = useId().replace(/:/g, '');
-  const extent = getSparklineExtent(values);
-  const points = buildLinePoints(values, width, height, extent.min, extent.max, 2);
-  const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
-  const lastPoint = points.length ? points[points.length - 1] : null;
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(1))
-    : null;
+  const extent = useMemo(() => getSparklineExtent(values), [values]);
+  const points = useMemo(
+    () => buildLinePoints(values, width, height, extent.min, extent.max, 2),
+    [extent.max, extent.min, height, values, width]
+  );
+  const hoveredPoint = useMemo(
+    () => (hoveredIndex !== null ? points[hoveredIndex] : null),
+    [hoveredIndex, points]
+  );
+  const lastPoint = useMemo(() => (points.length ? points[points.length - 1] : null), [points]);
+  const hoverCardPosition = useMemo(
+    () =>
+      mousePos
+        ? getViewportHoverCardPosition(mousePos.x, mousePos.y, 196, getEstimatedHoverCardHeight(1))
+        : null,
+    [mousePos]
+  );
   const areaGradientId = `cl-sparkline-area-${svgId}`;
+  const linePath = useMemo(() => describeLinePath(points), [points]);
+  const areaPath = useMemo(() => describeAreaPath(points, height), [height, points]);
+  const handleMouseMove = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHoveredIndex(getHoverIndex(event.clientX - rect.left, width, values.length));
+      setMousePos({ x: event.clientX, y: event.clientY });
+    },
+    [values.length, width]
+  );
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+    setMousePos(null);
+  }, []);
 
   return (
     <div
       style={{ position: 'relative', width, height }}
-      onMouseMove={
-        showHoverCard
-          ? (event) => {
-              const rect = event.currentTarget.getBoundingClientRect();
-              setHoveredIndex(getHoverIndex(event.clientX - rect.left, width, values.length));
-              setMousePos({ x: event.clientX, y: event.clientY });
-            }
-          : undefined
-      }
-      onMouseLeave={
-        showHoverCard
-          ? () => {
-              setHoveredIndex(null);
-              setMousePos(null);
-            }
-          : undefined
-      }
+      onMouseMove={showHoverCard ? handleMouseMove : undefined}
+      onMouseLeave={showHoverCard ? handleMouseLeave : undefined}
     >
       <svg
         width={width}
@@ -110,14 +120,10 @@ export const Sparkline = memo(function Sparkline({
           </defs>
         ) : null}
         {showAreaFill && points.length ? (
-          <path
-            d={describeAreaPath(points, height)}
-            fill={`url(#${areaGradientId})`}
-            stroke="none"
-          />
+          <path d={areaPath} fill={`url(#${areaGradientId})`} stroke="none" />
         ) : null}
         <path
-          d={describeLinePath(points)}
+          d={linePath}
           fill="none"
           stroke={color}
           strokeWidth={strokeWidth}

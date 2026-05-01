@@ -1,4 +1,4 @@
-import { Fragment, memo, useId, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { chartTokens } from '../theme/tokens';
@@ -210,15 +210,16 @@ export const SankeyChart = memo(function SankeyChart({
   }, [hoveredLinkIdx, hoveredNodeId, highlightMode, layout.links]);
 
   // Gradient defs for link color interpolation.
-  const gradientDefs: ReactNode[] = [];
-  if (linkColorMode === 'gradient') {
-    layout.links.forEach((link, i) => {
+  const gradientDefs = useMemo<ReactNode[]>(() => {
+    if (linkColorMode !== 'gradient') return [];
+
+    return layout.links.flatMap((link, i) => {
       const srcIdx = nodeIndexById.get(link.source);
       const tgtIdx = nodeIndexById.get(link.target);
-      if (srcIdx == null || tgtIdx == null) return;
+      if (srcIdx == null || tgtIdx == null) return [];
       const srcColor = nodeColors[srcIdx].fill;
       const tgtColor = nodeColors[tgtIdx].fill;
-      gradientDefs.push(
+      return (
         <linearGradient
           key={`grad-${i}`}
           id={`sankey-grad-${svgId}-${i}`}
@@ -233,17 +234,20 @@ export const SankeyChart = memo(function SankeyChart({
         </linearGradient>
       );
     });
-  }
+  }, [layout.links, linkColorMode, nodeColors, nodeIndexById, svgId]);
 
-  const resolveLinkFill = (linkIdx: number): string => {
-    const link = layout.links[linkIdx];
-    if (link.color) return link.color;
-    if (linkColorMode === 'neutral') return neutralLinkColor;
-    if (linkColorMode === 'gradient') return `url(#sankey-grad-${svgId}-${linkIdx})`;
-    const ref = linkColorMode === 'source' ? link.source : link.target;
-    const idx = nodeIndexById.get(ref);
-    return idx != null ? nodeColors[idx].fill : neutralLinkColor;
-  };
+  const resolveLinkFill = useCallback(
+    (linkIdx: number): string => {
+      const link = layout.links[linkIdx];
+      if (link.color) return link.color;
+      if (linkColorMode === 'neutral') return neutralLinkColor;
+      if (linkColorMode === 'gradient') return `url(#sankey-grad-${svgId}-${linkIdx})`;
+      const ref = linkColorMode === 'source' ? link.source : link.target;
+      const idx = nodeIndexById.get(ref);
+      return idx != null ? nodeColors[idx].fill : neutralLinkColor;
+    },
+    [layout.links, linkColorMode, neutralLinkColor, nodeColors, nodeIndexById, svgId]
+  );
 
   // Legend: group nodes by category if provided, otherwise show each node.
   const legendItems: LegendItem[] = useMemo(() => {
@@ -264,23 +268,45 @@ export const SankeyChart = memo(function SankeyChart({
   }, [showLegend, nodes, nodeColors]);
 
   // Hover card copy.
-  const hoveredLink = hoveredLinkIdx != null ? layout.links[hoveredLinkIdx] : null;
-  const hoveredSource =
-    hoveredLink != null ? nodes[nodeIndexById.get(hoveredLink.source) ?? -1] : null;
-  const hoveredTarget =
-    hoveredLink != null ? nodes[nodeIndexById.get(hoveredLink.target) ?? -1] : null;
-  const hoveredNode = hoveredNodeId != null ? nodes[nodeIndexById.get(hoveredNodeId) ?? -1] : null;
-  const hoveredNodeLayout =
-    hoveredNodeId != null ? (layout.nodes.find((n) => n.id === hoveredNodeId) ?? null) : null;
+  const hoveredLink = useMemo(
+    () => (hoveredLinkIdx != null ? layout.links[hoveredLinkIdx] : null),
+    [hoveredLinkIdx, layout.links]
+  );
+  const hoveredSource = useMemo(
+    () => (hoveredLink != null ? nodes[nodeIndexById.get(hoveredLink.source) ?? -1] : null),
+    [hoveredLink, nodeIndexById, nodes]
+  );
+  const hoveredTarget = useMemo(
+    () => (hoveredLink != null ? nodes[nodeIndexById.get(hoveredLink.target) ?? -1] : null),
+    [hoveredLink, nodeIndexById, nodes]
+  );
+  const hoveredNode = useMemo(
+    () => (hoveredNodeId != null ? nodes[nodeIndexById.get(hoveredNodeId) ?? -1] : null),
+    [hoveredNodeId, nodeIndexById, nodes]
+  );
+  const hoveredNodeLayout = useMemo(
+    () =>
+      hoveredNodeId != null ? (layout.nodes.find((n) => n.id === hoveredNodeId) ?? null) : null,
+    [hoveredNodeId, layout.nodes]
+  );
 
-  const hoverCardPosition = mousePos
-    ? getViewportHoverCardPosition(
-        mousePos.x,
-        mousePos.y,
-        220,
-        getEstimatedHoverCardHeight(2, true)
-      )
-    : null;
+  const hoverCardPosition = useMemo(
+    () =>
+      mousePos
+        ? getViewportHoverCardPosition(
+            mousePos.x,
+            mousePos.y,
+            220,
+            getEstimatedHoverCardHeight(2, true)
+          )
+        : null,
+    [mousePos]
+  );
+  const handleMouseLeave = useCallback(() => {
+    setHoveredLinkIdx(null);
+    setHoveredNodeId(null);
+    setMousePos(null);
+  }, []);
 
   return (
     <ChartShell
@@ -302,11 +328,7 @@ export const SankeyChart = memo(function SankeyChart({
           role="img"
           aria-label={title}
           style={{ overflow: 'visible', display: 'block' }}
-          onMouseLeave={() => {
-            setHoveredLinkIdx(null);
-            setHoveredNodeId(null);
-            setMousePos(null);
-          }}
+          onMouseLeave={handleMouseLeave}
         >
           <defs>{gradientDefs}</defs>
 
