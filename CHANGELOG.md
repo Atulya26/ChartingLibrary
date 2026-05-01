@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   charts with `enableKeyboardNavigation`.
 - Axe accessibility checks in CI through the Storybook test runner.
 - WCAG AA color contrast audit documentation for the default chart tokens.
+- Optional `downsample` prop on `LineChart`, `Sparkline`, and `ComboChart` line
+  series. Uses LTTB to preserve visual shape, stays off by default, and keeps
+  hover and keyboard interactions on the original dataset.
+- Public `downsampleLttb` utility for upstream line-data preprocessing.
+- Large-data Storybook stress stories for raw and downsampled line-like charts.
 
 ### Changed
 

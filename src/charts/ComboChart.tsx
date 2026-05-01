@@ -1,4 +1,4 @@
-import { memo, useId, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { XAxis, YAxis } from '../primitives/Axis';
@@ -22,7 +22,8 @@ import type {
 import {
   buildLegendItemsFromBarSeriesWithOverrides,
   buildLegendItemsFromLineSeries,
-  buildLinePoints,
+  buildLinePointAtIndex,
+  buildLinePointsAtIndices,
   createInvertedScale,
   describeAreaPath,
   describeBarPath,
@@ -48,6 +49,11 @@ import {
   getChartA11yProps
 } from '../utils/a11y';
 import { useChartKeyboardNav } from '../utils/useChartKeyboardNav';
+import {
+  downsampleLttb,
+  getDownsampleLimit,
+  warnForLargeUndownsampledDataset
+} from '../utils/downsample';
 
 export interface ComboChartProps extends ChartHeaderProps, ChartAccessibilityProps {
   title?: string;
@@ -75,6 +81,8 @@ export interface ComboChartProps extends ChartHeaderProps, ChartAccessibilityPro
   barFillStyle?: FillStyleMode;
   barLegendMarker?: LegendMarkerMode;
   showHoverCard?: boolean;
+  /** Max points to render per line series. Uses LTTB to preserve visual shape. Off by default. */
+  downsample?: number;
 }
 
 function getLineExtent(series: LineSeriesConfig[]) {
@@ -136,6 +144,7 @@ export const ComboChart = memo(function ComboChart({
   barFillStyle = 'inherit',
   barLegendMarker = 'auto',
   showHoverCard = false,
+  downsample,
   ariaLabel,
   ariaDescription,
   enableKeyboardNavigation = false,
@@ -147,6 +156,13 @@ export const ComboChart = memo(function ComboChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const plotRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    warnForLargeUndownsampledDataset(
+      'ComboChart',
+      lineSeries.reduce((sum, item) => sum + item.data.length, 0),
+      downsample
+    );
+  }, [downsample, lineSeries]);
   const resolvedPlotWidth = useMemo(
     () => resolveResponsivePlotWidth(width, plotWidth, 414, 88),
     [plotWidth, width]
@@ -308,8 +324,14 @@ export const ComboChart = memo(function ComboChart({
       showOverlayLine
         ? lineSeries.map((item) => {
             const extent = item.axis === 'right' ? rightExtent : leftExtent;
-            const points = buildLinePoints(
-              item.data,
+            const limit = getDownsampleLimit(downsample, 'ComboChart');
+            const indexedData = item.data.map((value, index) => ({ x: index, y: value }));
+            const renderedData =
+              limit && item.data.length > limit ? downsampleLttb(indexedData, limit) : indexedData;
+            const points = buildLinePointsAtIndices(
+              renderedData.map((point) => point.y),
+              renderedData.map((point) => point.x),
+              categories.length,
               resolvedPlotWidth,
               plotHeight,
               extent.min,
@@ -328,13 +350,23 @@ export const ComboChart = memo(function ComboChart({
             return {
               item,
               points,
+              extent,
               stroke,
               areaPath: describeAreaPath(points, baseline),
               linePath: describeLinePath(points)
             };
           })
         : [],
-    [leftExtent, lineSeries, plotHeight, resolvedPlotWidth, rightExtent, showOverlayLine]
+    [
+      categories.length,
+      downsample,
+      leftExtent,
+      lineSeries,
+      plotHeight,
+      resolvedPlotWidth,
+      rightExtent,
+      showOverlayLine
+    ]
   );
   const stackedSegmentGap = barLayout === 'stacked' ? 3 : 0;
   const defs: ReactNode[] = [];
@@ -732,12 +764,23 @@ export const ComboChart = memo(function ComboChart({
                   {barLayers}
                   {lineLayers}
                   {showInteractionFeedback && activeIndex !== null && showOverlayLine
-                    ? lineRenderData.map(({ item, points, stroke }) => {
-                        const point = points[activeIndex];
+                    ? lineRenderData.map(({ item, extent, stroke }) => {
+                        const value = item.data[activeIndex];
 
-                        if (!point) {
+                        if (!Number.isFinite(value)) {
                           return null;
                         }
+
+                        const point = buildLinePointAtIndex(
+                          value,
+                          activeIndex,
+                          categories.length,
+                          resolvedPlotWidth,
+                          plotHeight,
+                          extent.min,
+                          extent.max,
+                          chartTokens.chart.lineXInset
+                        );
 
                         return (
                           <circle

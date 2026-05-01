@@ -179,6 +179,43 @@ The default palette and text tokens have been audited for the current chart back
 custom colors, keep text at WCAG AA `4.5:1` contrast and graphical marks at `3:1` contrast against
 the chart background. See [`docs/a11y-audit.md`](./docs/a11y-audit.md) for the current audit notes.
 
+## Performance
+
+Most dashboard-sized charts render smoothly with typical product datasets. For larger line-like
+datasets, `LineChart`, `ComboChart`, and `Sparkline` accept an opt-in `downsample` prop that uses
+LTTB to preserve the visual shape while rendering fewer points.
+
+```tsx
+<LineChart
+  title="Daily PMPM Trend"
+  categories={categories} // 10,000 labels
+  series={series} // one or more 10,000-point series
+  downsample={1000} // render at most 1,000 points per line series
+/>
+```
+
+Recommended values are usually `2x` to `4x` the chart's pixel width. For example, an `800px`-wide
+chart generally looks good with `downsample={1500}` to `downsample={3000}`. Lower values can be
+useful for dense dashboards, but may remove subtle local movement.
+
+Downsampling is off by default. When `downsample` is omitted, charts render the original data. When
+the data already has fewer points than the requested limit, the original array is passed through
+unchanged. Hover cards and keyboard navigation continue to use the original full dataset;
+downsampling only affects rendered line geometry.
+
+LTTB expects data sorted by x ascending. The built-in chart integrations use the array index as x, so
+the current chart API is already sorted. If you use the utility directly with custom `{ x, y }`
+points, sort first. LTTB preserves visual shape; it is not a statistical aggregation method for
+means, medians, or percentiles.
+
+You can also use the utility upstream:
+
+```tsx
+import { downsampleLttb } from '@atulya_26/charting-library';
+
+const compact = downsampleLttb(rawPoints, 1000);
+```
+
 ## Chart States
 
 Use chart states when data is loading, unavailable, or failed:
