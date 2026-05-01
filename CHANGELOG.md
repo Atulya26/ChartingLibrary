@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rebuilding paths, ticks, legends, gradients, and hover geometry.
 - Memoized remaining chart-derived work across bar, combo, donut, half-donut,
   histogram, and pointer scale internals where it can be done without visual changes.
+- Optimized MapBubbleChart projection, geography paths, bubble render data, and rAF-coalesced
+  drag and hover updates for smoother map interaction.
 
 ## 2026-04-30
 
