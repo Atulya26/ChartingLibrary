@@ -7,9 +7,9 @@ the pull request is merged.
 ## Measurement Protocol
 
 - Tooling: React DevTools Profiler plus Storybook stress stories.
-- Browser: Chrome `TBD`.
-- Machine: `TBD CPU`, `TBD RAM`, `TBD OS`.
-- CPU throttling: DevTools Performance panel, `4x slowdown`.
+- Browser: Chrome `147.0.7727.138`.
+- Machine: Apple M4, 16 GB RAM, macOS Darwin `25.3.0` arm64.
+- CPU throttling: DevTools Performance panel or Playwright CDP, `4x slowdown`.
 - Sampling: run each scenario 5 times, drop best and worst, average the middle 3.
 - Data: all stress data must come from deterministic seeded helpers.
 - Visual baseline: Chromatic should show no unintended design diffs.
@@ -40,6 +40,11 @@ sub-PR that changes the relevant scenario.
 | S5       | Long tasks in 5s drag  | TBD    | n/a      | TBD      | n/a      | <2      |
 | S5       | Avg frame duration     | TBD    | n/a      | TBD      | n/a      | <16.7ms |
 
+> Note: React Profiler measurements are still required before merging this milestone
+> to validate the S1/S2/S3 headline claims. The automated smoke measurements below
+> are useful supporting evidence, but they include Storybook iframe and page-load
+> overhead and should not be treated as the React cold-render targets.
+
 ## Run Log
 
 ### PR 2A Baseline
@@ -62,6 +67,22 @@ sub-PR that changes the relevant scenario.
 
 ### PR 2D Downsampling
 
-- Commit: `TBD`
-- Date: `TBD`
-- Notes: Capture raw and downsampled large-line scenarios.
+- Commit: `03f545f`
+- Date: `2026-05-01`
+- Notes: Optional downsampling merged through PR #17.
+- Local validation:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run format:check`
+  - `npm run size` (`48.15 KB` ESM brotli / `50 KB` budget, `3.52 KB` CSS brotli / `5 KB` budget)
+  - `npm run build-storybook`
+  - `npm run test-storybook` (`19` suites / `69` stories passed)
+- GitHub validation on PR #17 and integration PR #10:
+  - Typecheck, Lint, Format, Build Package, Build Storybook, Size Limit, Visual Regression, and A11y (axe) all passed.
+- Automated Storybook smoke under 4x CPU throttle on built `storybook-static`:
+  - S3 Line 1k story-ready time, 5 runs, drop best/worst: `643.9ms`.
+  - S4 Line 10k raw story-ready time, 5 runs, drop best/worst: `3237.1ms`.
+  - S4 Line 10k downsampled story-ready time, 5 runs, drop best/worst: `2906.7ms`.
+  - S4 raw SVG line path data: `315,954` total `d` characters.
+  - S4 downsampled SVG line path data: `31,591` total `d` characters.
+  - Path data reduction: ~`90%`.
